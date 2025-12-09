@@ -1,4 +1,4 @@
-import type { Token, SourceLocation } from '../types/index.js';
+import type { Token } from '../types/index.js';
 import { TokenType, LexerError } from '../types/index.js';
 import { Scanner, isDigit, isAlpha, isAlphaNumeric, isWhitespace, isNewline, isSquareNotation } from './scanner.js';
 import { KEYWORDS, SINGLE_CHAR_TOKENS, DOUBLE_CHAR_TOKENS, TRIPLE_CHAR_TOKENS } from './tokens.js';

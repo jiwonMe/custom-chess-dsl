@@ -9,7 +9,6 @@ import type {
 import {
   pos,
   parseSquare,
-  toSquare,
   posEquals,
   isInBounds,
 } from './position.js';

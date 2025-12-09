@@ -757,7 +757,7 @@ export enum TokenType {
   SLASH_EQUALS = 'SLASH_EQUALS',
   EQ = 'EQ',
   STRICT_EQ = 'STRICT_EQ',
-  NE = 'NE',
+  NE = 'NOT_EQ',
   STRICT_NE = 'STRICT_NE',
   LT = 'LT',
   GT = 'GT',
