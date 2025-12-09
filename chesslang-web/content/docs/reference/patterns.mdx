@@ -1,0 +1,175 @@
+---
+title: Movement Patterns
+description: Complete reference for ChessLang movement patterns
+---
+
+# Movement Patterns
+
+Movement patterns define how pieces can move on the board.
+
+## Basic Patterns
+
+### step
+
+Moves a fixed number of squares in a direction.
+
+```chesslang
+step(direction)           # 1 square
+step(direction, N)        # N squares
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| direction | Direction | Movement direction |
+| distance | number | Number of squares (default: 1) |
+
+**Examples:**
+
+```chesslang
+# King movement
+move: step(any)
+
+# Pawn initial double move
+move: step(forward, 2) where first_move and clear
+```
+
+### slide
+
+Moves any number of squares in a direction until blocked.
+
+```chesslang
+slide(direction)
+```
+
+**Examples:**
+
+```chesslang
+# Rook movement
+move: slide(orthogonal)
+
+# Bishop movement
+move: slide(diagonal)
+
+# Queen movement
+move: slide(orthogonal) | slide(diagonal)
+```
+
+### leap
+
+Jumps to a specific offset, ignoring pieces in between.
+
+```chesslang
+leap(dx, dy)
+```
+
+**Note:** All 8 rotations/reflections are automatically included.
+
+**Examples:**
+
+```chesslang
+# Knight movement
+move: leap(2, 1)
+
+# Camel (fairy piece)
+move: leap(3, 1)
+
+# Zebra (fairy piece)
+move: leap(3, 2)
+```
+
+### hop
+
+Jumps over a piece and lands on the other side.
+
+```chesslang
+hop(direction)
+```
+
+**Examples:**
+
+```chesslang
+# Cannon-like movement (can capture by hopping)
+capture: hop(orthogonal)
+```
+
+## Pattern Combinators
+
+### Or (`|`)
+
+Choose between multiple patterns.
+
+```chesslang
+pattern1 | pattern2
+```
+
+**Example:**
+
+```chesslang
+# Queen = Rook + Bishop
+move: slide(orthogonal) | slide(diagonal)
+```
+
+### Then (`+`)
+
+Sequential movement (for special pieces).
+
+```chesslang
+pattern1 + pattern2
+```
+
+**Example:**
+
+```chesslang
+# Gryphon: moves diagonally then orthogonally
+move: step(diagonal) + slide(orthogonal)
+```
+
+### Repeat (`*`)
+
+Repeat a pattern N times.
+
+```chesslang
+pattern * N
+```
+
+**Example:**
+
+```chesslang
+# Move exactly 3 squares
+move: step(forward) * 3 where clear
+```
+
+### Conditional (`where`)
+
+Add conditions to patterns.
+
+```chesslang
+pattern where condition
+```
+
+**Example:**
+
+```chesslang
+# Pawn double move only on first move
+move: step(forward, 2) where first_move and clear
+```
+
+## Directions Reference
+
+| Direction | Vector | Description |
+|-----------|--------|-------------|
+| `N` | (0, 1) | North (up) |
+| `S` | (0, -1) | South (down) |
+| `E` | (1, 0) | East (right) |
+| `W` | (-1, 0) | West (left) |
+| `NE` | (1, 1) | Northeast |
+| `NW` | (-1, 1) | Northwest |
+| `SE` | (1, -1) | Southeast |
+| `SW` | (-1, -1) | Southwest |
+| `orthogonal` | N\|S\|E\|W | Cardinal directions |
+| `diagonal` | NE\|NW\|SE\|SW | Diagonal directions |
+| `any` | all 8 | All directions |
+| `forward` | N for White, S for Black | Player-relative forward |
+| `backward` | S for White, N for Black | Player-relative backward |

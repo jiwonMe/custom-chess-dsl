@@ -1,0 +1,48 @@
+---
+title: Getting Started
+description: Learn the basics of ChessLang
+---
+
+# Getting Started with ChessLang
+
+ChessLang is a domain-specific language (DSL) for defining chess variants. Whether you want to create simple rule modifications or entirely new games, ChessLang makes it easy.
+
+## What is ChessLang?
+
+ChessLang provides three levels of complexity:
+
+1. **Level 1 (Configure)** - YAML-like configuration for simple modifications
+2. **Level 2 (Compose)** - Declarative DSL for custom pieces and triggers
+3. **Level 3 (Script)** - JavaScript-like scripting for complex logic
+
+## Quick Example
+
+Here's a simple example that creates "King of the Hill" - a variant where you win by moving your King to the center:
+
+```chesslang
+game: "King of the Hill"
+extends: "Standard Chess"
+
+board:
+  zones:
+    hill: [d4, d5, e4, e5]
+
+victory:
+  add:
+    hill: King in zone.hill
+```
+
+## Try It Now
+
+The best way to learn ChessLang is to try it yourself:
+
+1. Open the [Playground](/playground)
+2. Modify the example code
+3. Click "Run" to see your changes
+4. Play your custom variant!
+
+## Next Steps
+
+- [First Game](/docs/getting-started/first-game) - Create your first variant
+- [Language Guide](/docs/language) - Deep dive into the syntax
+- [Examples](/docs/examples) - Learn from real examples
