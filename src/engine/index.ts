@@ -30,3 +30,16 @@ export {
   mirrorVertical,
   rotate180,
 } from './position.js';
+
+export {
+  generateMovesForPattern,
+  evaluateCondition,
+  isInCheck,
+  isCheckmate,
+  isStalemate,
+  wouldBeInCheck,
+  filterLegalMoves,
+  type MoveContext,
+} from './moves.js';
+
+export { GameEngine } from './game.js';
