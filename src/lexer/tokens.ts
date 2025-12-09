@@ -17,6 +17,7 @@ export const KEYWORDS: Record<string, TokenType> = {
   rules: TokenType.RULES,
   add: TokenType.ADD,
   remove: TokenType.REMOVE,
+  replace: TokenType.REPLACE,
 
   // Level 2 keywords
   piece: TokenType.PIECE,
@@ -185,6 +186,7 @@ export function tokenTypeName(type: TokenType): string {
     [TokenType.RULES]: 'rules',
     [TokenType.ADD]: 'add',
     [TokenType.REMOVE]: 'remove',
+    [TokenType.REPLACE]: 'replace',
     [TokenType.PIECE]: 'piece',
     [TokenType.EFFECT]: 'effect',
     [TokenType.TRIGGER]: 'trigger',

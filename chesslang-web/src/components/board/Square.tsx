@@ -16,8 +16,20 @@ interface SquareProps {
   children?: React.ReactNode;
 }
 
-const fileLabels = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-const rankLabels = ['1', '2', '3', '4', '5', '6', '7', '8'];
+// 동적으로 파일/랭크 레이블 생성 (최대 26x26 보드 지원)
+const getFileLabel = (file: number): string => {
+  if (file < 26) {
+    return String.fromCharCode(97 + file); // a-z
+  }
+  // 26 이상이면 aa, ab, ... 형식
+  const first = Math.floor(file / 26) - 1;
+  const second = file % 26;
+  return String.fromCharCode(97 + first) + String.fromCharCode(97 + second);
+};
+
+const getRankLabel = (rank: number): string => {
+  return String(rank + 1);
+};
 
 export function Square({
   pos,
@@ -52,7 +64,7 @@ export function Square({
             isLight ? 'text-board-dark' : 'text-board-light'
           )}
         >
-          {rankLabels[pos.rank]}
+          {getRankLabel(pos.rank)}
         </span>
       )}
 
@@ -64,7 +76,7 @@ export function Square({
             isLight ? 'text-board-dark' : 'text-board-light'
           )}
         >
-          {fileLabels[pos.file]}
+          {getFileLabel(pos.file)}
         </span>
       )}
     </div>

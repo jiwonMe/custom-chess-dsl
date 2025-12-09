@@ -24,6 +24,9 @@ const examples = [
   { id: 'three-check', name: 'Three-Check' },
   { id: 'atomic', name: 'Atomic Chess' },
   { id: 'custom', name: 'Custom Pieces' },
+  { id: 'large-board', name: 'Large Board (10x10)' },
+  { id: 'mini-chess', name: 'Mini Chess (5x6)' },
+  { id: 'wide-board', name: 'Wide Board (12x8)' },
 ];
 
 export default function PlaygroundPage() {
@@ -243,11 +246,20 @@ export default function PlaygroundPage() {
   );
 }
 
+// Get file label (a-z, then aa, ab, ...)
+function getFileLabel(file: number): string {
+  if (file < 26) {
+    return String.fromCharCode(97 + file);
+  }
+  const first = Math.floor(file / 26) - 1;
+  const second = file % 26;
+  return String.fromCharCode(97 + first) + String.fromCharCode(97 + second);
+}
+
 // Format a move for display
 function formatMove(move: Move): string {
-  const files = 'abcdefgh';
-  const from = `${files[move.from.file]}${move.from.rank + 1}`;
-  const to = `${files[move.to.file]}${move.to.rank + 1}`;
+  const from = `${getFileLabel(move.from.file)}${move.from.rank + 1}`;
+  const to = `${getFileLabel(move.to.file)}${move.to.rank + 1}`;
   const piece = move.piece.type === 'Pawn' ? '' : move.piece.type[0];
   const capture = move.captured ? 'x' : '';
   return `${piece}${from}${capture}${to}`;

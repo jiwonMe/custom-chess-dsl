@@ -16,8 +16,8 @@ const ORTHOGONAL_DIRECTIONS: Direction[] = ['N', 'S', 'E', 'W'];
 const DIAGONAL_DIRECTIONS: Direction[] = ['NE', 'NW', 'SE', 'SW'];
 const ALL_DIRECTIONS: Direction[] = [...ORTHOGONAL_DIRECTIONS, ...DIAGONAL_DIRECTIONS];
 
-// File letters for notation
-const FILE_LETTERS = 'abcdefgh';
+// File letters for notation (a-z, 최대 26열 지원)
+const FILE_LETTERS = 'abcdefghijklmnopqrstuvwxyz';
 
 /**
  * Create a position from file and rank numbers
@@ -27,15 +27,21 @@ export function pos(file: number, rank: number): Position {
 }
 
 /**
- * Parse algebraic notation (e.g., "e4") to Position
+ * Parse algebraic notation (e.g., "e4", "i10", "l12") to Position
+ * Supports files a-z and ranks 1-99
  */
 export function parseSquare(notation: string): Position | null {
-  if (notation.length !== 2) return null;
+  if (notation.length < 2) return null;
 
-  const file = FILE_LETTERS.indexOf(notation[0]!.toLowerCase());
-  const rank = parseInt(notation[1]!, 10) - 1;
+  const fileChar = notation[0]!.toLowerCase();
+  const file = FILE_LETTERS.indexOf(fileChar);
 
-  if (file < 0 || file > 7 || isNaN(rank) || rank < 0 || rank > 7) {
+  if (file < 0) return null;
+
+  const rankPart = notation.slice(1);
+  const rank = parseInt(rankPart, 10) - 1;
+
+  if (isNaN(rank) || rank < 0 || rank > 98) {
     return null;
   }
 
@@ -46,7 +52,7 @@ export function parseSquare(notation: string): Position | null {
  * Convert Position to algebraic notation (e.g., "e4")
  */
 export function toSquare(position: Position): string {
-  const file = FILE_LETTERS[position.file];
+  const file = FILE_LETTERS[position.file] ?? '?';
   const rank = position.rank + 1;
   return `${file}${rank}`;
 }

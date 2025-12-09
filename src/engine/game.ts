@@ -97,7 +97,45 @@ export class GameEngine {
       this.setupStandardChess();
     }
 
+    // Apply piece replacements (e.g., Queen -> Amazon)
+    if (this.game.setup.replace && this.game.setup.replace.size > 0) {
+      this.applyPieceReplacements();
+    }
+
     this.syncState();
+  }
+
+  /**
+   * Apply piece replacements from setup config
+   */
+  private applyPieceReplacements(): void {
+    const replace = this.game.setup.replace;
+    if (!replace) return;
+
+    const allPieces = this.board.getAllPieces();
+
+    for (const piece of allPieces) {
+      const newType = replace.get(piece.type);
+      if (newType) {
+        // Get the new piece definition
+        const newPieceDef = this.game.pieces.get(newType);
+        // Convert Set to Array if needed
+        const traitsArray = newPieceDef?.traits ?? Array.from(piece.traits);
+        const newState = newPieceDef?.initialState ?? {};
+
+        // Remove old piece and create new one
+        const position = piece.pos;
+        const owner = piece.owner;
+        this.board.removePiece(position);
+        this.board.createPiece(
+          newType,
+          owner,
+          position,
+          traitsArray,
+          { ...newState }
+        );
+      }
+    }
   }
 
   /**

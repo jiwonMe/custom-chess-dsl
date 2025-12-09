@@ -243,13 +243,25 @@ export function isNewline(char: string): boolean {
 }
 
 export function isFileChar(char: string): boolean {
-  return char >= 'a' && char <= 'h';
+  // a-z 지원 (최대 26열)
+  return char >= 'a' && char <= 'z';
 }
 
 export function isRankChar(char: string): boolean {
-  return char >= '1' && char <= '8';
+  // 1-9 단일 자리 숫자
+  return char >= '1' && char <= '9';
 }
 
 export function isSquareNotation(str: string): boolean {
-  return str.length === 2 && isFileChar(str[0]!) && isRankChar(str[1]!);
+  // 스퀘어 표기법: a1, h8, i10, l12 등
+  // 파일(a-z) + 랭크(1-99)
+  if (str.length < 2) return false;
+
+  const fileChar = str[0]!;
+  if (!isFileChar(fileChar)) return false;
+
+  const rankPart = str.slice(1);
+  // 랭크가 숫자인지 확인 (1-99)
+  const rank = parseInt(rankPart, 10);
+  return !isNaN(rank) && rank >= 1 && rank <= 99 && rankPart === String(rank);
 }

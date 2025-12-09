@@ -462,6 +462,7 @@ export interface CompiledGame {
 
 export interface SetupConfig {
   placements: PlacementConfig[];
+  replace?: Map<string, string>; // 기존 기물을 다른 기물로 대체 (예: Queen -> Amazon)
   customSetup?: (state: GameState) => void;
 }
 
@@ -601,6 +602,7 @@ export interface SetupNode extends ASTNode {
   type: 'Setup';
   placements: PlacementNode[];
   fromFEN?: string;
+  replace?: Map<string, string>; // 기존 기물을 다른 기물로 대체 (예: Queen -> Amazon)
 }
 
 export interface PlacementNode extends ASTNode {
@@ -655,6 +657,7 @@ export enum TokenType {
   RULES = 'RULES',
   ADD = 'ADD',
   REMOVE = 'REMOVE',
+  REPLACE = 'REPLACE',
 
   // Keywords - Level 2
   PIECE = 'PIECE',

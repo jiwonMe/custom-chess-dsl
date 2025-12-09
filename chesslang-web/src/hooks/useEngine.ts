@@ -75,11 +75,14 @@ export function useEngine(): EngineHook {
       const state = engine.getState();
       const board = engine.getBoard();
 
+      // Get dynamic board dimensions
+      const { width, height } = board.dimensions;
+
       // Convert to web format
       const boardState: GameState['board'] = [];
-      for (let rank = 0; rank < 8; rank++) {
+      for (let rank = 0; rank < height; rank++) {
         const row = [];
-        for (let file = 0; file < 8; file++) {
+        for (let file = 0; file < width; file++) {
           const piece = board.at({ file, rank });
           row.push({
             pos: { file, rank },

@@ -482,6 +482,7 @@ export class Compiler {
 
   private compileSetup(node?: SetupNode): SetupConfig {
     const placements: PlacementConfig[] = [];
+    let replace: Map<string, string> | undefined;
 
     if (node) {
       for (const p of node.placements) {
@@ -494,9 +495,14 @@ export class Compiler {
           });
         }
       }
+
+      // Copy replace map if exists
+      if (node.replace && node.replace.size > 0) {
+        replace = new Map(node.replace);
+      }
     }
 
-    return { placements };
+    return { placements, replace };
   }
 
   private compileVictoryCondition(node: VictoryNode): VictoryCondition {

@@ -167,9 +167,14 @@ export class Parser {
           this.stream.advance();
           this.stream.expect(TokenType.COLON);
           width = parseInt(this.stream.expect(TokenType.NUMBER).value, 10);
-          // Handle "x8" as identifier or "x" followed by number
+          // Handle "x8" as identifier, square, or "x" followed by number
           const nextToken = this.stream.peek();
           if (nextToken.type === TokenType.IDENTIFIER && nextToken.value.startsWith('x')) {
+            const xPart = this.stream.advance().value;
+            // Extract height from "x8"
+            height = parseInt(xPart.slice(1), 10);
+          } else if (nextToken.type === TokenType.SQUARE && nextToken.value.startsWith('x')) {
+            // x8 was parsed as a SQUARE token (since x is a-z and 8 is 1-9)
             const xPart = this.stream.advance().value;
             // Extract height from "x8"
             height = parseInt(xPart.slice(1), 10);
@@ -237,6 +242,7 @@ export class Parser {
 
     const placements: PlacementNode[] = [];
     let fromFEN: string | undefined;
+    let replace: Map<string, string> | undefined;
 
     if (this.stream.match(TokenType.INDENT)) {
       while (!this.stream.check(TokenType.DEDENT) && !this.stream.isAtEnd()) {
@@ -254,8 +260,43 @@ export class Parser {
               if (this.stream.check(TokenType.DEDENT)) break;
 
               const color = this.parseColor();
+
+              // Check if next token is COLON (old format) or IDENTIFIER (new format)
+              if (this.stream.check(TokenType.COLON)) {
+                // Old format: White: { ... } or White: Piece: [squares]
+                this.stream.expect(TokenType.COLON);
+                placements.push(...this.parsePlacementList(color, location));
+              } else if (this.stream.check(TokenType.IDENTIFIER)) {
+                // New format: White Piece: [squares]
+                const pieceType = this.stream.expect(TokenType.IDENTIFIER).value;
+                this.stream.expect(TokenType.COLON);
+                const squares = this.parseSquareList();
+                for (const square of squares) {
+                  placements.push({ type: 'Placement', pieceType, square, owner: color, location });
+                }
+              }
+              this.stream.skipNewlines();
+            }
+            this.stream.match(TokenType.DEDENT);
+          }
+        } else if (this.stream.check(TokenType.REPLACE)) {
+          // Parse replace section: replace: { Queen: Amazon }
+          this.stream.advance();
+          this.stream.expect(TokenType.COLON);
+          this.stream.skipNewlines();
+
+          replace = new Map<string, string>();
+
+          if (this.stream.match(TokenType.INDENT)) {
+            while (!this.stream.check(TokenType.DEDENT) && !this.stream.isAtEnd()) {
+              this.stream.skipNewlines();
+              if (this.stream.check(TokenType.DEDENT)) break;
+
+              // Parse: OldPiece: NewPiece
+              const oldPiece = this.stream.expect(TokenType.IDENTIFIER).value;
               this.stream.expect(TokenType.COLON);
-              placements.push(...this.parsePlacementList(color, location));
+              const newPiece = this.stream.expect(TokenType.IDENTIFIER).value;
+              replace.set(oldPiece, newPiece);
               this.stream.skipNewlines();
             }
             this.stream.match(TokenType.DEDENT);
@@ -277,7 +318,7 @@ export class Parser {
       this.stream.match(TokenType.DEDENT);
     }
 
-    return { type: 'Setup', placements, fromFEN, location };
+    return { type: 'Setup', placements, fromFEN, replace, location };
   }
 
   private parsePlacementList(owner: Color, location: SourceLocation): PlacementNode[] {
