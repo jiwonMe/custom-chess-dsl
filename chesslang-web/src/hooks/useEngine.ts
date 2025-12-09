@@ -5,9 +5,12 @@ import { useEditorStore } from '@/stores/editorStore';
 import { useGameStore } from '@/stores/gameStore';
 import type { Move, GameState, CompiledGame } from '@/types';
 
-// Since we can't use Web Workers easily in Next.js without extra config,
-// we'll run the engine directly (synchronously) for now.
-// In production, this should be moved to a Web Worker.
+// Import chesslang modules via TypeScript path mapping (configured in tsconfig.json)
+import { Lexer } from 'chesslang/lexer';
+import { Parser } from 'chesslang/parser';
+import { Compiler } from 'chesslang/compiler';
+import { GameEngine } from 'chesslang/engine/game';
+import { STANDARD_CHESS } from 'chesslang/stdlib/standard-chess';
 
 interface EngineHook {
   compile: () => void;
@@ -20,7 +23,14 @@ interface EngineHook {
 
 export function useEngine(): EngineHook {
   const [isReady, setIsReady] = useState(false);
-  const engineRef = useRef<any>(null);
+  const engineRef = useRef<{
+    Lexer: typeof Lexer;
+    Parser: typeof Parser;
+    Compiler: typeof Compiler;
+    GameEngine: typeof GameEngine;
+    STANDARD_CHESS: typeof STANDARD_CHESS;
+    instance: InstanceType<typeof GameEngine> | null;
+  } | null>(null);
 
   const code = useEditorStore((s) => s.code);
   const setErrors = useEditorStore((s) => s.setErrors);
@@ -33,39 +43,28 @@ export function useEngine(): EngineHook {
   const setGameOver = useGameStore((s) => s.setGameOver);
   const selectPiece = useGameStore((s) => s.selectPiece);
 
-  // Load engine modules dynamically
+  // Initialize engine on mount
   useEffect(() => {
-    async function loadEngine() {
-      try {
-        // Dynamic import of the chesslang modules
-        const { Lexer } = await import('chesslang/lexer/index.js');
-        const { Parser } = await import('chesslang/parser/index.js');
-        const { Compiler } = await import('chesslang/compiler/index.js');
-        const { GameEngine } = await import('chesslang/engine/game.js');
-        const { STANDARD_CHESS } = await import('chesslang/stdlib/standard-chess.js');
+    try {
+      engineRef.current = {
+        Lexer,
+        Parser,
+        Compiler,
+        GameEngine,
+        STANDARD_CHESS,
+        instance: null,
+      };
 
-        engineRef.current = {
-          Lexer,
-          Parser,
-          Compiler,
-          GameEngine,
-          STANDARD_CHESS,
-          instance: null,
-        };
+      // Initialize with standard chess by default
+      const engine = new GameEngine(STANDARD_CHESS);
+      engineRef.current.instance = engine;
 
-        // Initialize with standard chess by default
-        const engine = new GameEngine(STANDARD_CHESS);
-        engineRef.current.instance = engine;
-
-        updateState(engine);
-        setIsReady(true);
-      } catch (error) {
-        console.error('Failed to load engine:', error);
-        setErrors([{ line: 1, column: 1, message: 'Failed to load engine' }]);
-      }
+      updateState(engine);
+      setIsReady(true);
+    } catch (error) {
+      console.error('Failed to load engine:', error);
+      setErrors([{ line: 1, column: 1, message: 'Failed to load engine' }]);
     }
-
-    loadEngine();
   }, [setErrors]);
 
   // Update game state from engine
