@@ -167,8 +167,19 @@ export class Parser {
           this.stream.advance();
           this.stream.expect(TokenType.COLON);
           width = parseInt(this.stream.expect(TokenType.NUMBER).value, 10);
-          this.stream.expect(TokenType.IDENTIFIER); // 'x'
-          height = parseInt(this.stream.expect(TokenType.NUMBER).value, 10);
+          // Handle "x8" as identifier or "x" followed by number
+          const nextToken = this.stream.peek();
+          if (nextToken.type === TokenType.IDENTIFIER && nextToken.value.startsWith('x')) {
+            const xPart = this.stream.advance().value;
+            // Extract height from "x8"
+            height = parseInt(xPart.slice(1), 10);
+          } else if (nextToken.type === TokenType.IDENTIFIER && nextToken.value === 'x') {
+            this.stream.advance(); // 'x'
+            height = parseInt(this.stream.expect(TokenType.NUMBER).value, 10);
+          } else {
+            // Assume same dimension if only one number provided
+            height = width;
+          }
         } else if (this.stream.check(TokenType.ZONES)) {
           this.stream.advance();
           this.stream.expect(TokenType.COLON);
@@ -514,7 +525,20 @@ export class Parser {
 
       if (this.stream.match(TokenType.BLOCKS)) {
         this.stream.expect(TokenType.COLON);
-        const value = this.stream.expect(TokenType.IDENTIFIER).value;
+        // blocks value can be a keyword or identifier
+        const token = this.stream.peek();
+        let value: string;
+        if (token.type === TokenType.ENEMY) {
+          this.stream.advance();
+          value = 'enemy';
+        } else if (token.type === TokenType.FRIEND) {
+          this.stream.advance();
+          value = 'friend';
+        } else if (token.type === TokenType.IDENTIFIER) {
+          value = this.stream.advance().value;
+        } else {
+          this.error('Expected blocks value (none, enemy, friend, all)');
+        }
         if (value === 'none' || value === 'enemy' || value === 'friend' || value === 'all') {
           blocks = value;
         }
@@ -923,7 +947,8 @@ export class Parser {
       const location = this.stream.peek().location;
 
       if (this.stream.match(TokenType.DOT)) {
-        const property = this.stream.expect(TokenType.IDENTIFIER).value;
+        // Property can be identifier or keyword (e.g., piece.state, piece.type)
+        const property = this.parseIdentifierOrKeyword();
         expr = { type: 'Expression', kind: 'member', object: expr, property, location };
       } else if (this.stream.match(TokenType.LBRACKET)) {
         const index = this.parseExpression();
@@ -1017,6 +1042,18 @@ export class Parser {
 
     // Colors as identifiers
     if (this.stream.check(TokenType.WHITE) || this.stream.check(TokenType.BLACK)) {
+      const name = this.stream.advance().value;
+      return { type: 'Expression', kind: 'identifier', name, location };
+    }
+
+    // Some keywords can be used as identifiers in expressions
+    // e.g., "piece.type", "check", etc.
+    const keywordAsIdentifier: TokenType[] = [
+      TokenType.PIECE, TokenType.MOVE, TokenType.CAPTURE, TokenType.CHECK,
+      TokenType.EMPTY, TokenType.ENEMY, TokenType.FRIEND, TokenType.CLEAR,
+      TokenType.STATE, TokenType.EFFECT, TokenType.TRIGGER,
+    ];
+    if (keywordAsIdentifier.includes(this.stream.peek().type)) {
       const name = this.stream.advance().value;
       return { type: 'Expression', kind: 'identifier', name, location };
     }
@@ -1149,14 +1186,31 @@ export class Parser {
   }
 
   private parseEventType(): EventType {
-    const token = this.stream.expect(TokenType.IDENTIFIER);
-    const eventTypes: EventType[] = [
-      'move', 'capture', 'captured', 'turn_start', 'turn_end',
-      'check', 'enter_zone', 'exit_zone', 'game_start', 'game_end',
-    ];
+    const token = this.stream.peek();
 
-    if (eventTypes.includes(token.value as EventType)) {
-      return token.value as EventType;
+    // Event types can be keywords like MOVE, CAPTURE, CHECK
+    const eventTypeMap: Partial<Record<TokenType, EventType>> = {
+      [TokenType.MOVE]: 'move',
+      [TokenType.CAPTURE]: 'capture',
+      [TokenType.CHECK]: 'check',
+    };
+
+    if (eventTypeMap[token.type]) {
+      this.stream.advance();
+      return eventTypeMap[token.type]!;
+    }
+
+    // Also accept as identifier
+    if (token.type === TokenType.IDENTIFIER) {
+      const eventTypes: EventType[] = [
+        'move', 'capture', 'captured', 'turn_start', 'turn_end',
+        'check', 'enter_zone', 'exit_zone', 'game_start', 'game_end',
+      ];
+
+      this.stream.advance();
+      if (eventTypes.includes(token.value as EventType)) {
+        return token.value as EventType;
+      }
     }
 
     this.error(`Invalid event type: ${token.value}`);
@@ -1182,6 +1236,38 @@ export class Parser {
     while (!this.stream.isAtEnd() && !this.stream.check(TokenType.NEWLINE)) {
       this.stream.advance();
     }
+  }
+
+  /**
+   * Parse an identifier, accepting keywords as identifiers in certain contexts
+   * (e.g., property names in member access)
+   */
+  private parseIdentifierOrKeyword(): string {
+    const token = this.stream.peek();
+
+    // Accept regular identifiers
+    if (token.type === TokenType.IDENTIFIER) {
+      return this.stream.advance().value;
+    }
+
+    // Accept keywords that can be used as property names
+    const keywordsAsProperties: TokenType[] = [
+      TokenType.PIECE, TokenType.MOVE, TokenType.CAPTURE, TokenType.CHECK,
+      TokenType.EMPTY, TokenType.ENEMY, TokenType.FRIEND, TokenType.CLEAR,
+      TokenType.STATE, TokenType.EFFECT, TokenType.TRIGGER, TokenType.PATTERN,
+      TokenType.TRAITS, TokenType.BLOCKS, TokenType.VISUAL, TokenType.ON,
+      TokenType.WHEN, TokenType.DO, TokenType.ADD, TokenType.REMOVE,
+      TokenType.RULES, TokenType.SETUP, TokenType.VICTORY, TokenType.DRAW,
+      TokenType.BOARD, TokenType.GAME, TokenType.EXTENDS, TokenType.SIZE,
+      TokenType.ZONES, TokenType.WIN, TokenType.LOSE, TokenType.SET,
+      TokenType.CREATE, TokenType.TRANSFORM, TokenType.MARK,
+    ];
+
+    if (keywordsAsProperties.includes(token.type)) {
+      return this.stream.advance().value;
+    }
+
+    this.error('Expected identifier');
   }
 
   private error(message: string): never {
