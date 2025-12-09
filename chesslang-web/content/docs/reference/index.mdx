@@ -1,0 +1,260 @@
+---
+title: Reference
+description: Complete ChessLang language reference
+---
+
+# Reference
+
+Complete reference documentation for the ChessLang language.
+
+## Quick Navigation
+
+| Section | Description |
+|---------|-------------|
+| [Keywords](/docs/reference/keywords) | All language keywords |
+| [Patterns](/docs/reference/patterns) | Movement patterns |
+| [Directions](/docs/reference/directions) | Direction system |
+| [Conditions](/docs/reference/conditions) | Condition syntax |
+| [Actions](/docs/reference/actions) | Available actions |
+
+## Keywords
+
+Complete list of reserved words and syntax.
+
+- [Keywords Reference →](/docs/reference/keywords)
+
+**Categories:**
+- Game definition (`game`, `extends`)
+- Board configuration (`board`, `zones`, `size`)
+- Piece definition (`piece`, `move`, `capture`, `traits`)
+- Effects and triggers (`effect`, `trigger`, `on`, `when`, `do`)
+- Control flow (`if`, `else`, `for`, `while`)
+- Scripting (`script`, `function`, `let`, `const`)
+
+## Movement Patterns
+
+How pieces move on the board.
+
+- [Patterns Reference →](/docs/reference/patterns)
+
+**Pattern Types:**
+| Pattern | Description | Example |
+|---------|-------------|---------|
+| `step` | Fixed distance | `step(forward)` |
+| `slide` | Until blocked | `slide(diagonal)` |
+| `leap` | Jump move | `leap(2, 1)` |
+| `hop` | Jump over piece | `hop(orthogonal)` |
+
+**Combinators:**
+| Combinator | Description | Example |
+|------------|-------------|---------|
+| `\|` | Or | `slide(N) \| slide(S)` |
+| `+` | Then | `step(N) + slide(E)` |
+| `*` | Repeat | `step(N) * 3` |
+
+## Directions
+
+Direction system for movement.
+
+- [Directions Reference →](/docs/reference/directions)
+
+**Absolute Directions:**
+```
+NW  N  NE
+ ↖ ↑ ↗
+W ← · → E
+ ↙ ↓ ↘
+SW  S  SE
+```
+
+**Direction Groups:**
+| Group | Includes |
+|-------|----------|
+| `orthogonal` | N, S, E, W |
+| `diagonal` | NE, NW, SE, SW |
+| `any` | All 8 directions |
+
+**Relative Directions:**
+| Direction | White | Black |
+|-----------|-------|-------|
+| `forward` | N | S |
+| `backward` | S | N |
+
+## Conditions
+
+Conditions for movement, triggers, and victory.
+
+- [Conditions Reference →](/docs/reference/conditions)
+
+**Movement Conditions:**
+| Condition | Description |
+|-----------|-------------|
+| `empty` | Target is empty |
+| `enemy` | Target has enemy |
+| `clear` | Path unobstructed |
+| `first_move` | First move |
+
+**Logical Operators:**
+| Operator | Description |
+|----------|-------------|
+| `and` | Both true |
+| `or` | Either true |
+| `not` | Negation |
+
+## Actions
+
+Commands that modify game state.
+
+- [Actions Reference →](/docs/reference/actions)
+
+**Piece Actions:**
+| Action | Description |
+|--------|-------------|
+| `set` | Modify state |
+| `create` | Create piece |
+| `remove` | Remove piece |
+| `transform` | Change type |
+
+**Board Actions:**
+| Action | Description |
+|--------|-------------|
+| `mark` | Apply effect |
+| `unmark` | Remove effect |
+
+**Game Actions:**
+| Action | Description |
+|--------|-------------|
+| `win` | Declare winner |
+| `draw` | Declare draw |
+
+## Standard Pieces
+
+Pieces inherited from "Standard Chess":
+
+```chesslang
+piece King {
+  move: step(any)
+  traits: [royal, castle]
+}
+
+piece Queen {
+  move: slide(any)
+}
+
+piece Rook {
+  move: slide(orthogonal)
+  traits: [castle]
+}
+
+piece Bishop {
+  move: slide(diagonal)
+}
+
+piece Knight {
+  move: leap(2, 1)
+  traits: [jump]
+}
+
+piece Pawn {
+  move: step(forward) where empty
+  move: step(forward, 2) where first_move and clear and empty
+  capture: step(forward-diagonal) where enemy
+  traits: [promote, en_passant]
+}
+```
+
+## Built-in Traits
+
+| Trait | Description |
+|-------|-------------|
+| `royal` | Game loss if captured |
+| `jump` | Can leap over pieces |
+| `castle` | Can castle |
+| `promote` | Can promote |
+| `en_passant` | Can be captured en passant |
+
+## Built-in Effects
+
+| Effect | Description |
+|--------|-------------|
+| `check` | King is threatened |
+| `pin` | Piece cannot move (would expose King) |
+
+## Reserved Values
+
+**Players:**
+- `White`
+- `Black`
+
+**Piece Types:**
+- `King`, `Queen`, `Rook`, `Bishop`, `Knight`, `Pawn`
+
+**Boolean:**
+- `true`, `false`, `null`
+
+## File Structure
+
+A typical ChessLang file:
+
+```chesslang
+# 1. Game definition
+game: "My Variant"
+extends: "Standard Chess"
+
+# 2. Board configuration
+board:
+  zones:
+    name: [squares...]
+
+# 3. Custom pieces
+piece Name {
+  move: pattern
+  capture: pattern
+  traits: [...]
+  state: { ... }
+}
+
+# 4. Effects
+effect name {
+  on_enter: action
+  visual: highlight(color)
+}
+
+# 5. Triggers
+trigger name {
+  on: event
+  when: condition
+  do: action
+}
+
+# 6. Scripts
+script {
+  // JavaScript-like code
+}
+
+# 7. Setup
+setup:
+  White:
+    Piece: [squares...]
+  Black:
+    Piece: [squares...]
+
+# 8. Victory/Draw conditions
+victory:
+  add:
+    name: condition
+
+draw:
+  add:
+    name: condition
+
+# 9. Rules
+rules:
+  setting: value
+```
+
+## See Also
+
+- [Language Guide](/docs/language) - Learn each level in detail
+- [Examples](/docs/examples) - Practical code examples
+- [Playground](/playground) - Try code interactively

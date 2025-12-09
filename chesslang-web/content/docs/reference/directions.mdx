@@ -1,0 +1,347 @@
+---
+title: Directions Reference
+description: Complete reference for ChessLang direction system
+---
+
+# Directions Reference
+
+Directions define how pieces move across the board. ChessLang provides both absolute and relative direction systems.
+
+## Absolute Directions
+
+Absolute directions are the same regardless of which player is moving.
+
+### Cardinal Directions
+
+| Direction | Vector | Description |
+|-----------|--------|-------------|
+| `N` | (0, +1) | North (toward rank 8) |
+| `S` | (0, -1) | South (toward rank 1) |
+| `E` | (+1, 0) | East (toward file h) |
+| `W` | (-1, 0) | West (toward file a) |
+
+```chesslang
+piece Rook {
+  move: slide(N) | slide(S) | slide(E) | slide(W)
+}
+```
+
+### Diagonal Directions
+
+| Direction | Vector | Description |
+|-----------|--------|-------------|
+| `NE` | (+1, +1) | Northeast |
+| `NW` | (-1, +1) | Northwest |
+| `SE` | (+1, -1) | Southeast |
+| `SW` | (-1, -1) | Southwest |
+
+```chesslang
+piece Bishop {
+  move: slide(NE) | slide(NW) | slide(SE) | slide(SW)
+}
+```
+
+### Direction Groups
+
+| Group | Includes | Description |
+|-------|----------|-------------|
+| `orthogonal` | N, S, E, W | All cardinal directions |
+| `diagonal` | NE, NW, SE, SW | All diagonal directions |
+| `any` | All 8 | All directions |
+
+```chesslang
+piece Queen {
+  move: slide(orthogonal) | slide(diagonal)
+  # Equivalent to: slide(any)
+}
+
+piece King {
+  move: step(any)
+}
+```
+
+## Relative Directions
+
+Relative directions depend on which player is moving. They automatically flip for Black.
+
+### Player-Relative Directions
+
+| Direction | White | Black | Description |
+|-----------|-------|-------|-------------|
+| `forward` | N | S | Toward opponent's side |
+| `backward` | S | N | Toward own side |
+| `left` | W | E | Player's left |
+| `right` | E | W | Player's right |
+
+```chesslang
+piece Pawn {
+  move: step(forward)           # N for White, S for Black
+  capture: step(forward-left) | step(forward-right)
+}
+```
+
+### Relative Diagonal Directions
+
+| Direction | White | Black | Description |
+|-----------|-------|-------|-------------|
+| `forward-left` | NW | SE | Forward and left |
+| `forward-right` | NE | SW | Forward and right |
+| `backward-left` | SW | NE | Backward and left |
+| `backward-right` | SE | NW | Backward and right |
+
+```chesslang
+piece Pawn {
+  capture: step(forward-left) | step(forward-right)
+}
+```
+
+## Direction Visualization
+
+### For White Player
+
+```
+    NW   N   NE
+      ↖  ↑  ↗
+   W ← [P] → E
+      ↙  ↓  ↘
+    SW   S   SE
+```
+
+### For Black Player
+
+```
+    SE   S   SW
+      ↖  ↑  ↗
+   E ← [P] → W
+      ↙  ↓  ↘
+    NE   N   NW
+```
+
+Note: Relative directions flip, so `forward` always points toward the opponent.
+
+## Using Directions with Patterns
+
+### step
+
+Move a fixed number of squares:
+
+```chesslang
+# One square in any direction
+step(any)
+
+# Two squares forward
+step(forward, 2)
+
+# One square diagonally
+step(diagonal)
+```
+
+### slide
+
+Move any number of squares until blocked:
+
+```chesslang
+# Slide in cardinal directions (Rook)
+slide(orthogonal)
+
+# Slide diagonally (Bishop)
+slide(diagonal)
+
+# Slide in all directions (Queen)
+slide(any)
+```
+
+### Combining Directions
+
+Use `|` to combine multiple directions:
+
+```chesslang
+# Rook movement
+move: slide(N) | slide(S) | slide(E) | slide(W)
+
+# Same as
+move: slide(orthogonal)
+```
+
+## Direction Modifiers
+
+### Distance
+
+Specify exact distance with `step`:
+
+```chesslang
+step(N)        # 1 square north
+step(N, 2)     # 2 squares north
+step(N, 3)     # 3 squares north
+```
+
+### Maximum Distance
+
+Limit sliding distance:
+
+```chesslang
+slide(orthogonal, 3)    # Slide up to 3 squares
+```
+
+## Custom Directions
+
+For movements that don't fit standard directions, use `leap`:
+
+```chesslang
+# Knight's L-shape
+leap(2, 1)    # All 8 rotations included
+
+# Camel
+leap(3, 1)
+
+# Zebra
+leap(3, 2)
+
+# Giraffe
+leap(4, 1)
+```
+
+The `leap` function automatically generates all symmetrical positions:
+- (2, 1), (-2, 1), (2, -1), (-2, -1)
+- (1, 2), (-1, 2), (1, -2), (-1, -2)
+
+## Direction Arithmetic
+
+In Level 3 scripts, you can work with directions programmatically:
+
+```chesslang
+script {
+  // Direction vectors
+  const N = { file: 0, rank: 1 };
+  const E = { file: 1, rank: 0 };
+
+  // Combine directions
+  const NE = {
+    file: N.file + E.file,
+    rank: N.rank + E.rank
+  };
+
+  // Scale direction
+  const N2 = {
+    file: N.file * 2,
+    rank: N.rank * 2
+  };
+
+  // Apply direction to position
+  function moveInDirection(pos, dir, distance = 1) {
+    return {
+      file: pos.file + dir.file * distance,
+      rank: pos.rank + dir.rank * distance
+    };
+  }
+}
+```
+
+## Examples
+
+### Standard Pieces
+
+```chesslang
+# King - one step in any direction
+piece King {
+  move: step(any)
+  traits: [royal]
+}
+
+# Queen - slide in any direction
+piece Queen {
+  move: slide(any)
+}
+
+# Rook - slide orthogonally
+piece Rook {
+  move: slide(orthogonal)
+}
+
+# Bishop - slide diagonally
+piece Bishop {
+  move: slide(diagonal)
+}
+
+# Knight - L-shape leap
+piece Knight {
+  move: leap(2, 1)
+  traits: [jump]
+}
+
+# Pawn - forward movement
+piece Pawn {
+  move: step(forward) where empty
+  move: step(forward, 2) where first_move and clear
+  capture: step(forward-left) | step(forward-right)
+  traits: [promote]
+}
+```
+
+### Fairy Pieces
+
+```chesslang
+# Amazon - Queen + Knight
+piece Amazon {
+  move: slide(any) | leap(2, 1)
+}
+
+# Chancellor - Rook + Knight
+piece Chancellor {
+  move: slide(orthogonal) | leap(2, 1)
+}
+
+# Archbishop - Bishop + Knight
+piece Archbishop {
+  move: slide(diagonal) | leap(2, 1)
+}
+
+# Camel - (3,1) leaper
+piece Camel {
+  move: leap(3, 1)
+  traits: [jump]
+}
+
+# Zebra - (3,2) leaper
+piece Zebra {
+  move: leap(3, 2)
+  traits: [jump]
+}
+
+# Nightrider - repeated Knight moves
+piece Nightrider {
+  move: (leap(2, 1)) *    # Unlimited Knight moves in same direction
+}
+```
+
+### Custom Movement
+
+```chesslang
+# Berolina Pawn - moves diagonally, captures forward
+piece BerolinaPawn {
+  move: step(forward-left) | step(forward-right) where empty
+  capture: step(forward) where enemy
+  traits: [promote]
+}
+
+# Gryphon - diagonal then orthogonal
+piece Gryphon {
+  move: step(diagonal) + slide(orthogonal)
+}
+
+# Wazir - one square orthogonally
+piece Wazir {
+  move: step(orthogonal)
+}
+
+# Ferz - one square diagonally
+piece Ferz {
+  move: step(diagonal)
+}
+```
+
+## See Also
+
+- [Movement Patterns](/docs/reference/patterns)
+- [Conditions Reference](/docs/reference/conditions)
+- [Level 2 - Compose](/docs/language/level2)

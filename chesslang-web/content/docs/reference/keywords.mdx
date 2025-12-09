@@ -1,0 +1,258 @@
+---
+title: Keywords Reference
+description: Complete list of ChessLang keywords and their usage
+---
+
+# Keywords Reference
+
+This is a complete reference of all keywords in ChessLang, organized by level and category.
+
+## Level 1 Keywords
+
+### Game Definition
+
+| Keyword | Description | Example |
+|---------|-------------|---------|
+| `game` | Name of the variant | `game: "My Variant"` |
+| `extends` | Base game to inherit | `extends: "Standard Chess"` |
+
+### Board Configuration
+
+| Keyword | Description | Example |
+|---------|-------------|---------|
+| `board` | Board configuration block | `board:` |
+| `size` | Board dimensions | `size: 8x8` |
+| `zones` | Named board regions | `zones:` |
+
+### Setup
+
+| Keyword | Description | Example |
+|---------|-------------|---------|
+| `setup` | Initial piece placement | `setup:` |
+| `White` | White player's pieces | `White:` |
+| `Black` | Black player's pieces | `Black:` |
+| `add` | Add to existing setup | `add:` |
+| `modify` | Modify existing setup | `modify:` |
+| `remove` | Remove from setup | `remove:` |
+
+### Victory & Draw
+
+| Keyword | Description | Example |
+|---------|-------------|---------|
+| `victory` | Victory conditions | `victory:` |
+| `draw` | Draw conditions | `draw:` |
+| `add` | Add condition | `add:` |
+| `replace` | Replace condition | `replace:` |
+| `remove` | Remove condition | `remove:` |
+
+### Rules
+
+| Keyword | Description | Example |
+|---------|-------------|---------|
+| `rules` | Rule modifications | `rules:` |
+| `castling` | Enable/disable castling | `castling: false` |
+| `en_passant` | Enable/disable en passant | `en_passant: true` |
+| `promotion` | Promotion rules | `promotion:` |
+| `check` | Check rules | `check:` |
+
+## Level 2 Keywords
+
+### Piece Definition
+
+| Keyword | Description | Example |
+|---------|-------------|---------|
+| `piece` | Define custom piece | `piece Knight { }` |
+| `move` | Movement pattern | `move: leap(2, 1)` |
+| `capture` | Capture pattern | `capture: =move` |
+| `traits` | Special abilities | `traits: [jump, royal]` |
+| `state` | Piece state | `state: { rage: 0 }` |
+| `value` | Material value | `value: 3` |
+| `symbol` | Display symbol | `symbol: "N"` |
+
+### Patterns
+
+| Keyword | Description | Example |
+|---------|-------------|---------|
+| `step` | Fixed distance move | `step(forward)` |
+| `slide` | Unlimited distance | `slide(diagonal)` |
+| `leap` | Jump move | `leap(2, 1)` |
+| `hop` | Jump over piece | `hop(orthogonal)` |
+
+### Pattern Modifiers
+
+| Keyword | Description | Example |
+|---------|-------------|---------|
+| `where` | Add condition | `step(forward) where empty` |
+| `\|` | Or combinator | `slide(N) \| slide(S)` |
+| `+` | Then combinator | `step(N) + slide(E)` |
+| `*` | Repeat | `step(forward) * 3` |
+
+### Effects
+
+| Keyword | Description | Example |
+|---------|-------------|---------|
+| `effect` | Define board effect | `effect fire { }` |
+| `damages` | What takes damage | `damages: [any]` |
+| `blocks` | What is blocked | `blocks: [enemy]` |
+| `on_enter` | Enter action | `on_enter: capture(entering)` |
+| `on_exit` | Exit action | `on_exit: heal(exiting)` |
+| `duration` | Effect duration | `duration: 3` |
+| `visual` | Visual style | `visual: highlight(red)` |
+
+### Triggers
+
+| Keyword | Description | Example |
+|---------|-------------|---------|
+| `trigger` | Define trigger | `trigger explode { }` |
+| `on` | Event type | `on: capture` |
+| `when` | Condition | `when: piece.type == Bomb` |
+| `do` | Action | `do: remove piece` |
+
+### Events
+
+| Keyword | Description |
+|---------|-------------|
+| `move` | Any move made |
+| `capture` | Piece captured |
+| `check` | Check given |
+| `turn_start` | Turn begins |
+| `turn_end` | Turn ends |
+| `game_start` | Game begins |
+| `game_end` | Game ends |
+
+### Actions
+
+| Keyword | Description | Example |
+|---------|-------------|---------|
+| `set` | Set value | `set piece.state.x = 1` |
+| `create` | Create piece | `create Pawn at e4` |
+| `remove` | Remove piece | `remove piece` |
+| `transform` | Change type | `transform piece to Queen` |
+| `mark` | Apply effect | `mark pos with fire` |
+| `win` | Declare winner | `win White` |
+| `draw` | Declare draw | `draw` |
+
+## Level 3 Keywords
+
+### Variables
+
+| Keyword | Description | Example |
+|---------|-------------|---------|
+| `let` | Mutable variable | `let x = 5;` |
+| `const` | Immutable constant | `const y = 10;` |
+
+### Control Flow
+
+| Keyword | Description | Example |
+|---------|-------------|---------|
+| `if` | Conditional | `if (x > 0) { }` |
+| `else` | Alternative | `else { }` |
+| `for` | For loop | `for (let i = 0; i < 8; i++)` |
+| `while` | While loop | `while (active) { }` |
+| `break` | Exit loop | `break;` |
+| `continue` | Next iteration | `continue;` |
+| `return` | Return value | `return result;` |
+
+### Functions
+
+| Keyword | Description | Example |
+|---------|-------------|---------|
+| `function` | Define function | `function calc(x) { }` |
+| `=>` | Arrow function | `(x) => x * 2` |
+
+### Script Block
+
+| Keyword | Description | Example |
+|---------|-------------|---------|
+| `script` | Script block | `script { }` |
+
+## Operators
+
+### Arithmetic
+
+| Operator | Description | Example |
+|----------|-------------|---------|
+| `+` | Addition | `a + b` |
+| `-` | Subtraction | `a - b` |
+| `*` | Multiplication | `a * b` |
+| `/` | Division | `a / b` |
+| `%` | Modulo | `a % b` |
+
+### Comparison
+
+| Operator | Description | Example |
+|----------|-------------|---------|
+| `==` | Equal | `a == b` |
+| `!=` | Not equal | `a != b` |
+| `<` | Less than | `a < b` |
+| `>` | Greater than | `a > b` |
+| `<=` | Less or equal | `a <= b` |
+| `>=` | Greater or equal | `a >= b` |
+
+### Logical
+
+| Operator | Description | Example |
+|----------|-------------|---------|
+| `and` | Logical AND | `a and b` |
+| `or` | Logical OR | `a or b` |
+| `not` | Logical NOT | `not a` |
+| `&&` | AND (Level 3) | `a && b` |
+| `\|\|` | OR (Level 3) | `a \|\| b` |
+| `!` | NOT (Level 3) | `!a` |
+
+### Assignment
+
+| Operator | Description | Example |
+|----------|-------------|---------|
+| `=` | Assign | `x = 5` |
+| `+=` | Add assign | `x += 1` |
+| `-=` | Subtract assign | `x -= 1` |
+| `*=` | Multiply assign | `x *= 2` |
+| `/=` | Divide assign | `x /= 2` |
+
+## Built-in Values
+
+### Colors/Players
+
+| Value | Description |
+|-------|-------------|
+| `White` | White player |
+| `Black` | Black player |
+
+### Piece Types
+
+| Value | Description |
+|-------|-------------|
+| `King` | King piece |
+| `Queen` | Queen piece |
+| `Rook` | Rook piece |
+| `Bishop` | Bishop piece |
+| `Knight` | Knight piece |
+| `Pawn` | Pawn piece |
+
+### Boolean
+
+| Value | Description |
+|-------|-------------|
+| `true` | True value |
+| `false` | False value |
+| `null` | Null value |
+
+## Reserved Words
+
+The following words are reserved and cannot be used as identifiers:
+
+```
+game, extends, board, size, zones, setup, pieces, victory, draw, rules,
+piece, pattern, effect, trigger, action, move, capture, traits, state,
+on, when, do, where, if, else, for, while, break, continue, return,
+function, let, const, script, true, false, null, and, or, not,
+White, Black, King, Queen, Rook, Bishop, Knight, Pawn
+```
+
+## See Also
+
+- [Directions Reference](/docs/reference/directions)
+- [Conditions Reference](/docs/reference/conditions)
+- [Actions Reference](/docs/reference/actions)
+- [Patterns Reference](/docs/reference/patterns)

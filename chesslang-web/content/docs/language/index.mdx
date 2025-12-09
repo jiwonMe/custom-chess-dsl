@@ -1,0 +1,182 @@
+---
+title: Language Guide
+description: Complete guide to the ChessLang language
+---
+
+# Language Guide
+
+ChessLang is a multi-level domain-specific language. Choose the level that matches your needs:
+
+## Overview
+
+| Level | Style | Use Case |
+|-------|-------|----------|
+| [Level 1](/docs/language/level1) | Configuration | Simple rule modifications |
+| [Level 2](/docs/language/level2) | Declarative | Custom pieces and triggers |
+| [Level 3](/docs/language/level3) | Scripting | Complex logic and AI |
+
+## Level 1: Configure
+
+YAML-like syntax for simple modifications. No programming required.
+
+```chesslang
+game: "My Variant"
+extends: "Standard Chess"
+
+board:
+  zones:
+    safe: [d4, d5, e4, e5]
+
+victory:
+  add:
+    safe_king: King in zone.safe
+```
+
+**Features:**
+- Game definition and inheritance
+- Board zones
+- Piece setup modifications
+- Victory and draw conditions
+- Rule adjustments
+
+[Full Level 1 Guide →](/docs/language/level1)
+
+## Level 2: Compose
+
+Declarative DSL for creating custom pieces, effects, and triggers.
+
+```chesslang
+piece Phoenix {
+  move: slide(diagonal)
+  capture: =move
+  state: { lives: 2 }
+}
+
+effect fire {
+  damages: [any]
+  visual: highlight(red)
+}
+
+trigger respawn {
+  on: capture
+  when: captured.type == Phoenix and captured.state.lives > 0
+  do: create Phoenix at captured.startPos
+}
+```
+
+**Features:**
+- Custom piece definitions
+- Movement patterns (step, slide, leap, hop)
+- Pattern combinators (|, +, *)
+- Conditions (where)
+- Board effects
+- Event triggers
+- State management
+
+[Full Level 2 Guide →](/docs/language/level2)
+
+## Level 3: Script
+
+JavaScript-like scripting for complex game logic.
+
+```chesslang
+script {
+  // Custom validation
+  Coward.validate = function(piece, move) {
+    const enemies = board.pieces.filter(p => p.owner != piece.owner);
+    for (const enemy of enemies) {
+      if (distance(move.to, enemy.pos) < distance(piece.pos, enemy.pos)) {
+        return { valid: false, reason: "Coward cannot approach enemies" };
+      }
+    }
+    return { valid: true };
+  };
+
+  // Event handlers
+  game.on("capture", function(event) {
+    if (event.piece.type == "Vampire") {
+      event.piece.state.hp += event.captured.value;
+    }
+  });
+}
+```
+
+**Features:**
+- Variables and functions
+- Control flow (if/else, for, while)
+- Built-in objects (board, game, piece)
+- Event handlers
+- Custom actions and validation
+- AI evaluation functions
+
+[Full Level 3 Guide →](/docs/language/level3)
+
+## Mixing Levels
+
+You can combine all three levels in a single file:
+
+```chesslang
+# Level 1: Configuration
+game: "Advanced Variant"
+extends: "Standard Chess"
+
+board:
+  zones:
+    danger: [d4, d5, e4, e5]
+
+# Level 2: Custom piece
+piece Vampire {
+  move: step(any)
+  capture: =move
+  state: { hp: 5 }
+}
+
+effect poison {
+  on_turn: damage occupant by 1
+  visual: highlight(green)
+}
+
+# Level 3: Complex logic
+script {
+  Vampire.on("capture", function(piece, captured) {
+    piece.state.hp += captured.value;
+    if (piece.state.hp >= 15) {
+      transform(piece, "AncientVampire");
+    }
+  });
+}
+
+# Level 1: Setup
+setup:
+  add:
+    White:
+      Vampire: [d2]
+    Black:
+      Vampire: [d7]
+```
+
+## Choosing the Right Level
+
+**Use Level 1 when:**
+- Making simple rule modifications
+- Adding new victory/draw conditions
+- Changing the starting position
+- Creating variants like King of the Hill or Three-Check
+
+**Use Level 2 when:**
+- Creating custom pieces
+- Adding board effects
+- Setting up triggers for game events
+- Managing piece state
+
+**Use Level 3 when:**
+- Implementing complex validation
+- Creating dynamic abilities
+- Building custom AI evaluation
+- Controlling game flow
+
+## Next Steps
+
+- Start with [Level 1](/docs/language/level1) if you're new
+- See [Examples](/docs/examples) for practical applications
+- Check the [Reference](/docs/reference/keywords) for syntax details

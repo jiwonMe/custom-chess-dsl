@@ -1,0 +1,108 @@
+---
+title: Your First Game
+description: Create your first chess variant with ChessLang
+---
+
+# Your First Game
+
+In this tutorial, you'll create your first chess variant - **King of the Hill**. This variant adds a new win condition: move your King to the center of the board to win instantly.
+
+## Prerequisites
+
+- Open the [Playground](/playground)
+- Familiarize yourself with the editor interface
+
+## Step 1: Define Your Game
+
+Start with the basic game definition:
+
+```chesslang
+game: "King of the Hill"
+extends: "Standard Chess"
+```
+
+This creates a new game called "King of the Hill" that inherits all rules from standard chess.
+
+## Step 2: Define the Hill Zone
+
+Next, define which squares constitute "the hill":
+
+```chesslang
+game: "King of the Hill"
+extends: "Standard Chess"
+
+board:
+  zones:
+    hill: [d4, d5, e4, e5]
+```
+
+The `zones` section defines named areas on the board. Here, we define `hill` as the four center squares.
+
+## Step 3: Add the Victory Condition
+
+Now add the new win condition:
+
+```chesslang
+game: "King of the Hill"
+extends: "Standard Chess"
+
+board:
+  zones:
+    hill: [d4, d5, e4, e5]
+
+victory:
+  add:
+    hill: King in zone.hill
+```
+
+The `victory.add` section adds a new victory condition. The condition `King in zone.hill` triggers when your King reaches any square in the hill zone.
+
+## Step 4: Run Your Game
+
+1. Click the **Run** button in the playground
+2. The chess board will reset with your custom rules
+3. Try to move your King to the center while protecting it!
+
+## Complete Code
+
+Here's the complete code for King of the Hill:
+
+```chesslang
+game: "King of the Hill"
+extends: "Standard Chess"
+
+board:
+  zones:
+    hill: [d4, d5, e4, e5]
+
+victory:
+  add:
+    hill: King in zone.hill
+```
+
+## What You Learned
+
+- How to create a new game with `game:` and `extends:`
+- How to define board zones
+- How to add custom victory conditions
+
+## Next Steps
+
+- Try modifying the hill zone to include more squares
+- Add visual highlighting to the hill squares (see [Effects](/docs/language/level2#effects))
+- Learn about [Level 2](/docs/language/level2) to create custom pieces
+
+## Challenge: Three-Check
+
+Try creating "Three-Check" on your own:
+
+```chesslang
+game: "Three-Check"
+extends: "Standard Chess"
+
+victory:
+  add:
+    three_checks: checks >= 3
+```
+
+This variant adds a win condition for giving check three times.

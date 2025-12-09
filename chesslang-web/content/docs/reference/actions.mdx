@@ -1,0 +1,555 @@
+---
+title: Actions Reference
+description: Complete reference for ChessLang actions
+---
+
+# Actions Reference
+
+Actions are commands that modify the game state. They're used in triggers, effects, and scripts.
+
+## Piece Actions
+
+### set
+
+Modify piece state or game variables:
+
+```chesslang
+# Set piece state
+set piece.state.rage = 3
+set piece.state.moved = true
+
+# Set game state
+set game.state.bonus = 10
+
+# Arithmetic
+set piece.state.count = piece.state.count + 1
+```
+
+**Parameters:**
+| Parameter | Description |
+|-----------|-------------|
+| target | State variable to modify |
+| value | New value |
+
+**Examples:**
+
+```chesslang
+trigger gain_experience {
+  on: capture
+  do: set piece.state.exp = piece.state.exp + captured.value
+}
+
+trigger level_up {
+  on: move
+  when: piece.state.exp >= 10
+  do: {
+    set piece.state.level = piece.state.level + 1
+    set piece.state.exp = 0
+  }
+}
+```
+
+### create
+
+Create a new piece on the board:
+
+```chesslang
+create Pawn at e4
+create Queen at d1 for White
+create piece.type at target
+```
+
+**Parameters:**
+| Parameter | Description |
+|-----------|-------------|
+| type | Piece type to create |
+| position | Where to place it |
+| owner | Which player owns it (optional) |
+
+**Examples:**
+
+```chesslang
+trigger spawn_reinforcement {
+  on: turn_start
+  when: game.turnNumber % 10 == 0
+  do: create Pawn at random_empty(zone.spawn)
+}
+
+trigger split {
+  on: move
+  when: piece.type == Divider
+  do: {
+    create Pawn at origin for piece.owner
+  }
+}
+```
+
+### remove
+
+Remove a piece from the board:
+
+```chesslang
+remove piece
+remove captured
+remove pieces at e4
+remove pieces in radius(1) from target
+remove pieces in zone.danger where enemy
+```
+
+**Parameters:**
+| Parameter | Description |
+|-----------|-------------|
+| target | Piece or pieces to remove |
+
+**Examples:**
+
+```chesslang
+trigger atomic_explosion {
+  on: capture
+  do: {
+    remove piece                              # Remove capturing piece
+    remove captured                           # Remove captured piece
+    remove pieces in radius(1) from target    # Remove adjacent pieces
+  }
+}
+
+trigger clear_zone {
+  on: turn_end
+  when: game.turnNumber == 20
+  do: remove pieces in zone.danger
+}
+```
+
+### transform
+
+Change a piece to a different type:
+
+```chesslang
+transform piece to Queen
+transform piece to piece.state.evolution
+```
+
+**Parameters:**
+| Parameter | Description |
+|-----------|-------------|
+| piece | Piece to transform |
+| type | New piece type |
+
+**Examples:**
+
+```chesslang
+trigger promotion {
+  on: move
+  when: piece.type == Pawn and target on rank 8
+  do: transform piece to Queen
+}
+
+trigger evolve {
+  on: capture
+  when: piece.state.captures >= 3
+  do: transform piece to piece.state.evolution_type
+}
+
+trigger rage_mode {
+  on: move
+  when: piece.type == Berserker and piece.state.rage >= 5
+  do: transform piece to RagingBerserker
+}
+```
+
+### move_piece
+
+Move a piece to a new position (in scripts):
+
+```chesslang
+script {
+  board.movePiece(piece, targetPos);
+}
+```
+
+## Board Actions
+
+### mark
+
+Apply an effect to a square:
+
+```chesslang
+mark target with fire
+mark origin with trap
+mark pos with effect for duration
+```
+
+**Parameters:**
+| Parameter | Description |
+|-----------|-------------|
+| position | Square to mark |
+| effect | Effect to apply |
+| duration | How long (optional) |
+
+**Examples:**
+
+```chesslang
+effect fire {
+  damages: [any]
+  visual: highlight(red)
+}
+
+trigger leave_fire {
+  on: move
+  when: piece.type == Dragon
+  do: mark origin with fire for 3
+}
+
+trigger create_trap {
+  on: move
+  when: piece.type == Trapper and piece.state.traps < 3
+  do: {
+    mark origin with trap
+    set piece.state.traps = piece.state.traps + 1
+  }
+}
+```
+
+### unmark
+
+Remove an effect from a square:
+
+```chesslang
+unmark target
+unmark pos with fire
+unmark all with ice
+```
+
+**Examples:**
+
+```chesslang
+trigger cleanse {
+  on: move
+  when: piece.type == Healer
+  do: unmark target
+}
+
+trigger melt_ice {
+  on: turn_start
+  when: game.state.temperature > 0
+  do: unmark all with ice
+}
+```
+
+### highlight
+
+Temporarily highlight squares (visual only):
+
+```chesslang
+highlight target with yellow
+highlight zone.danger with red
+highlight legal_moves with green
+```
+
+## Game Actions
+
+### win
+
+Declare a winner:
+
+```chesslang
+win White
+win Black
+win player
+win opponent
+```
+
+**Examples:**
+
+```chesslang
+trigger hill_victory {
+  on: move
+  when: piece.type == King and target in zone.hill
+  do: win piece.owner
+}
+
+trigger elimination {
+  on: capture
+  when: opponent.pieces == 0
+  do: win player
+}
+```
+
+### draw
+
+Declare a draw:
+
+```chesslang
+draw
+draw with reason "Mutual agreement"
+```
+
+**Examples:**
+
+```chesslang
+trigger mutual_destruction {
+  on: capture
+  when: player.pieces == 1 and opponent.pieces == 1
+  do: draw
+}
+```
+
+### end_turn
+
+End the current turn:
+
+```chesslang
+end_turn
+```
+
+**Examples:**
+
+```chesslang
+trigger forced_end {
+  on: move
+  when: piece.type == Sprinter
+  do: end_turn
+}
+```
+
+## Compound Actions
+
+### Multiple Actions
+
+Execute multiple actions in sequence:
+
+```chesslang
+trigger complex_capture {
+  on: capture
+  when: piece.type == Vampire
+  do: {
+    set piece.state.hp = piece.state.hp + captured.value
+    create Ghost at origin for opponent
+    mark target with blood
+  }
+}
+```
+
+### Conditional Actions
+
+Use conditions within actions:
+
+```chesslang
+trigger conditional_reward {
+  on: capture
+  do: {
+    if captured.value >= 5 {
+      transform piece to piece.state.evolved_form
+    } else {
+      set piece.state.exp = piece.state.exp + captured.value
+    }
+  }
+}
+```
+
+## Effect Actions
+
+Actions used in effect definitions:
+
+### on_enter
+
+Action when piece enters square:
+
+```chesslang
+effect spike_trap {
+  on_enter: {
+    damage entering by 1
+    remove entering where hp <= 0
+  }
+}
+```
+
+### on_exit
+
+Action when piece exits square:
+
+```chesslang
+effect sticky {
+  on_exit: {
+    set exiting.state.slowed = true
+  }
+}
+```
+
+### on_turn
+
+Action each turn:
+
+```chesslang
+effect poison {
+  on_turn: {
+    damage occupant by 1
+  }
+}
+```
+
+## Script Actions (Level 3)
+
+In Level 3, you have full programmatic control:
+
+```chesslang
+script {
+  // Custom action function
+  function explode(pos, radius) {
+    const affected = board.piecesInRadius(pos, radius);
+    for (const piece of affected) {
+      if (piece.type != "King") {
+        board.removePiece(piece);
+      }
+    }
+  }
+
+  // Custom trigger action
+  Bomb.on("captured", function(piece, capturer) {
+    explode(piece.pos, 2);
+  });
+
+  // Complex state manipulation
+  function levelUp(piece) {
+    piece.state.level++;
+    piece.state.exp = 0;
+
+    // Upgrade stats based on level
+    if (piece.state.level >= 3) {
+      piece.state.canTeleport = true;
+    }
+    if (piece.state.level >= 5) {
+      piece.state.extraMove = true;
+    }
+  }
+}
+```
+
+## Action Targets
+
+### Piece References
+
+| Target | Description |
+|--------|-------------|
+| `piece` | Current/moving piece |
+| `captured` | Captured piece |
+| `entering` | Piece entering square |
+| `exiting` | Piece exiting square |
+| `occupant` | Piece on square |
+
+### Position References
+
+| Target | Description |
+|--------|-------------|
+| `origin` | Starting position |
+| `target` | Ending position |
+| `pos` | Generic position |
+
+### Selection
+
+```chesslang
+# All pieces matching condition
+pieces where type == Pawn
+
+# Pieces in area
+pieces in radius(2) from target
+pieces in zone.danger
+
+# Adjacent pieces
+pieces adjacent to piece
+```
+
+## Complete Examples
+
+### Atomic Chess Explosion
+
+```chesslang
+trigger atomic_explosion {
+  on: capture
+  do: {
+    # Remove the capturing piece
+    remove piece
+
+    # Remove all adjacent pieces except pawns
+    for p in pieces in radius(1) from target {
+      if p.type != Pawn {
+        remove p
+      }
+    }
+  }
+}
+```
+
+### Trapper Piece
+
+```chesslang
+piece Trapper {
+  move: step(any)
+  capture: =move
+  state: { traps_placed: 0, max_traps: 3 }
+}
+
+effect trap {
+  on_enter: capture entering where enemy
+  duration: 5
+  visual: highlight(red, 0.3)
+}
+
+trigger place_trap {
+  on: move
+  when: piece.type == Trapper and piece.state.traps_placed < piece.state.max_traps
+  do: {
+    mark origin with trap
+    set piece.state.traps_placed = piece.state.traps_placed + 1
+  }
+}
+```
+
+### Phoenix Rebirth
+
+```chesslang
+piece Phoenix {
+  move: slide(diagonal)
+  capture: =move
+  state: { rebirths: 0, max_rebirths: 1 }
+  value: 7
+}
+
+trigger phoenix_rebirth {
+  on: capture
+  when: captured.type == Phoenix and captured.state.rebirths < captured.state.max_rebirths
+  do: {
+    create Phoenix at captured.start_pos for captured.owner
+    set created.state.rebirths = captured.state.rebirths + 1
+  }
+}
+```
+
+### Progressive Power-Up
+
+```chesslang
+piece Warrior {
+  move: step(any) * (1 + state.power)
+  capture: =move
+  state: { power: 0, kills: 0 }
+}
+
+trigger warrior_power_up {
+  on: capture
+  when: piece.type == Warrior
+  do: {
+    set piece.state.kills = piece.state.kills + 1
+    if piece.state.kills >= 3 {
+      set piece.state.power = piece.state.power + 1
+      set piece.state.kills = 0
+    }
+  }
+}
+```
+
+## See Also
+
+- [Conditions Reference](/docs/reference/conditions)
+- [Directions Reference](/docs/reference/directions)
+- [Level 2 - Compose](/docs/language/level2)
+- [Level 3 - Script](/docs/language/level3)

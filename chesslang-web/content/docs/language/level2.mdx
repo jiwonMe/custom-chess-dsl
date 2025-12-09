@@ -1,0 +1,451 @@
+---
+title: Level 2 - Compose
+description: Declarative DSL for custom pieces, effects, and triggers
+---
+
+# Level 2: Compose
+
+Level 2 introduces a declarative DSL for creating custom pieces, board effects, and game triggers. This is where ChessLang becomes truly powerful.
+
+## Overview
+
+Level 2 enables:
+- Defining custom pieces with unique movement patterns
+- Creating board effects that modify game behavior
+- Setting up triggers that respond to game events
+- Composing complex interactions declaratively
+
+## Custom Pieces
+
+### Basic Piece Definition
+
+```chesslang
+piece Amazon {
+  move: slide(orthogonal) | slide(diagonal) | leap(2, 1)
+  capture: =move
+}
+```
+
+This creates an "Amazon" - a piece that combines Queen and Knight movement.
+
+### Piece Properties
+
+| Property | Required | Description |
+|----------|----------|-------------|
+| `move` | Yes | Movement pattern |
+| `capture` | No | Capture pattern (default: same as move) |
+| `traits` | No | Special abilities |
+| `state` | No | Piece-specific state |
+| `value` | No | Material value (for evaluation) |
+| `symbol` | No | Display symbol |
+
+### Movement Patterns
+
+#### step
+
+Move a fixed number of squares:
+
+```chesslang
+piece King {
+  move: step(any)              # 1 square in any direction
+}
+
+piece Pawn {
+  move: step(forward)          # 1 square forward
+  move: step(forward, 2) where first_move and clear
+}
+```
+
+#### slide
+
+Move any number of squares until blocked:
+
+```chesslang
+piece Rook {
+  move: slide(orthogonal)      # Any number of squares N/S/E/W
+}
+
+piece Bishop {
+  move: slide(diagonal)        # Any number of squares diagonally
+}
+
+piece Queen {
+  move: slide(orthogonal) | slide(diagonal)
+}
+```
+
+#### leap
+
+Jump to a specific offset (ignores pieces in between):
+
+```chesslang
+piece Knight {
+  move: leap(2, 1)             # All 8 rotations included automatically
+}
+
+piece Camel {
+  move: leap(3, 1)             # Longer leap
+}
+
+piece Zebra {
+  move: leap(3, 2)
+}
+```
+
+#### hop
+
+Jump over a piece and land on the other side:
+
+```chesslang
+piece Cannon {
+  move: slide(orthogonal)
+  capture: hop(orthogonal)     # Must hop over exactly one piece
+}
+```
+
+### Pattern Combinators
+
+#### Or (`|`)
+
+Choose between patterns:
+
+```chesslang
+piece Queen {
+  move: slide(orthogonal) | slide(diagonal)
+}
+```
+
+#### Then (`+`)
+
+Sequential movement:
+
+```chesslang
+piece Gryphon {
+  move: step(diagonal) + slide(orthogonal)
+}
+```
+
+#### Repeat (`*`)
+
+Repeat a pattern:
+
+```chesslang
+piece Sprinter {
+  move: step(forward) * 3 where clear
+}
+```
+
+### Conditions (`where`)
+
+Add conditions to patterns:
+
+```chesslang
+piece Pawn {
+  move: step(forward) where empty
+  move: step(forward, 2) where first_move and clear
+  capture: step(forward-diagonal) where enemy
+}
+```
+
+Available conditions:
+
+| Condition | Description |
+|-----------|-------------|
+| `empty` | Target square is empty |
+| `enemy` | Target has enemy piece |
+| `friend` | Target has friendly piece |
+| `clear` | Path is clear (no pieces blocking) |
+| `first_move` | This is the piece's first move |
+| `check` | King is in check |
+| `not check` | King is not in check |
+
+### Capture Patterns
+
+```chesslang
+piece Pawn {
+  move: step(forward)
+  capture: step(forward-diagonal)    # Different capture pattern
+}
+
+piece Queen {
+  move: slide(any)
+  capture: =move                     # Same as move pattern
+}
+```
+
+### Traits
+
+Traits give pieces special abilities:
+
+```chesslang
+piece Knight {
+  move: leap(2, 1)
+  traits: [jump]    # Can jump over pieces
+}
+
+piece King {
+  move: step(any)
+  traits: [royal]   # Game ends if captured/checkmated
+}
+```
+
+Built-in traits:
+
+| Trait | Description |
+|-------|-------------|
+| `jump` | Can leap over pieces |
+| `royal` | Game loss if captured |
+| `promote` | Can promote on reaching end |
+| `castle` | Can castle with Rook |
+
+### Piece State
+
+Track piece-specific information:
+
+```chesslang
+piece Berserker {
+  move: step(any)
+  state: { rage: 0 }
+}
+```
+
+## Effects
+
+Effects modify squares on the board:
+
+```chesslang
+effect fire {
+  damages: [any]              # Damages any piece
+  visual: highlight(red)
+}
+
+effect ice {
+  blocks: [enemy]             # Blocks enemy movement
+  visual: highlight(blue)
+}
+
+effect trap {
+  on_enter: capture(entering) # Captures piece that enters
+  visual: highlight(orange)
+}
+```
+
+### Effect Properties
+
+| Property | Description |
+|----------|-------------|
+| `damages` | Which pieces take damage |
+| `blocks` | Which pieces cannot enter |
+| `on_enter` | Action when piece enters |
+| `on_exit` | Action when piece exits |
+| `duration` | How long effect lasts (turns) |
+| `visual` | Visual representation |
+
+### Visual Effects
+
+```chesslang
+effect glow {
+  visual: highlight(yellow)
+  visual: border(gold)
+  visual: icon("star")
+}
+```
+
+## Triggers
+
+Triggers respond to game events:
+
+```chesslang
+trigger explosion {
+  on: capture
+  when: piece.type == Bomb
+  do: {
+    remove pieces in radius(1) from target
+  }
+}
+```
+
+### Trigger Structure
+
+```chesslang
+trigger name {
+  on: event           # When to trigger
+  when: condition     # Additional conditions
+  do: action          # What to do
+}
+```
+
+### Events
+
+| Event | Description | Available Variables |
+|-------|-------------|---------------------|
+| `move` | Any move | `piece`, `origin`, `target` |
+| `capture` | Piece captured | `piece`, `captured`, `origin`, `target` |
+| `check` | Check given | `piece`, `king` |
+| `turn_start` | Turn begins | `player` |
+| `turn_end` | Turn ends | `player` |
+| `game_start` | Game begins | - |
+
+### Actions
+
+```chesslang
+trigger promote_on_hill {
+  on: move
+  when: piece.type == Pawn and target in zone.hill
+  do: transform piece to Queen
+}
+
+trigger place_trap {
+  on: move
+  when: piece.type == Trapper
+  do: mark origin with trap
+}
+
+trigger rage_increase {
+  on: capture
+  when: piece.type == Berserker
+  do: set piece.state.rage = piece.state.rage + 1
+}
+```
+
+Available actions:
+
+| Action | Description |
+|--------|-------------|
+| `set X = Y` | Set a value |
+| `create Piece at pos` | Create a new piece |
+| `remove piece` | Remove a piece |
+| `transform piece to Type` | Change piece type |
+| `mark pos with effect` | Apply effect to square |
+| `win Player` | Declare winner |
+| `draw` | Declare draw |
+
+## Complete Examples
+
+### Atomic Chess
+
+```chesslang
+game: "Atomic Chess"
+extends: "Standard Chess"
+
+trigger atomic_explosion {
+  on: capture
+  do: {
+    remove piece
+    remove captured
+    remove pieces in radius(1) from target where not Pawn
+  }
+}
+
+victory:
+  add:
+    king_exploded: opponent.King == null
+```
+
+### Trapper Chess
+
+```chesslang
+game: "Trapper Chess"
+extends: "Standard Chess"
+
+piece Trapper {
+  move: step(any)
+  capture: =move
+  state: { traps_placed: 0 }
+  value: 3
+}
+
+effect trap {
+  on_enter: capture(entering) where enemy
+  duration: 5
+  visual: highlight(red, 0.3)
+}
+
+trigger place_trap {
+  on: move
+  when: piece.type == Trapper and piece.state.traps_placed < 3
+  do: {
+    mark origin with trap
+    set piece.state.traps_placed = piece.state.traps_placed + 1
+  }
+}
+
+setup:
+  add:
+    White:
+      Trapper: [d1]
+    Black:
+      Trapper: [d8]
+```
+
+### Cannon Chess
+
+```chesslang
+game: "Cannon Chess"
+extends: "Standard Chess"
+
+piece Cannon {
+  move: slide(orthogonal)
+  capture: hop(orthogonal)   # Must jump over exactly one piece
+  value: 5
+  symbol: "C"
+}
+
+setup:
+  modify:
+    White:
+      Rook: [a1]
+      Cannon: [h1]
+    Black:
+      Rook: [a8]
+      Cannon: [h8]
+```
+
+### Berserk Chess
+
+```chesslang
+game: "Berserk Chess"
+extends: "Standard Chess"
+
+piece Berserker {
+  move: step(any) * (1 + state.rage)
+  capture: =move
+  state: { rage: 0 }
+  value: 4
+}
+
+trigger gain_rage {
+  on: capture
+  when: piece.type == Berserker
+  do: set piece.state.rage = min(piece.state.rage + 1, 3)
+}
+
+trigger lose_rage {
+  on: turn_end
+  when: any Berserker where state.rage > 0
+  do: set piece.state.rage = piece.state.rage - 1
+}
+
+setup:
+  modify:
+    White:
+      Knight: [b1]
+      Berserker: [g1]
+    Black:
+      Knight: [b8]
+      Berserker: [g8]
+```
+
+## Best Practices
+
+1. **Start Simple**: Begin with basic movement patterns before adding conditions
+2. **Test Incrementally**: Add one feature at a time and test
+3. **Use Clear Names**: Name your pieces and effects descriptively
+4. **Consider Balance**: Assign appropriate values to custom pieces
+5. **Document Behavior**: Add comments for complex triggers
+
+## Next Steps
+
+- Learn [Level 3](/docs/language/level3) for scripted logic
+- See [Movement Patterns](/docs/reference/patterns) reference
+- Explore [Examples](/docs/examples) for inspiration

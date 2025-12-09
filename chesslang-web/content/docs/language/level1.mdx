@@ -1,0 +1,312 @@
+---
+title: Level 1 - Configure
+description: YAML-like configuration for simple chess variant modifications
+---
+
+# Level 1: Configure
+
+Level 1 is the simplest way to create chess variants. Using a YAML-like syntax, you can modify standard chess rules without any programming knowledge.
+
+## Overview
+
+Level 1 is perfect for:
+- Adding new victory or draw conditions
+- Modifying board setup
+- Defining zones on the board
+- Adjusting existing rules
+
+## Basic Structure
+
+Every ChessLang file starts with a game definition:
+
+```chesslang
+game: "My Chess Variant"
+extends: "Standard Chess"
+```
+
+| Property | Required | Description |
+|----------|----------|-------------|
+| `game` | Yes | Name of your variant |
+| `extends` | No | Base game to inherit from (default: "Standard Chess") |
+
+## Board Configuration
+
+### Board Size
+
+```chesslang
+board:
+  size: 8x8
+```
+
+You can create larger or smaller boards:
+
+```chesslang
+board:
+  size: 10x8    # 10 files, 8 ranks
+```
+
+### Zones
+
+Zones define named areas on the board:
+
+```chesslang
+board:
+  zones:
+    hill: [d4, d5, e4, e5]
+    promotion_zone: [a8, b8, c8, d8, e8, f8, g8, h8]
+    danger_zone: [d4-e5]    # Range notation
+```
+
+Zones can be referenced in conditions using `zone.zoneName`.
+
+## Piece Setup
+
+### Standard Setup
+
+By default, extending "Standard Chess" gives you the standard piece setup. You can override it:
+
+```chesslang
+setup:
+  White:
+    King: [e1]
+    Queen: [d1]
+    Rook: [a1, h1]
+    Bishop: [c1, f1]
+    Knight: [b1, g1]
+    Pawn: [a2, b2, c2, d2, e2, f2, g2, h2]
+  Black:
+    King: [e8]
+    Queen: [d8]
+    Rook: [a8, h8]
+    Bishop: [c8, f8]
+    Knight: [b8, g8]
+    Pawn: [a7, b7, c7, d7, e7, f7, g7, h7]
+```
+
+### Modified Setup
+
+Create variants with different starting positions:
+
+```chesslang
+# Chess960-style setup
+setup:
+  White:
+    King: [d1]
+    Queen: [e1]
+    Rook: [a1, h1]
+    Bishop: [b1, g1]
+    Knight: [c1, f1]
+    Pawn: [a2, b2, c2, d2, e2, f2, g2, h2]
+```
+
+### Adding Extra Pieces
+
+```chesslang
+setup:
+  add:
+    White:
+      Amazon: [d3]    # Custom piece (must be defined)
+    Black:
+      Amazon: [d6]
+```
+
+## Victory Conditions
+
+### Adding Victory Conditions
+
+Add new ways to win while keeping checkmate:
+
+```chesslang
+victory:
+  add:
+    hill: King in zone.hill
+    racing: King on rank 8
+```
+
+### Replacing Victory Conditions
+
+Replace the default checkmate condition:
+
+```chesslang
+victory:
+  replace:
+    capture_king: King captured
+```
+
+### Removing Victory Conditions
+
+```chesslang
+victory:
+  remove:
+    - checkmate
+```
+
+### Victory Condition Syntax
+
+| Condition | Description |
+|-----------|-------------|
+| `King in zone.X` | King reaches zone X |
+| `King on rank N` | King reaches rank N |
+| `King on file X` | King reaches file X |
+| `King captured` | King is captured |
+| `checks >= N` | Give N or more checks |
+| `pieces <= N` | Opponent has N or fewer pieces |
+
+## Draw Conditions
+
+### Adding Draw Conditions
+
+```chesslang
+draw:
+  add:
+    bare_king: pieces == 1 and opponent.pieces == 1
+```
+
+### Modifying Repetition Rules
+
+```chesslang
+draw:
+  modify:
+    repetition: 5    # 5-fold instead of 3-fold
+    fifty_moves: 100 # 100 moves instead of 50
+```
+
+### Built-in Draw Conditions
+
+| Condition | Description |
+|-----------|-------------|
+| `stalemate` | No legal moves, not in check |
+| `repetition` | Position repeated 3 times |
+| `fifty_moves` | 50 moves without capture or pawn move |
+| `insufficient` | Insufficient material |
+
+## Rules Configuration
+
+### Castling
+
+```chesslang
+rules:
+  castling: true     # Enable (default)
+  castling: false    # Disable
+```
+
+### En Passant
+
+```chesslang
+rules:
+  en_passant: true   # Enable (default)
+  en_passant: false  # Disable
+```
+
+### Promotion
+
+```chesslang
+rules:
+  promotion:
+    pieces: [Queen, Rook, Bishop, Knight]  # Available promotions
+    rank: 8                                 # Promotion rank
+```
+
+### Check Rules
+
+```chesslang
+rules:
+  check:
+    must_escape: true    # Must get out of check (default)
+    can_ignore: false    # Can ignore check
+```
+
+## Complete Examples
+
+### King of the Hill
+
+```chesslang
+game: "King of the Hill"
+extends: "Standard Chess"
+
+board:
+  zones:
+    hill: [d4, d5, e4, e5]
+
+victory:
+  add:
+    hill: King in zone.hill
+```
+
+### Three-Check
+
+```chesslang
+game: "Three-Check"
+extends: "Standard Chess"
+
+victory:
+  add:
+    three_checks: checks >= 3
+```
+
+### Racing Kings
+
+```chesslang
+game: "Racing Kings"
+extends: "Standard Chess"
+
+board:
+  size: 8x8
+
+setup:
+  White:
+    King: [a1]
+    Queen: [a2]
+    Rook: [b1, b2]
+    Bishop: [c1, c2]
+    Knight: [d1, d2]
+  Black:
+    King: [h1]
+    Queen: [h2]
+    Rook: [g1, g2]
+    Bishop: [f1, f2]
+    Knight: [e1, e2]
+
+victory:
+  replace:
+    racing: King on rank 8
+
+rules:
+  check:
+    can_ignore: false
+    cannot_give: true    # Cannot give check
+```
+
+### Horde Chess
+
+```chesslang
+game: "Horde Chess"
+extends: "Standard Chess"
+
+setup:
+  White:
+    Pawn: [a1, b1, c1, d1, e1, f1, g1, h1,
+           a2, b2, c2, d2, e2, f2, g2, h2,
+           a3, b3, c3, d3, e3, f3, g3, h3,
+           a4, b4, c4, d4, e4, f4, g4, h4,
+           f5, g5]
+  Black:
+    King: [e8]
+    Queen: [d8]
+    Rook: [a8, h8]
+    Bishop: [c8, f8]
+    Knight: [b8, g8]
+    Pawn: [a7, b7, c7, d7, e7, f7, g7, h7]
+
+victory:
+  White:
+    capture_all: opponent.pieces == 0
+  Black:
+    checkmate: checkmate
+```
+
+## Next Steps
+
+- Learn [Level 2](/docs/language/level2) to create custom pieces
+- See [Examples](/docs/examples) for more variants
+- Check the [Reference](/docs/reference/keywords) for all keywords

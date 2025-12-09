@@ -1,0 +1,476 @@
+---
+title: Examples
+description: Learn ChessLang through practical examples
+---
+
+# Examples
+
+Learn ChessLang by studying these practical examples. Each example includes complete code you can copy and paste into the [Playground](/playground).
+
+## Quick Reference
+
+| Example | Level | Features |
+|---------|-------|----------|
+| [King of the Hill](#king-of-the-hill) | 1 | Zones, victory conditions |
+| [Three-Check](#three-check) | 1 | Counter-based victory |
+| [Racing Kings](#racing-kings) | 1 | Modified setup, no check |
+| [Atomic Chess](#atomic-chess) | 2 | Triggers, area effects |
+| [Horde Chess](#horde-chess) | 1 | Asymmetric setup |
+| [Custom Pieces](#custom-pieces) | 2 | Piece definitions |
+| [Trap Chess](#trap-chess) | 2 | Effects, state |
+| [Progressive Chess](#progressive-chess) | 3 | Scripts, game flow |
+
+---
+
+## King of the Hill
+
+**Level 1** - Win by moving your King to the center.
+
+```chesslang
+game: "King of the Hill"
+extends: "Standard Chess"
+
+board:
+  zones:
+    hill: [d4, d5, e4, e5]
+
+victory:
+  add:
+    hill: King in zone.hill
+```
+
+**Key Concepts:**
+- Defining board zones
+- Adding victory conditions
+- Zone references in conditions
+
+[Try in Playground →](/playground?example=koth)
+
+---
+
+## Three-Check
+
+**Level 1** - Win by giving check three times.
+
+```chesslang
+game: "Three-Check"
+extends: "Standard Chess"
+
+victory:
+  add:
+    three_checks: checks >= 3
+```
+
+**Key Concepts:**
+- Counter-based victory conditions
+- Game state tracking
+
+[Try in Playground →](/playground?example=three-check)
+
+---
+
+## Racing Kings
+
+**Level 1** - Race your King to the 8th rank. No checks allowed.
+
+```chesslang
+game: "Racing Kings"
+extends: "Standard Chess"
+
+setup:
+  White:
+    King: [a1]
+    Queen: [a2]
+    Rook: [b1, b2]
+    Bishop: [c1, c2]
+    Knight: [d1, d2]
+  Black:
+    King: [h1]
+    Queen: [h2]
+    Rook: [g1, g2]
+    Bishop: [f1, f2]
+    Knight: [e1, e2]
+
+victory:
+  replace:
+    racing: King on rank 8
+
+rules:
+  check:
+    cannot_give: true
+```
+
+**Key Concepts:**
+- Custom piece setup
+- Replacing victory conditions
+- Modifying check rules
+
+[Try in Playground →](/playground?example=racing)
+
+---
+
+## Atomic Chess
+
+**Level 2** - Captures cause explosions that destroy adjacent pieces.
+
+```chesslang
+game: "Atomic Chess"
+extends: "Standard Chess"
+
+trigger atomic_explosion {
+  on: capture
+  do: {
+    remove piece
+    remove pieces in radius(1) from target where not Pawn
+  }
+}
+
+victory:
+  add:
+    king_exploded: opponent.King == null
+```
+
+**Key Concepts:**
+- Triggers responding to captures
+- Area-based piece removal
+- Multiple victory conditions
+
+[Try in Playground →](/playground?example=atomic)
+
+---
+
+## Horde Chess
+
+**Level 1** - White has 36 pawns, Black plays normally.
+
+```chesslang
+game: "Horde Chess"
+extends: "Standard Chess"
+
+setup:
+  White:
+    Pawn: [
+      a1, b1, c1, d1, e1, f1, g1, h1,
+      a2, b2, c2, d2, e2, f2, g2, h2,
+      a3, b3, c3, d3, e3, f3, g3, h3,
+      a4, b4, c4, d4, e4, f4, g4, h4,
+      f5, g5
+    ]
+  Black:
+    King: [e8]
+    Queen: [d8]
+    Rook: [a8, h8]
+    Bishop: [c8, f8]
+    Knight: [b8, g8]
+    Pawn: [a7, b7, c7, d7, e7, f7, g7, h7]
+
+victory:
+  White:
+    eliminate: opponent.pieces == 0
+  Black:
+    checkmate: checkmate
+```
+
+**Key Concepts:**
+- Asymmetric setup
+- Player-specific victory conditions
+
+[Try in Playground →](/playground?example=horde)
+
+---
+
+## Custom Pieces
+
+**Level 2** - Create fairy chess pieces.
+
+```chesslang
+game: "Fairy Chess"
+extends: "Standard Chess"
+
+# Amazon = Queen + Knight
+piece Amazon {
+  move: slide(orthogonal) | slide(diagonal) | leap(2, 1)
+  capture: =move
+  value: 12
+  traits: [jump]
+}
+
+# Chancellor = Rook + Knight
+piece Chancellor {
+  move: slide(orthogonal) | leap(2, 1)
+  capture: =move
+  value: 8
+  traits: [jump]
+}
+
+# Archbishop = Bishop + Knight
+piece Archbishop {
+  move: slide(diagonal) | leap(2, 1)
+  capture: =move
+  value: 7
+  traits: [jump]
+}
+
+# Camel = (3,1) leaper
+piece Camel {
+  move: leap(3, 1)
+  capture: =move
+  value: 2
+  traits: [jump]
+}
+
+setup:
+  modify:
+    White:
+      Queen: []
+      Amazon: [d1]
+      Chancellor: [a1]
+      Archbishop: [h1]
+    Black:
+      Queen: []
+      Amazon: [d8]
+      Chancellor: [a8]
+      Archbishop: [h8]
+```
+
+**Key Concepts:**
+- Defining custom pieces
+- Movement patterns
+- Pattern combinators
+
+[Try in Playground →](/playground?example=fairy)
+
+---
+
+## Trap Chess
+
+**Level 2** - Place traps that capture enemy pieces.
+
+```chesslang
+game: "Trap Chess"
+extends: "Standard Chess"
+
+piece Trapper {
+  move: step(any)
+  capture: =move
+  state: { traps: 0 }
+  value: 3
+}
+
+effect trap {
+  on_enter: capture entering where enemy
+  duration: 5
+  visual: highlight(red, 0.3)
+}
+
+trigger place_trap {
+  on: move
+  when: piece.type == Trapper and piece.state.traps < 3
+  do: {
+    mark origin with trap
+    set piece.state.traps = piece.state.traps + 1
+  }
+}
+
+setup:
+  add:
+    White:
+      Trapper: [c1]
+    Black:
+      Trapper: [c8]
+```
+
+**Key Concepts:**
+- Piece with state
+- Board effects
+- Effect duration
+- Triggers with conditions
+
+[Try in Playground →](/playground?example=trap)
+
+---
+
+## Berserk Chess
+
+**Level 2** - Berserkers grow stronger with each capture.
+
+```chesslang
+game: "Berserk Chess"
+extends: "Standard Chess"
+
+piece Berserker {
+  move: step(any) * (1 + state.rage)
+  capture: =move
+  state: { rage: 0 }
+  value: 4
+}
+
+trigger gain_rage {
+  on: capture
+  when: piece.type == Berserker
+  do: set piece.state.rage = min(piece.state.rage + 1, 3)
+}
+
+trigger rage_decay {
+  on: turn_end
+  do: {
+    for p in pieces where type == Berserker and state.rage > 0 {
+      set p.state.rage = p.state.rage - 1
+    }
+  }
+}
+
+setup:
+  modify:
+    White:
+      Knight: [b1]
+      Berserker: [g1]
+    Black:
+      Knight: [b8]
+      Berserker: [g8]
+```
+
+**Key Concepts:**
+- Dynamic movement based on state
+- State modification triggers
+- Turn-based effects
+
+[Try in Playground →](/playground?example=berserk)
+
+---
+
+## Cannon Chess
+
+**Level 2** - Chinese Chess-inspired cannons.
+
+```chesslang
+game: "Cannon Chess"
+extends: "Standard Chess"
+
+piece Cannon {
+  move: slide(orthogonal)
+  capture: hop(orthogonal)    # Must hop over one piece to capture
+  value: 5
+  symbol: "C"
+}
+
+setup:
+  modify:
+    White:
+      Rook: [a1]
+      Cannon: [h1]
+    Black:
+      Rook: [a8]
+      Cannon: [h8]
+```
+
+**Key Concepts:**
+- Different move and capture patterns
+- Hop pattern for capturing
+
+[Try in Playground →](/playground?example=cannon)
+
+---
+
+## Progressive Chess
+
+**Level 3** - Each turn, you get one more move than your opponent's last turn.
+
+```chesslang
+game: "Progressive Chess"
+extends: "Standard Chess"
+
+script {
+  // Initialize game state
+  game.state.movesRequired = 1;
+  game.state.movesThisTurn = 0;
+
+  game.on("move", function(event) {
+    game.state.movesThisTurn++;
+
+    // Check for check - turn ends immediately
+    if (game.isCheck(opponent(game.currentPlayer))) {
+      game.endTurn();
+      return;
+    }
+
+    // Check if required moves completed
+    if (game.state.movesThisTurn >= game.state.movesRequired) {
+      game.endTurn();
+    }
+  });
+
+  game.on("turnEnd", function(event) {
+    // Next player gets one more move
+    game.state.movesRequired++;
+    game.state.movesThisTurn = 0;
+  });
+
+  // Display moves remaining
+  game.getStatus = function() {
+    const remaining = game.state.movesRequired - game.state.movesThisTurn;
+    return `Moves remaining: ${remaining}`;
+  };
+}
+```
+
+**Key Concepts:**
+- Level 3 scripting
+- Game state management
+- Event handlers
+- Custom game flow
+
+[Try in Playground →](/playground?example=progressive)
+
+---
+
+## Phoenix Chess
+
+**Level 2/3** - The Phoenix respawns once when captured.
+
+```chesslang
+game: "Phoenix Chess"
+extends: "Standard Chess"
+
+piece Phoenix {
+  move: slide(diagonal)
+  capture: =move
+  state: { canRespawn: true }
+  value: 5
+}
+
+trigger phoenix_respawn {
+  on: capture
+  when: captured.type == Phoenix and captured.state.canRespawn
+  do: {
+    create Phoenix at captured.startPos for captured.owner
+    set created.state.canRespawn = false
+  }
+}
+
+setup:
+  modify:
+    White:
+      Bishop: [c1]
+      Phoenix: [f1]
+    Black:
+      Bishop: [c8]
+      Phoenix: [f8]
+```
+
+**Key Concepts:**
+- Piece respawning
+- Start position tracking
+- One-time abilities
+
+[Try in Playground →](/playground?example=phoenix)
+
+---
+
+## What's Next?
+
+- **Combine features**: Mix examples to create unique variants
+- **Experiment**: Modify values and see what happens
+- **Share**: Export your creations to share with others
+
+See the [Language Guide](/docs/language/level1) for complete documentation.

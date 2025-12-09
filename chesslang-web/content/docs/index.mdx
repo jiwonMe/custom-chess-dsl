@@ -1,0 +1,161 @@
+---
+title: Documentation
+description: ChessLang documentation and reference
+---
+
+# ChessLang Documentation
+
+Welcome to the ChessLang documentation. ChessLang is a domain-specific language for creating custom chess variants.
+
+## Quick Links
+
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-8">
+  <a href="/docs/getting-started" className="block p-6 border rounded-lg hover:border-primary transition-colors">
+    <h3 className="text-lg font-semibold mb-2">Getting Started</h3>
+    <p className="text-muted-foreground">Learn the basics and create your first variant</p>
+  </a>
+  <a href="/playground" className="block p-6 border rounded-lg hover:border-primary transition-colors">
+    <h3 className="text-lg font-semibold mb-2">Playground</h3>
+    <p className="text-muted-foreground">Try ChessLang in your browser</p>
+  </a>
+  <a href="/docs/examples" className="block p-6 border rounded-lg hover:border-primary transition-colors">
+    <h3 className="text-lg font-semibold mb-2">Examples</h3>
+    <p className="text-muted-foreground">Learn from practical examples</p>
+  </a>
+  <a href="/docs/reference/keywords" className="block p-6 border rounded-lg hover:border-primary transition-colors">
+    <h3 className="text-lg font-semibold mb-2">Reference</h3>
+    <p className="text-muted-foreground">Complete language reference</p>
+  </a>
+</div>
+
+## The Three Levels
+
+ChessLang provides three levels of complexity to match your needs:
+
+### Level 1: Configure
+
+Simple YAML-like configuration for basic modifications.
+
+```chesslang
+game: "King of the Hill"
+extends: "Standard Chess"
+
+board:
+  zones:
+    hill: [d4, d5, e4, e5]
+
+victory:
+  add:
+    hill: King in zone.hill
+```
+
+Perfect for:
+- Adding victory/draw conditions
+- Modifying board setup
+- Defining zones
+- Adjusting rules
+
+[Learn Level 1 →](/docs/language/level1)
+
+### Level 2: Compose
+
+Declarative DSL for custom pieces and triggers.
+
+```chesslang
+piece Amazon {
+  move: slide(orthogonal) | slide(diagonal) | leap(2, 1)
+  capture: =move
+  traits: [jump]
+}
+
+trigger explosion {
+  on: capture
+  do: remove pieces in radius(1) from target
+}
+```
+
+Perfect for:
+- Custom piece definitions
+- Board effects
+- Event triggers
+- State tracking
+
+[Learn Level 2 →](/docs/language/level2)
+
+### Level 3: Script
+
+JavaScript-like scripting for complex logic.
+
+```chesslang
+script {
+  game.on("move", function(event) {
+    if (event.piece.state.rage >= 3) {
+      transform(event.piece, "RagingBerserker");
+    }
+  });
+}
+```
+
+Perfect for:
+- Complex AI behavior
+- Dynamic abilities
+- Custom game flow
+- Advanced validation
+
+[Learn Level 3 →](/docs/language/level3)
+
+## Documentation Structure
+
+### Getting Started
+
+- [Introduction](/docs/getting-started) - What is ChessLang?
+- [Your First Game](/docs/getting-started/first-game) - Create King of the Hill
+
+### Language Guide
+
+- [Level 1: Configure](/docs/language/level1) - YAML-like configuration
+- [Level 2: Compose](/docs/language/level2) - Declarative DSL
+- [Level 3: Script](/docs/language/level3) - JavaScript-like scripting
+
+### Reference
+
+- [Keywords](/docs/reference/keywords) - All keywords and syntax
+- [Patterns](/docs/reference/patterns) - Movement patterns
+- [Directions](/docs/reference/directions) - Direction system
+- [Conditions](/docs/reference/conditions) - Condition syntax
+- [Actions](/docs/reference/actions) - Available actions
+
+### Examples
+
+- [All Examples](/docs/examples) - Complete example collection
+- King of the Hill, Three-Check, Atomic Chess
+- Custom pieces, effects, and triggers
+- Progressive Chess and more
+
+## Standard Chess Pieces
+
+ChessLang inherits these pieces from "Standard Chess":
+
+| Piece | Movement | Value |
+|-------|----------|-------|
+| King | `step(any)` | ∞ |
+| Queen | `slide(any)` | 9 |
+| Rook | `slide(orthogonal)` | 5 |
+| Bishop | `slide(diagonal)` | 3 |
+| Knight | `leap(2, 1)` | 3 |
+| Pawn | `step(forward)` | 1 |
+
+## Need Help?
+
+- **Playground Issues?** Try refreshing or clearing the code
+- **Syntax Errors?** Check the [Keywords Reference](/docs/reference/keywords)
+- **Movement Questions?** See [Patterns](/docs/reference/patterns) and [Directions](/docs/reference/directions)
+- **Want Examples?** Browse the [Examples](/docs/examples) section
+
+## Contributing
+
+ChessLang is open source. Contributions are welcome!
+
+- [GitHub Repository](https://github.com/chesslang/chesslang)
+- Report bugs and request features
+- Submit pull requests

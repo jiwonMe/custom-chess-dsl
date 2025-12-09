@@ -1,0 +1,399 @@
+---
+title: Conditions Reference
+description: Complete reference for ChessLang conditions
+---
+
+# Conditions Reference
+
+Conditions are used to restrict when moves can be made, when triggers fire, and when victory/draw conditions apply.
+
+## Movement Conditions
+
+These conditions are used with the `where` keyword to restrict piece movement.
+
+### Square Conditions
+
+| Condition | Description | Example |
+|-----------|-------------|---------|
+| `empty` | Target square is empty | `step(forward) where empty` |
+| `enemy` | Target has enemy piece | `step(diagonal) where enemy` |
+| `friend` | Target has friendly piece | `step(any) where friend` |
+| `occupied` | Target has any piece | `step(any) where occupied` |
+
+```chesslang
+piece Pawn {
+  move: step(forward) where empty
+  capture: step(forward-diagonal) where enemy
+}
+```
+
+### Path Conditions
+
+| Condition | Description | Example |
+|-----------|-------------|---------|
+| `clear` | Path is unobstructed | `step(forward, 2) where clear` |
+| `blocked` | Path is obstructed | Used for special moves |
+
+```chesslang
+piece Pawn {
+  move: step(forward, 2) where first_move and clear
+}
+
+piece Rook {
+  move: slide(orthogonal)    # Implicitly stops when blocked
+}
+```
+
+### Piece State Conditions
+
+| Condition | Description | Example |
+|-----------|-------------|---------|
+| `first_move` | Piece hasn't moved yet | `step(forward, 2) where first_move` |
+| `has_moved` | Piece has moved | `step(any) where has_moved` |
+
+```chesslang
+piece King {
+  move: step(any)
+  # Castling requires first_move
+  move: castle where first_move and not check
+}
+```
+
+### Game State Conditions
+
+| Condition | Description | Example |
+|-----------|-------------|---------|
+| `check` | King is in check | `move where check` |
+| `not check` | King is not in check | `castle where not check` |
+
+```chesslang
+piece King {
+  # Cannot castle while in check
+  move: castle where first_move and not check
+}
+```
+
+### Zone Conditions
+
+| Condition | Description | Example |
+|-----------|-------------|---------|
+| `in zone.X` | Position is in zone X | `target in zone.hill` |
+| `on rank N` | Position on rank N | `piece on rank 8` |
+| `on file X` | Position on file X | `piece on file e` |
+
+```chesslang
+board:
+  zones:
+    promotion: [a8, b8, c8, d8, e8, f8, g8, h8]
+
+piece Pawn {
+  move: step(forward) where target not in zone.promotion
+  move: promote where target in zone.promotion
+}
+```
+
+## Combining Conditions
+
+### Logical Operators
+
+| Operator | Description | Example |
+|----------|-------------|---------|
+| `and` | Both conditions true | `first_move and clear` |
+| `or` | Either condition true | `empty or enemy` |
+| `not` | Condition is false | `not check` |
+
+```chesslang
+piece Pawn {
+  move: step(forward, 2) where first_move and clear and empty
+}
+
+piece King {
+  move: castle where first_move and not check and clear
+}
+```
+
+### Precedence
+
+1. `not` (highest)
+2. `and`
+3. `or` (lowest)
+
+Use parentheses for clarity:
+
+```chesslang
+# These are equivalent
+step(any) where (empty or enemy) and not check
+step(any) where empty or enemy and not check   # Same due to precedence
+```
+
+## Victory Conditions
+
+Used in the `victory` section to define win conditions.
+
+### Built-in Conditions
+
+| Condition | Description |
+|-----------|-------------|
+| `checkmate` | Opponent is in checkmate |
+| `stalemate` | Opponent has no legal moves (draw by default) |
+
+### Piece Conditions
+
+| Condition | Description | Example |
+|-----------|-------------|---------|
+| `King captured` | King is captured | `victory: King captured` |
+| `King in zone.X` | King in zone | `King in zone.hill` |
+| `King on rank N` | King on rank | `King on rank 8` |
+| `pieces == N` | Exact piece count | `opponent.pieces == 0` |
+| `pieces <= N` | Piece count limit | `opponent.pieces <= 1` |
+
+```chesslang
+victory:
+  add:
+    hill: King in zone.hill
+    elimination: opponent.pieces == 0
+    bare_king: opponent.pieces == 1 and opponent.King
+```
+
+### Counter Conditions
+
+| Condition | Description | Example |
+|-----------|-------------|---------|
+| `checks >= N` | Given N+ checks | `checks >= 3` |
+| `captures >= N` | Made N+ captures | `captures >= 10` |
+| `moves >= N` | Made N+ moves | `moves >= 50` |
+
+```chesslang
+victory:
+  add:
+    three_check: checks >= 3
+```
+
+## Draw Conditions
+
+Used in the `draw` section to define draw conditions.
+
+### Built-in Draw Conditions
+
+| Condition | Description | Default |
+|-----------|-------------|---------|
+| `stalemate` | No legal moves | Enabled |
+| `repetition` | Position repeated 3x | Enabled |
+| `fifty_moves` | 50 moves no capture/pawn | Enabled |
+| `insufficient` | Insufficient material | Enabled |
+
+```chesslang
+draw:
+  modify:
+    repetition: 5      # 5-fold repetition
+    fifty_moves: 75    # 75-move rule
+```
+
+### Custom Draw Conditions
+
+```chesslang
+draw:
+  add:
+    mutual_agreement: both_agree
+    bare_kings: White.pieces == 1 and Black.pieces == 1
+```
+
+## Trigger Conditions
+
+Used in the `when` clause of triggers.
+
+### Event Data
+
+| Variable | Available In | Description |
+|----------|--------------|-------------|
+| `piece` | move, capture | Moving piece |
+| `origin` | move, capture | Starting position |
+| `target` | move, capture | Ending position |
+| `captured` | capture | Captured piece |
+| `player` | turn_start, turn_end | Current player |
+
+```chesslang
+trigger on_capture {
+  on: capture
+  when: piece.type == Pawn and captured.type == Queen
+  do: set piece.state.promoted = true
+}
+```
+
+### Piece Type Conditions
+
+| Condition | Description | Example |
+|-----------|-------------|---------|
+| `piece.type == X` | Piece is type X | `piece.type == Knight` |
+| `piece.owner == X` | Piece belongs to X | `piece.owner == White` |
+
+```chesslang
+trigger knight_bonus {
+  on: capture
+  when: piece.type == Knight
+  do: add_bonus(player, 1)
+}
+```
+
+### State Conditions
+
+| Condition | Description | Example |
+|-----------|-------------|---------|
+| `piece.state.X == Y` | State value check | `piece.state.rage >= 3` |
+| `piece.traits.has(X)` | Has trait | `piece.traits.has(royal)` |
+
+```chesslang
+trigger rage_attack {
+  on: move
+  when: piece.type == Berserker and piece.state.rage >= 3
+  do: transform piece to RagingBerserker
+}
+```
+
+### Position Conditions
+
+| Condition | Description | Example |
+|-----------|-------------|---------|
+| `target in zone.X` | Target in zone | `target in zone.danger` |
+| `origin on rank N` | Origin on rank | `origin on rank 2` |
+| `distance(a, b) < N` | Distance check | `distance(origin, target) > 3` |
+
+```chesslang
+trigger teleport_check {
+  on: move
+  when: distance(origin, target) > 3
+  do: mark target with warp_effect
+}
+```
+
+### Existence Conditions
+
+| Condition | Description | Example |
+|-----------|-------------|---------|
+| `exists piece where X` | Any piece matching | `exists Knight where owner == White` |
+| `all pieces where X` | All pieces match | `all Pawns where on rank 7` |
+| `count pieces where X` | Count matching | `count Queens where owner == player` |
+
+```chesslang
+trigger last_piece {
+  on: capture
+  when: count pieces where owner == captured.owner == 1
+  do: win player
+}
+```
+
+## Effect Conditions
+
+Used to define when effects apply.
+
+```chesslang
+effect fire {
+  damages: [any]                    # Affects all pieces
+  blocks: [enemy]                   # Only blocks enemies
+  duration: 3
+}
+
+effect sanctuary {
+  protects: [friend]                # Only protects friendlies
+  blocks: [enemy where not royal]   # Blocks non-royal enemies
+}
+```
+
+## Script Conditions (Level 3)
+
+In Level 3 scripts, you can write arbitrary conditions:
+
+```chesslang
+script {
+  function canCastle(king, rook) {
+    if (king.hasMoved || rook.hasMoved) return false;
+    if (game.isCheck(king.owner)) return false;
+
+    const path = getPathBetween(king.pos, rook.pos);
+    for (const pos of path) {
+      if (!board.isEmpty(pos)) return false;
+      if (game.isAttacked(pos, opponent(king.owner))) return false;
+    }
+
+    return true;
+  }
+
+  King.validate = function(piece, move) {
+    if (move.type == "castle") {
+      const rook = board.at(move.rookFrom);
+      if (!canCastle(piece, rook)) {
+        return { valid: false, reason: "Cannot castle" };
+      }
+    }
+    return { valid: true };
+  };
+}
+```
+
+## Examples
+
+### Conditional Movement
+
+```chesslang
+piece DesperatePawn {
+  # Normal move
+  move: step(forward) where empty
+
+  # Double move on first turn
+  move: step(forward, 2) where first_move and clear and empty
+
+  # Capture diagonally
+  capture: step(forward-diagonal) where enemy
+
+  # Can move backward when in danger
+  move: step(backward) where check and empty
+}
+```
+
+### Conditional Triggers
+
+```chesslang
+trigger promote_on_hill {
+  on: move
+  when: piece.type == Pawn and target in zone.hill
+  do: transform piece to Queen
+}
+
+trigger atomic_explosion {
+  on: capture
+  when: not (captured.type == Pawn)  # Pawns don't explode
+  do: {
+    remove pieces in radius(1) from target
+  }
+}
+
+trigger check_counter {
+  on: check
+  when: count checks where player == current_player >= 2
+  do: win current_player
+}
+```
+
+### Complex Victory Conditions
+
+```chesslang
+victory:
+  add:
+    # Racing kings - first to rank 8 wins
+    race: King on rank 8 and not opponent.King on rank 8
+
+    # Capture the flag - reach opponent's corner
+    flag: King in zone.opponent_corner
+
+    # Elimination - capture all pieces
+    elimination: opponent.pieces == 0
+
+    # Material advantage
+    domination: pieces >= opponent.pieces * 2
+```
+
+## See Also
+
+- [Actions Reference](/docs/reference/actions)
+- [Directions Reference](/docs/reference/directions)
+- [Level 2 - Compose](/docs/language/level2)

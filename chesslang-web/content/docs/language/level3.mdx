@@ -1,0 +1,496 @@
+---
+title: Level 3 - Script
+description: JavaScript-like scripting for complex game logic
+---
+
+# Level 3: Script
+
+Level 3 provides a JavaScript-like scripting language for implementing complex game logic that cannot be expressed declaratively.
+
+## Overview
+
+Level 3 is useful for:
+- Complex AI behavior
+- Custom move validation
+- Dynamic piece abilities
+- Advanced game state manipulation
+- Integration with external systems
+
+## Script Blocks
+
+Scripting code lives inside `script` blocks:
+
+```chesslang
+script {
+  // JavaScript-like code here
+}
+```
+
+## Variables and Types
+
+### Variable Declaration
+
+```chesslang
+script {
+  let x = 5;           // Mutable variable
+  const y = 10;        // Immutable constant
+
+  let name = "Rook";   // String
+  let active = true;   // Boolean
+  let pieces = [];     // Array
+  let config = {};     // Object
+}
+```
+
+### Type Inference
+
+Types are inferred automatically:
+
+```chesslang
+script {
+  let count = 0;           // number
+  let message = "Hello";   // string
+  let valid = true;        // boolean
+  let pos = { x: 1, y: 2 }; // object
+}
+```
+
+## Control Flow
+
+### Conditionals
+
+```chesslang
+script {
+  if (piece.type == "King") {
+    // King-specific logic
+  } else if (piece.type == "Queen") {
+    // Queen-specific logic
+  } else {
+    // Other pieces
+  }
+}
+```
+
+### Loops
+
+```chesslang
+script {
+  // For loop
+  for (let i = 0; i < 8; i++) {
+    // Process each file
+  }
+
+  // For-of loop
+  for (const piece of board.pieces) {
+    // Process each piece
+  }
+
+  // While loop
+  while (condition) {
+    // Repeat until condition is false
+  }
+}
+```
+
+## Functions
+
+### Function Declaration
+
+```chesslang
+script {
+  function calculateValue(piece) {
+    if (piece.type == "Queen") return 9;
+    if (piece.type == "Rook") return 5;
+    if (piece.type == "Bishop") return 3;
+    if (piece.type == "Knight") return 3;
+    if (piece.type == "Pawn") return 1;
+    return 0;
+  }
+}
+```
+
+### Arrow Functions
+
+```chesslang
+script {
+  const isEnemy = (piece, player) => piece.owner != player;
+
+  const sumValues = (pieces) => {
+    let total = 0;
+    for (const p of pieces) {
+      total += calculateValue(p);
+    }
+    return total;
+  };
+}
+```
+
+## Built-in Objects
+
+### board
+
+Access the game board:
+
+```chesslang
+script {
+  // Get piece at position
+  const piece = board.at({ file: 4, rank: 0 });
+
+  // Get all pieces
+  const allPieces = board.pieces;
+
+  // Get pieces by player
+  const whitePieces = board.pieces.filter(p => p.owner == "White");
+
+  // Check if square is empty
+  const isEmpty = board.isEmpty({ file: 3, rank: 3 });
+
+  // Get adjacent squares
+  const neighbors = board.adjacent({ file: 4, rank: 4 });
+}
+```
+
+### game
+
+Access game state:
+
+```chesslang
+script {
+  // Current player
+  const current = game.currentPlayer;
+
+  // Move history
+  const moves = game.moveHistory;
+  const lastMove = game.lastMove;
+
+  // Turn number
+  const turn = game.turnNumber;
+
+  // Check state
+  const inCheck = game.isCheck(player);
+  const isCheckmate = game.isCheckmate(player);
+
+  // Game result
+  const isOver = game.isOver;
+  const winner = game.winner;
+}
+```
+
+### Position Utilities
+
+```chesslang
+script {
+  // Parse square notation
+  const pos = parseSquare("e4");  // { file: 4, rank: 3 }
+
+  // Convert to notation
+  const notation = toSquare({ file: 4, rank: 3 });  // "e4"
+
+  // Calculate distance
+  const dist = distance(pos1, pos2);
+
+  // Get squares in direction
+  const ray = getRay(pos, "N", 3);  // 3 squares north
+
+  // Check if position is valid
+  const valid = isValidPos({ file: 8, rank: 0 });  // false
+}
+```
+
+## Extending Pieces
+
+### Custom Actions
+
+Add custom actions to pieces:
+
+```chesslang
+piece Teleporter {
+  move: step(any)
+  capture: =move
+}
+
+script {
+  Teleporter.actions.teleport = function(board, piece) {
+    // Return array of possible teleport targets
+    return board.emptySquares().filter(pos => {
+      const dist = distance(piece.pos, pos);
+      return dist >= 3 && dist <= 5;
+    }).map(pos => ({
+      type: "teleport",
+      from: piece.pos,
+      to: pos
+    }));
+  };
+
+  Teleporter.execute.teleport = function(board, piece, action) {
+    board.movePiece(piece, action.to);
+    return { success: true };
+  };
+}
+```
+
+### Custom Move Validation
+
+```chesslang
+piece Coward {
+  move: step(any)
+}
+
+script {
+  Coward.validate = function(board, piece, move) {
+    // Cannot move toward enemy pieces
+    const enemyPieces = board.pieces.filter(p => p.owner != piece.owner);
+
+    for (const enemy of enemyPieces) {
+      const oldDist = distance(piece.pos, enemy.pos);
+      const newDist = distance(move.to, enemy.pos);
+
+      if (newDist < oldDist) {
+        return { valid: false, reason: "Coward cannot approach enemies" };
+      }
+    }
+
+    return { valid: true };
+  };
+}
+```
+
+## Event Handlers
+
+### Global Event Handlers
+
+```chesslang
+script {
+  game.on("move", function(event) {
+    console.log(`${event.piece.type} moved from ${event.from} to ${event.to}`);
+  });
+
+  game.on("capture", function(event) {
+    console.log(`${event.captured.type} was captured!`);
+  });
+
+  game.on("turnEnd", function(event) {
+    // Check for special conditions
+    if (game.turnNumber > 50) {
+      // Apply time pressure effects
+    }
+  });
+}
+```
+
+### Piece-Specific Handlers
+
+```chesslang
+script {
+  Berserker.on("capture", function(piece, captured) {
+    piece.state.rage = Math.min(piece.state.rage + 1, 5);
+    console.log(`Berserker rage: ${piece.state.rage}`);
+  });
+
+  Phoenix.on("captured", function(piece, capturer) {
+    // Respawn at starting position
+    if (!piece.state.hasRespawned) {
+      game.createPiece("Phoenix", piece.startPos, piece.owner);
+      piece.state.hasRespawned = true;
+    }
+  });
+}
+```
+
+## Complete Examples
+
+### Lancer with Mount Ability
+
+```chesslang
+game: "Cavalry Chess"
+extends: "Standard Chess"
+
+piece Lancer {
+  move: step(orthogonal)
+  capture: =move
+  state: { mounted: false }
+  value: 4
+}
+
+script {
+  // Add mount action when adjacent to a Knight
+  Lancer.actions.mount = function(board, piece) {
+    if (piece.state.mounted) return [];
+
+    const adjacent = board.adjacent(piece.pos);
+    const knights = adjacent
+      .map(pos => board.at(pos))
+      .filter(p => p && p.type == "Knight" && p.owner == piece.owner);
+
+    return knights.map(knight => ({
+      type: "mount",
+      target: knight.pos
+    }));
+  };
+
+  Lancer.execute.mount = function(board, piece, action) {
+    const knight = board.at(action.target);
+    board.removePiece(knight);
+    piece.state.mounted = true;
+    return { success: true };
+  };
+
+  // Mounted Lancer has enhanced movement
+  Lancer.getPattern = function(piece) {
+    if (piece.state.mounted) {
+      return {
+        move: "leap(2, 1) | step(orthogonal, 2)",
+        capture: "=move"
+      };
+    }
+    return null;  // Use default pattern
+  };
+}
+
+setup:
+  modify:
+    White:
+      Knight: [b1]
+      Lancer: [c1]
+    Black:
+      Knight: [b8]
+      Lancer: [c8]
+```
+
+### Progressive Chess
+
+```chesslang
+game: "Progressive Chess"
+extends: "Standard Chess"
+
+script {
+  // Track moves per turn
+  game.state.movesThisTurn = 0;
+  game.state.movesRequired = 1;
+
+  game.on("move", function(event) {
+    game.state.movesThisTurn++;
+
+    // Check if turn should end
+    if (game.state.movesThisTurn >= game.state.movesRequired) {
+      game.endTurn();
+    }
+  });
+
+  game.on("turnEnd", function(event) {
+    // Next player gets one more move
+    game.state.movesRequired++;
+    game.state.movesThisTurn = 0;
+  });
+
+  // Override turn end logic
+  game.canEndTurn = function() {
+    return game.state.movesThisTurn >= game.state.movesRequired;
+  };
+}
+```
+
+### Custom AI Evaluation
+
+```chesslang
+script {
+  game.evaluate = function(board, player) {
+    let score = 0;
+
+    for (const piece of board.pieces) {
+      const value = getPieceValue(piece);
+      const positionBonus = getPositionBonus(piece);
+      const mobilityBonus = getMobilityBonus(board, piece);
+
+      const pieceScore = value + positionBonus + mobilityBonus;
+
+      if (piece.owner == player) {
+        score += pieceScore;
+      } else {
+        score -= pieceScore;
+      }
+    }
+
+    // Bonus for king safety
+    score += evaluateKingSafety(board, player);
+
+    // Penalty for doubled pawns
+    score -= countDoubledPawns(board, player) * 0.5;
+
+    return score;
+  };
+
+  function getPieceValue(piece) {
+    const values = {
+      King: 0,
+      Queen: 9,
+      Rook: 5,
+      Bishop: 3.25,
+      Knight: 3,
+      Pawn: 1
+    };
+    return values[piece.type] || 0;
+  }
+
+  function getPositionBonus(piece) {
+    // Center control bonus
+    const centerDist = distance(piece.pos, { file: 3.5, rank: 3.5 });
+    return Math.max(0, 0.5 - centerDist * 0.1);
+  }
+
+  function getMobilityBonus(board, piece) {
+    const moves = board.getLegalMoves(piece);
+    return moves.length * 0.1;
+  }
+}
+```
+
+## Debugging
+
+### Console Output
+
+```chesslang
+script {
+  console.log("Debug message");
+  console.warn("Warning message");
+  console.error("Error message");
+
+  // Log object
+  console.log("Piece:", piece);
+  console.log("Board state:", board.toJSON());
+}
+```
+
+### Assertions
+
+```chesslang
+script {
+  function movePiece(piece, to) {
+    assert(piece != null, "Piece cannot be null");
+    assert(isValidPos(to), "Invalid target position");
+
+    // ... move logic
+  }
+}
+```
+
+## Best Practices
+
+1. **Keep Scripts Focused**: Use Level 2 for declarative logic, Level 3 for complex procedures
+2. **Document Functions**: Add comments explaining what functions do
+3. **Handle Errors**: Check for null/undefined values
+4. **Avoid Side Effects**: Functions should be predictable
+5. **Test Thoroughly**: Scripts can introduce subtle bugs
+
+## Limitations
+
+- No async/await (game logic is synchronous)
+- No DOM access (runs in isolated context)
+- No external imports (use built-in utilities)
+- Limited recursion depth (prevent infinite loops)
+
+## Next Steps
+
+- See [Reference](/docs/reference/keywords) for all keywords
+- Explore [Examples](/docs/examples) for complex variants
+- Check [Patterns](/docs/reference/patterns) for movement reference
