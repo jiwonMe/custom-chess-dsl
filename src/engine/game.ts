@@ -658,6 +658,9 @@ export class GameEngine {
         captured,
         player: move.piece.owner,
       });
+      
+      // Check if a royal piece (King) was captured - ends the game
+      this.checkRoyalPieceRemoved([captured]);
     }
 
     // Reset turn ended flag before emitting move event
