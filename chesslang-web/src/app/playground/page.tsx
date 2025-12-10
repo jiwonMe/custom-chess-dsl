@@ -21,6 +21,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { OptionalTriggerDialog } from '@/components/board/OptionalTriggerDialog';
+import { AIControls } from '@/components/board/AIControls';
+import { useAI } from '@/hooks/useAI';
 import type { Position, Move } from '@/types';
 
 // 모바일 탭 타입
@@ -48,9 +50,23 @@ function PlaygroundContent() {
   const [currentExampleId, setCurrentExampleId] = useState<string | null>(null);
 
   const { compile, makeMove, reset, undo, executeOptionalTrigger, skipOptionalTrigger, isReady } = useEngine();
+  
+  // AI 훅
+  const { 
+    config: aiConfig, 
+    isThinking: aiIsThinking,
+    setEnabled: setAIEnabled,
+    setType: setAIType,
+    setLevel: setAILevel,
+    setColor: setAIColor,
+    getAIMove,
+  } = useAI();
 
   // Pending optional triggers
   const pendingTriggers = gameState?.pendingOptionalTriggers ?? [];
+  
+  // 컴파일된 게임 (AI용)
+  const compiledGame = useGameStore((s) => s.compiledGame);
 
   // URL query에서 예제 로드
   useEffect(() => {
@@ -67,6 +83,40 @@ function PlaygroundContent() {
       compile();
     }
   }, [isReady, compile]);
+
+  // AI 자동 수 두기
+  useEffect(() => {
+    // AI가 활성화되어 있고, AI의 차례이고, 게임이 끝나지 않았고, 생각 중이 아닐 때
+    if (
+      aiConfig.enabled &&
+      gameState?.currentPlayer === aiConfig.color &&
+      !isGameOver &&
+      !aiIsThinking &&
+      pendingTriggers.length === 0 &&
+      compiledGame
+    ) {
+      // 약간의 지연 후 AI 수 실행
+      const timeout = setTimeout(async () => {
+        const aiMove = await getAIMove(legalMoves, compiledGame);
+        if (aiMove) {
+          makeMove(aiMove);
+        }
+      }, 300);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [
+    aiConfig.enabled,
+    aiConfig.color,
+    gameState?.currentPlayer,
+    isGameOver,
+    aiIsThinking,
+    pendingTriggers.length,
+    compiledGame,
+    legalMoves,
+    getAIMove,
+    makeMove,
+  ]);
 
   // 예제 로드 + URL 업데이트
   const handleLoadExample = useCallback((exId: string) => {
@@ -322,6 +372,21 @@ function PlaygroundContent() {
         >
           {gameState ? (
             <>
+              {/* AI Controls */}
+              <div className="w-full max-w-md mb-2">
+                <AIControls
+                  enabled={aiConfig.enabled}
+                  type={aiConfig.type}
+                  level={aiConfig.level}
+                  color={aiConfig.color}
+                  isThinking={aiIsThinking}
+                  onEnabledChange={setAIEnabled}
+                  onTypeChange={setAIType}
+                  onLevelChange={setAILevel}
+                  onColorChange={setAIColor}
+                />
+              </div>
+              
               {/* Game info */}
               <div className="mb-4 text-center">
                 {isGameOver ? (
@@ -337,9 +402,14 @@ function PlaygroundContent() {
                       <span className="text-sm text-muted-foreground ml-2">({gameOverReason})</span>
                     )}
                   </div>
+                ) : aiIsThinking ? (
+                  <div className="text-sm text-muted-foreground animate-pulse">
+                    🤖 AI가 생각 중...
+                  </div>
                 ) : (
                   <div className="text-sm text-muted-foreground">
                     {gameState.currentPlayer} to move
+                    {aiConfig.enabled && gameState.currentPlayer !== aiConfig.color && ' (당신의 차례)'}
                   </div>
                 )}
               </div>
