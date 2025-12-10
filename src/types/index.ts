@@ -392,6 +392,12 @@ export interface RemoveAction {
     value: number;
     from: Expression;
   };
+  // Filter condition: "where not Pawn"
+  filter?: {
+    exclude?: string[];  // Piece types to exclude
+    include?: string[];  // Piece types to include (if set, only these are removed)
+    condition?: Condition;  // General condition
+  };
 }
 
 export interface TransformAction {
@@ -761,6 +767,11 @@ export interface ActionNode extends ASTNode {
     kind: 'radius';
     value: number;
     from: ExpressionNode;
+  };
+  // Filter condition: "where not Pawn"
+  filter?: {
+    exclude?: string[];  // Piece types to exclude
+    include?: string[];  // Piece types to include
   };
   // For 'for' action
   variable?: string;

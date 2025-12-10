@@ -262,9 +262,18 @@ do: set piece.state.cooldown = 2
 ```
 
 #### remove 액션
-기물을 제거합니다.
+기물을 제거합니다. 범위 지정 및 필터링이 가능합니다.
 ```
 remove <target>
+remove pieces in radius(<N>) from <position>
+remove pieces in radius(<N>) from <position> where not <Type>
+```
+
+**예시:**
+```
+do: remove piece                                        # 단일 기물 제거
+do: remove pieces in radius(1) from destination         # 반경 1 내 모든 기물
+do: remove pieces in radius(1) from destination where not Pawn   # 폰 제외
 ```
 
 #### transform 액션

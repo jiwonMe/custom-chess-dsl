@@ -182,34 +182,31 @@ setup:
 # 기물을 잡으면 폭발이 일어납니다!
 #
 # 특별 규칙:
-# - 기물을 잡으면 인접한 모든 기물도 제거됩니다
-# - 잡은 기물과 잡힌 기물 모두 제거됩니다
-# - 상대 킹 옆에서 폭발시키면 승리!
+# - 기물을 잡으면 인접한 모든 기물이 폭발로 제거됩니다
+# - 단, 폰(Pawn)은 폭발에서 살아남습니다
+# - 상대 킹이 폭발로 제거되면 승리!
 #
 # 전략 팁:
 # - 자신의 킹 주변에서 잡기를 피하세요
-# - 폭발로 여러 기물을 동시에 제거하세요
 # - 상대 킹 주변에서 전략적으로 폭발시키세요
+# - 폰은 폭발에서 살아남으므로 방패로 사용하세요
 #
 # 문법 설명:
 # - trigger: 이벤트 발생 시 실행되는 동작 정의
 # - on: capture: 기물을 잡을 때 발동
 # - radius(1): 반경 1칸 (인접한 8칸)
+# - where not Pawn: 폰은 제외하고 제거
 
 game: "Atomic Chess"
 extends: "Standard Chess"
 
-# 폭발 트리거: 기물을 잡으면 주변 기물 모두 제거
-# 단일 액션은 중괄호 없이 사용 가능
+# 폭발 트리거: 기물을 잡으면 주변 기물 모두 제거 (폰 제외)
 trigger atomic_explosion {
   on: capture
-  do: remove pieces in radius(1) from target
+  do: {
+    remove pieces in radius(1) from destination where not Pawn
+  }
 }
-
-# 추가 승리 조건: 상대 킹이 폭발로 제거되면 승리
-victory:
-  add:
-    king_exploded: opponent.King == 0
 `,
 
   custom: `# ===================================

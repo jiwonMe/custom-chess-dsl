@@ -95,11 +95,10 @@ trigger split {
 보드에서 기물을 제거합니다:
 
 ```chesslang
-remove piece
-remove captured
-remove pieces at e4
-remove pieces in radius(1) from target
-remove pieces in zone.danger where enemy
+remove piece                                      # 단일 기물 제거
+remove captured                                   # 잡힌 기물 제거
+remove pieces in radius(1) from destination       # 반경 1 내 모든 기물
+remove pieces in radius(2) from target where not Pawn  # 폰 제외하고 제거
 ```
 
 **매개변수:**
@@ -107,23 +106,37 @@ remove pieces in zone.danger where enemy
 | 매개변수 | 설명 |
 |----------|------|
 | target | 제거할 기물 또는 기물들 |
+| radius(N) from pos | N칸 반경 내 기물들 (선택) |
+| where not Type | 특정 타입 제외 (선택) |
+
+**문법:**
+
+```
+remove <target>
+remove pieces in radius(<N>) from <position> [where not <Type>]
+```
+
+- `radius(N)`: 체비셰프 거리 기준 N칸 반경
+- `where not <Type>`: 특정 기물 타입 제외
 
 **예시:**
 
 ```chesslang
+# Atomic Chess: 잡기 시 폭발, 폰 제외
 trigger atomic_explosion {
   on: capture
   do: {
-    remove piece                              # 잡는 기물 제거
-    remove captured                           # 잡힌 기물 제거
-    remove pieces in radius(1) from target    # 인접 기물 제거
+    remove pieces in radius(1) from destination where not Pawn
   }
 }
 
-trigger clear_zone {
-  on: turn_end
-  when: game.turnNumber == 20
-  do: remove pieces in zone.danger
+# 단순 폭발: 모든 인접 기물 제거
+trigger simple_explosion {
+  on: capture
+  when: piece.type == Bomb
+  do: {
+    remove pieces in radius(1) from destination
+  }
 }
 ```
 

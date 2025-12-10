@@ -531,11 +531,28 @@ export class Compiler {
               : this.compileExpression(node.owner as ExpressionNode),
         };
 
-      case 'remove':
-        return {
+      case 'remove': {
+        const removeAction: Record<string, unknown> = {
           type: 'remove',
           target: this.compileExpression(node.target as ExpressionNode),
         };
+        
+        // Add range if present
+        if (node.range) {
+          removeAction['range'] = {
+            kind: node.range.kind,
+            value: node.range.value,
+            from: this.compileExpression(node.range.from),
+          };
+        }
+        
+        // Add filter if present
+        if (node.filter) {
+          removeAction['filter'] = node.filter;
+        }
+        
+        return removeAction as unknown as Action;
+      }
 
       case 'transform':
         return {

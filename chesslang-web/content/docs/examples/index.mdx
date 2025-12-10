@@ -358,8 +358,27 @@ setup:
 
 ## 효과와 트리거
 
-> ⚠️ **참고:** 일부 고급 기능(`pieces in radius`, `adjacent to` 등)은 개발 중입니다.
-> 현재 구현된 기능만 사용하는 예제를 먼저 시도해 보세요.
+### Atomic Chess
+
+잡기가 폭발을 일으켜 인접 기물을 모두 제거합니다. 폰은 폭발에서 제외됩니다.
+
+```chesslang
+game: "Atomic Chess"
+extends: "Standard Chess"
+
+# 잡기 발생 시 폭발 - 반경 1 내 모든 기물 제거 (폰 제외)
+trigger atomic_explosion {
+  on: capture
+  do: {
+    remove pieces in radius(1) from destination where not Pawn
+  }
+}
+```
+
+**핵심 문법:**
+- `remove pieces in radius(N) from <position>`: N칸 반경 내 모든 기물 제거
+- `where not <Type>`: 특정 타입 제외 (폰은 폭발에서 살아남음)
+- `destination`: 잡기가 발생한 위치
 
 ### Trapper Chess (덫 설치자 체스)
 

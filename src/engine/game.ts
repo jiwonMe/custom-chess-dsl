@@ -1367,7 +1367,7 @@ export class GameEngine {
   }
 
   /**
-   * Execute remove action - remove a piece
+   * Execute remove action - remove a piece or pieces in radius
    */
   private executeRemoveAction(
     action: Record<string, unknown>,
@@ -1375,6 +1375,46 @@ export class GameEngine {
     move: Move
   ): void {
     const targetExpr = action['target'];
+    const range = action['range'] as { kind: string; value: number; from: unknown } | undefined;
+    const filter = action['filter'] as { exclude?: string[]; include?: string[] } | undefined;
+
+    // Range-based removal: "remove pieces in radius(N) from target"
+    if (range && range.kind === 'radius') {
+      const centerPos = evaluateExpression(range.from, ctx, move) as Position;
+      if (!centerPos || typeof centerPos.file !== 'number') return;
+
+      const radiusValue = range.value;
+      const piecesToRemove: Piece[] = [];
+
+      // Find all pieces within radius
+      for (const piece of this.state.pieces) {
+        const dx = Math.abs(piece.pos.file - centerPos.file);
+        const dy = Math.abs(piece.pos.rank - centerPos.rank);
+        const distance = Math.max(dx, dy); // Chebyshev distance
+
+        if (distance <= radiusValue) {
+          // Apply filter
+          if (filter) {
+            if (filter.exclude && filter.exclude.includes(piece.type)) {
+              continue; // Skip excluded types
+            }
+            if (filter.include && !filter.include.includes(piece.type)) {
+              continue; // Skip non-included types
+            }
+          }
+          piecesToRemove.push(piece);
+        }
+      }
+
+      // Remove all matched pieces
+      for (const piece of piecesToRemove) {
+        this.board.removePiece(piece.pos);
+      }
+      this.syncState();
+      return;
+    }
+
+    // Single piece removal
     const target = evaluateExpression(targetExpr, ctx, move);
 
     if (target && typeof target === 'object' && 'pos' in target) {

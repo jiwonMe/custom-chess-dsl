@@ -1397,7 +1397,7 @@ export class Parser {
     if (this.stream.match(TokenType.REMOVE)) {
       const target = this.parseExpression();
 
-      // Check for range-based removal: "remove pieces in radius(N) from target"
+      // Check for range-based removal: "remove pieces in radius(N) from target [where ...]"
       if (this.stream.check(TokenType.IN) || 
           (this.stream.check(TokenType.IDENTIFIER) && this.stream.peek().value === 'in')) {
         this.stream.advance(); // 'in'
@@ -1414,6 +1414,13 @@ export class Parser {
             this.stream.advance(); // 'from'
             const fromTarget = this.parseExpression();
 
+            // Check for optional 'where' filter
+            let filter: { exclude?: string[]; include?: string[] } | undefined;
+            if (this.stream.check(TokenType.WHERE)) {
+              this.stream.advance(); // 'where'
+              filter = this.parseRemoveFilter();
+            }
+
             return {
               type: 'Action',
               kind: 'remove',
@@ -1423,6 +1430,7 @@ export class Parser {
                 value: radiusValue,
                 from: fromTarget,
               },
+              filter,
               location,
             };
           }
@@ -1869,6 +1877,24 @@ export class Parser {
     }
 
     this.error('Expected identifier');
+  }
+
+  /**
+   * Parse filter for remove action: "where not Pawn" or "where King"
+   */
+  private parseRemoveFilter(): { exclude?: string[]; include?: string[] } {
+    const filter: { exclude?: string[]; include?: string[] } = {};
+    
+    // Check for 'not' (exclusion)
+    if (this.stream.check(TokenType.NOT)) {
+      this.stream.advance(); // 'not'
+      filter.exclude = [this.stream.expect(TokenType.IDENTIFIER).value];
+    } else {
+      // Inclusion: specific piece type
+      filter.include = [this.stream.expect(TokenType.IDENTIFIER).value];
+    }
+
+    return filter;
   }
 
   private error(message: string): never {
