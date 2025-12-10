@@ -81,6 +81,13 @@ function getCooldown(state?: Record<string, unknown> | null): number | null {
   return typeof cooldown === 'number' ? cooldown : null;
 }
 
+// Get frozen value from state
+function getFrozen(state?: Record<string, unknown> | null): number | null {
+  if (!state) return null;
+  const frozen = state['frozen'];
+  return typeof frozen === 'number' ? frozen : null;
+}
+
 // Format state for display
 function formatStateValue(key: string, value: unknown): string {
   if (typeof value === 'boolean') return value ? '✓' : '✗';
@@ -105,6 +112,12 @@ export function Piece({
 
   const cooldown = getCooldown(state);
   const hasCooldown = cooldown !== null && cooldown > 0;
+  
+  const frozen = getFrozen(state);
+  const isFrozen = frozen !== null && frozen > 0;
+  
+  // Determine which blocking state to show (frozen takes priority)
+  const isBlocked = isFrozen || hasCooldown;
 
   // 드래그 이벤트 핸들러
   const handleDragStart = (e: React.DragEvent) => {
@@ -123,6 +136,28 @@ export function Piece({
   // State badge component
   const StateBadge = () => {
     if (!showState || !state || Object.keys(state).length === 0) return null;
+    
+    // Only show badge if there's a meaningful state to display
+    const hasDisplayableState = hasCooldown || isFrozen || 
+      Object.entries(state).some(([k, v]) => 
+        k !== 'moved' && k !== 'justDoublePushed' && v !== 0 && v !== false
+      );
+    
+    if (!hasDisplayableState) return null;
+
+    // Determine badge color and icon
+    let badgeClass = 'bg-amber-500 text-white border border-amber-300';
+    let badgeIcon: React.ReactNode = '⚡';
+    
+    if (isFrozen) {
+      // Frozen - cyan/ice color
+      badgeClass = 'bg-cyan-500 text-white border border-cyan-300';
+      badgeIcon = frozen;
+    } else if (hasCooldown) {
+      // Cooldown - blue
+      badgeClass = 'bg-blue-500 text-white border border-blue-300';
+      badgeIcon = cooldown;
+    }
 
     return (
       <div
@@ -136,16 +171,44 @@ export function Piece({
           // 스타일
           'rounded-full',
           'text-[10px] font-bold',
-          // 색상 - 쿨다운이면 파란색, 아니면 노란색
-          hasCooldown
-            ? 'bg-blue-500 text-white border border-blue-300'
-            : 'bg-amber-500 text-white border border-amber-300',
+          // 색상
+          badgeClass,
           // 그림자
           'shadow-sm'
         )}
         title={Object.entries(state).map(([k, v]) => `${k}: ${formatStateValue(k, v)}`).join('\n')}
       >
-        {hasCooldown ? cooldown : '⚡'}
+        {badgeIcon}
+      </div>
+    );
+  };
+  
+  // Frozen overlay component
+  const FrozenOverlay = () => {
+    if (!isFrozen) return null;
+    
+    return (
+      <div
+        className={cn(
+          // 포지셔닝
+          'absolute inset-0 z-5',
+          // 레이아웃
+          'flex items-center justify-center',
+          // 포인터
+          'pointer-events-none'
+        )}
+      >
+        {/* 얼음 효과 오버레이 */}
+        <div
+          className={cn(
+            'absolute inset-0',
+            'bg-cyan-400/20',
+            'rounded-full',
+            'animate-pulse'
+          )}
+        />
+        {/* 얼음 아이콘 */}
+        <span className="absolute bottom-0 left-0 text-xs opacity-80">❄️</span>
       </div>
     );
   };
@@ -162,15 +225,17 @@ export function Piece({
           // 선택
           'select-none',
           // 드래그
-          isDraggable && 'cursor-grab active:cursor-grabbing',
-          // 쿨다운 시 반투명
-          hasCooldown && 'opacity-60',
+          isDraggable && !isBlocked && 'cursor-grab active:cursor-grabbing',
+          // 차단됨 (쿨다운 또는 석화) 시 반투명
+          isBlocked && 'opacity-60',
+          // 석화 시 cursor 변경
+          isFrozen && 'cursor-not-allowed',
           // 드래그 중 효과
           isDragging && 'scale-110 opacity-30',
           // 트랜지션
           'transition-all duration-150'
         )}
-        draggable={isDraggable}
+        draggable={isDraggable && !isBlocked}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
@@ -184,8 +249,10 @@ export function Piece({
             color === 'White' ? 'text-white' : 'text-gray-900',
             // 윤곽선 (가시성 향상)
             color === 'White' && '[text-shadow:_0_0_2px_rgb(0_0_0_/_80%)]',
+            // 석화 시 푸른 색조
+            isFrozen && 'brightness-110 saturate-50 hue-rotate-[170deg]',
             // 호버 효과
-            isDraggable && !isDragging && 'hover:scale-105 hover:drop-shadow-lg',
+            isDraggable && !isDragging && !isBlocked && 'hover:scale-105 hover:drop-shadow-lg',
             // 트랜지션
             'transition-all duration-150'
           )}
@@ -195,6 +262,7 @@ export function Piece({
         >
           {symbol}
         </span>
+        {!isDragging && <FrozenOverlay />}
         {!isDragging && <StateBadge />}
       </div>
     );
@@ -211,15 +279,17 @@ export function Piece({
         // 선택
         'select-none',
         // 드래그
-        isDraggable && 'cursor-grab active:cursor-grabbing',
-        // 쿨다운 시 반투명
-        hasCooldown && 'opacity-60',
+        isDraggable && !isBlocked && 'cursor-grab active:cursor-grabbing',
+        // 차단됨 (쿨다운 또는 석화) 시 반투명
+        isBlocked && 'opacity-60',
+        // 석화 시 cursor 변경
+        isFrozen && 'cursor-not-allowed',
         // 드래그 중 효과
         isDragging && 'scale-110 opacity-30',
         // 트랜지션
         'transition-all duration-150'
       )}
-      draggable={isDraggable}
+      draggable={isDraggable && !isBlocked}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
@@ -242,8 +312,10 @@ export function Piece({
           'flex items-center justify-center',
           // 쿨다운 시 그레이스케일
           hasCooldown && 'grayscale-[30%]',
+          // 석화 시 푸른 색조
+          isFrozen && 'border-cyan-400 ring-2 ring-cyan-300/50',
           // 호버 효과
-          isDraggable && !isDragging && 'hover:scale-105 hover:shadow-lg',
+          isDraggable && !isDragging && !isBlocked && 'hover:scale-105 hover:shadow-lg',
           // 트랜지션
           'transition-all duration-150'
         )}
@@ -254,7 +326,9 @@ export function Piece({
             // 텍스트 크기
             'text-xl md:text-2xl',
             // 필터 (검정 기물일 때 약간 밝게)
-            color === 'Black' && 'brightness-125'
+            color === 'Black' && 'brightness-125',
+            // 석화 시 푸른 색조
+            isFrozen && 'grayscale-[30%] brightness-110'
           )}
           role="img"
           aria-label={type}
@@ -262,6 +336,7 @@ export function Piece({
           {symbol}
         </span>
       </div>
+      {!isDragging && <FrozenOverlay />}
       {!isDragging && <StateBadge />}
     </div>
   );

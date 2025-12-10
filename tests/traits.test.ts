@@ -319,3 +319,333 @@ setup:
     expect(summoner?.traits.has('magical')).toBe(true);
   });
 });
+
+describe('Frozen Effect', () => {
+  it('should prevent piece from moving when frozen > 0', () => {
+    const code = `
+game: "Frozen Test"
+extends: "Standard Chess"
+
+piece Medusa {
+  move: step(any)
+  capture: slide(diagonal)
+  traits: [gaze, petrify]
+  state: { frozen: 0 }
+}
+
+effect frozen {
+  blocks: all
+  visual: "cyan"
+}
+
+trigger medusa_petrify {
+  on: capture
+  when: piece.type == Medusa
+  do: set piece.state.frozen = piece.state.frozen + 1
+}
+
+setup:
+  add:
+    White Medusa: [d4]
+`;
+    const ast = parse(code);
+    const compiled = compile(ast);
+    const game = new GameEngine(compiled);
+    
+    // Find Medusa at d4
+    let state = game.getState();
+    const medusa = state.pieces.find(
+      p => p.type === 'Medusa' && p.owner === 'White'
+    );
+    
+    expect(medusa).toBeDefined();
+    expect(medusa?.state['frozen']).toBe(0);
+    
+    // Medusa should be able to move initially (d4 is open)
+    const initialMoves = game.getLegalMovesForPiece(medusa!);
+    expect(initialMoves.length).toBeGreaterThan(0);
+    
+    // Manually set frozen to 1 to test
+    medusa!.state['frozen'] = 1;
+    
+    // Now Medusa should NOT be able to move
+    const frozenMoves = game.getLegalMovesForPiece(medusa!);
+    expect(frozenMoves.length).toBe(0);
+    
+    // Reset frozen
+    medusa!.state['frozen'] = 0;
+    
+    // Should be able to move again
+    const unfrozenMoves = game.getLegalMovesForPiece(medusa!);
+    expect(unfrozenMoves.length).toBeGreaterThan(0);
+  });
+
+  it('should check isFrozen correctly', () => {
+    const code = `
+game: "isFrozen Test"
+extends: "Standard Chess"
+
+piece TestPiece {
+  move: step(any)
+  capture: =move
+  state: { frozen: 0 }
+}
+
+setup:
+  add:
+    White TestPiece: [d4]
+`;
+    const ast = parse(code);
+    const compiled = compile(ast);
+    const game = new GameEngine(compiled);
+    
+    const state = game.getState();
+    const testPiece = state.pieces.find(p => p.type === 'TestPiece')!;
+    
+    // Initially not frozen
+    expect(game.isFrozen(testPiece)).toBe(false);
+    
+    // Set frozen to 1
+    testPiece.state['frozen'] = 1;
+    expect(game.isFrozen(testPiece)).toBe(true);
+    
+    // Set frozen to 5
+    testPiece.state['frozen'] = 5;
+    expect(game.isFrozen(testPiece)).toBe(true);
+    
+    // Set frozen back to 0
+    testPiece.state['frozen'] = 0;
+    expect(game.isFrozen(testPiece)).toBe(false);
+    
+    // Test with negative value (not frozen)
+    testPiece.state['frozen'] = -1;
+    expect(game.isFrozen(testPiece)).toBe(false);
+  });
+
+  it('should use isBlocked to combine cooldown and frozen checks', () => {
+    const code = `
+game: "isBlocked Test"
+extends: "Standard Chess"
+
+piece TestPiece {
+  move: step(any)
+  capture: =move
+  state: { frozen: 0, cooldown: 0 }
+}
+
+setup:
+  add:
+    White TestPiece: [e4]
+`;
+    const ast = parse(code);
+    const compiled = compile(ast);
+    const game = new GameEngine(compiled);
+    
+    const state = game.getState();
+    const testPiece = state.pieces.find(p => p.type === 'TestPiece')!;
+    
+    // Initially not blocked
+    expect(game.isBlocked(testPiece)).toBe(false);
+    
+    // Set frozen only
+    testPiece.state['frozen'] = 2;
+    expect(game.isBlocked(testPiece)).toBe(true);
+    
+    testPiece.state['frozen'] = 0;
+    expect(game.isBlocked(testPiece)).toBe(false);
+    
+    // Set cooldown only
+    testPiece.state['cooldown'] = 1;
+    expect(game.isBlocked(testPiece)).toBe(true);
+    
+    testPiece.state['cooldown'] = 0;
+    expect(game.isBlocked(testPiece)).toBe(false);
+    
+    // Set both
+    testPiece.state['frozen'] = 1;
+    testPiece.state['cooldown'] = 1;
+    expect(game.isBlocked(testPiece)).toBe(true);
+  });
+});
+
+describe('Gaze Trait and Petrify', () => {
+  it('should freeze enemies in line of sight with gaze trait', () => {
+    const code = `
+game: "Medusa Chess"
+extends: "Standard Chess"
+
+piece Medusa {
+  move: step(any)
+  capture: slide(diagonal)
+  traits: [gaze, petrify]
+  state: { frozen: 0 }
+}
+
+piece Target {
+  move: step(any)
+  capture: =move
+  state: { frozen: 0 }
+}
+
+setup:
+  add:
+    White Medusa: [d4]
+    Black Target: [f6]
+`;
+    const ast = parse(code);
+    const compiled = compile(ast);
+    const game = new GameEngine(compiled);
+    
+    // Find the Medusa and Black Target
+    let state = game.getState();
+    const medusa = state.pieces.find(p => p.type === 'Medusa')!;
+    const target = state.pieces.find(
+      p => p.type === 'Target' && p.owner === 'Black'
+    )!;
+    
+    expect(medusa).toBeDefined();
+    expect(target).toBeDefined();
+    expect(target.pos.file).toBe(5); // f = 5
+    expect(target.pos.rank).toBe(5); // 6 - 1 = 5 (0-indexed)
+    
+    // Initially, target should not be frozen
+    expect(target.state['frozen'] ?? 0).toBe(0);
+    
+    // Get gaze targets - Medusa at d4 can see diagonally to f6
+    const gazeTargets = game.getGazeTargets(medusa);
+    expect(gazeTargets.length).toBeGreaterThan(0);
+    expect(gazeTargets.some(p => p.id === target.id)).toBe(true);
+    
+    // Make a move with White (e.g., move a pawn)
+    const whitePawn = state.pieces.find(
+      p => p.type === 'Pawn' && p.owner === 'White' && p.pos.file === 4
+    )!;
+    const legalMoves = game.getLegalMovesForPiece(whitePawn);
+    expect(legalMoves.length).toBeGreaterThan(0);
+    
+    // Execute move
+    game.makeMove(legalMoves[0]!);
+    
+    // After White's turn ends, gaze effect should freeze enemies in sight
+    state = game.getState();
+    const frozenTarget = state.pieces.find(
+      p => p.type === 'Target' && p.owner === 'Black'
+    )!;
+    
+    expect(frozenTarget.state['frozen']).toBe(1);
+    
+    // Frozen target should not be able to move
+    const frozenMoves = game.getLegalMovesForPiece(frozenTarget);
+    expect(frozenMoves.length).toBe(0);
+  });
+
+  it('should thaw frozen pieces after their turn starts', () => {
+    const code = `
+game: "Thaw Test"
+extends: "Standard Chess"
+
+piece TestPiece {
+  move: step(any)
+  capture: =move
+  state: { frozen: 0 }
+}
+
+setup:
+  add:
+    Black TestPiece: [e5]
+`;
+    const ast = parse(code);
+    const compiled = compile(ast);
+    const game = new GameEngine(compiled);
+    
+    // Find the test piece
+    let state = game.getState();
+    const testPiece = state.pieces.find(p => p.type === 'TestPiece')!;
+    
+    // Manually freeze it
+    testPiece.state['frozen'] = 2;
+    expect(game.isFrozen(testPiece)).toBe(true);
+    
+    // Make a White move
+    const whitePawn = state.pieces.find(
+      p => p.type === 'Pawn' && p.owner === 'White' && p.pos.file === 4
+    )!;
+    const moves = game.getLegalMovesForPiece(whitePawn);
+    game.makeMove(moves[0]!);
+    
+    // Now it's Black's turn - frozen should have decayed to 1
+    state = game.getState();
+    expect(state.currentPlayer).toBe('Black');
+    const updatedPiece = state.pieces.find(p => p.type === 'TestPiece')!;
+    expect(updatedPiece.state['frozen']).toBe(1);
+    
+    // Still frozen
+    expect(game.isFrozen(updatedPiece)).toBe(true);
+    expect(game.getLegalMovesForPiece(updatedPiece).length).toBe(0);
+    
+    // Make a Black move (use a different piece)
+    const blackPawn = state.pieces.find(
+      p => p.type === 'Pawn' && p.owner === 'Black' && p.pos.file === 0
+    )!;
+    const blackMoves = game.getLegalMovesForPiece(blackPawn);
+    game.makeMove(blackMoves[0]!);
+    
+    // Now White's turn again
+    // Make another White move
+    state = game.getState();
+    const anotherWhitePawn = state.pieces.find(
+      p => p.type === 'Pawn' && p.owner === 'White' && p.pos.file === 0
+    )!;
+    const whiteMoves2 = game.getLegalMovesForPiece(anotherWhitePawn);
+    game.makeMove(whiteMoves2[0]!);
+    
+    // Now it's Black's turn again - frozen should have decayed to 0
+    state = game.getState();
+    expect(state.currentPlayer).toBe('Black');
+    const thawedPiece = state.pieces.find(p => p.type === 'TestPiece')!;
+    expect(thawedPiece.state['frozen']).toBe(0);
+    
+    // Should be able to move now
+    expect(game.isFrozen(thawedPiece)).toBe(false);
+    expect(game.getLegalMovesForPiece(thawedPiece).length).toBeGreaterThan(0);
+  });
+
+  it('should support Medusa Chess scenario from DSL', () => {
+    const code = `
+game: "Medusa Chess"
+extends: "Standard Chess"
+
+piece Medusa {
+  move: step(any)
+  capture: slide(diagonal)
+  traits: [gaze, petrify]
+  state: { frozen: 0 }
+}
+
+effect frozen {
+  blocks: all
+  visual: "cyan"
+}
+
+setup:
+  replace:
+    Queen: Medusa
+`;
+    const ast = parse(code);
+    const compiled = compile(ast);
+    const game = new GameEngine(compiled);
+    
+    // Verify Medusa replaced Queens
+    const state = game.getState();
+    const medusas = state.pieces.filter(p => p.type === 'Medusa');
+    expect(medusas.length).toBe(2); // One for each color
+    
+    // White Medusa should have gaze trait
+    const whiteMedusa = medusas.find(m => m.owner === 'White')!;
+    expect(whiteMedusa.traits.has('gaze')).toBe(true);
+    
+    // Check that frozen effect is defined
+    expect(compiled.effects.has('frozen')).toBe(true);
+    expect(compiled.effects.get('frozen')?.blocks).toBe('all');
+  });
+});

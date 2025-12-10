@@ -12,6 +12,7 @@ interface SquareProps {
   isDragOver?: boolean;
   isLegalDrop?: boolean;
   isFocused?: boolean;
+  isGazeTarget?: boolean;  // Piece at this square is in gaze line of sight
   effects?: Effect[];
   onClick?: () => void;
   onDragEnter?: () => void;
@@ -40,25 +41,38 @@ const getRankLabel = (rank: number): string => {
 
 // Effect 시각적 스타일 매핑
 const effectStyles: Record<string, { bg: string; icon: string; title: string }> = {
+  // 기본 효과
   trap: { bg: 'bg-red-500/30', icon: '⚠️', title: '덫' },
   fire: { bg: 'bg-orange-500/40', icon: '🔥', title: '불' },
   ice: { bg: 'bg-blue-400/40', icon: '❄️', title: '얼음' },
   poison: { bg: 'bg-green-500/30', icon: '☠️', title: '독' },
   shield: { bg: 'bg-yellow-400/30', icon: '🛡️', title: '방패' },
+  // Medusa/Gaze 관련 효과
+  frozen: { bg: 'bg-cyan-400/40', icon: '❄️', title: '석화' },
+  petrify: { bg: 'bg-cyan-500/30', icon: '🗿', title: '석화' },
+  gaze: { bg: 'bg-purple-400/30', icon: '👁️', title: '응시' },
 };
 
 function getEffectStyle(effect: Effect) {
   const visual = effect.visual?.toLowerCase() ?? effect.type?.toLowerCase() ?? '';
+  const effectType = effect.type?.toLowerCase() ?? '';
   
   // visual 속성에서 색상 추출
-  if (visual.includes('red')) return { bg: 'bg-red-500/30', icon: '⚠️', title: effect.type };
-  if (visual.includes('blue')) return { bg: 'bg-blue-500/30', icon: '❄️', title: effect.type };
-  if (visual.includes('green')) return { bg: 'bg-green-500/30', icon: '☠️', title: effect.type };
-  if (visual.includes('yellow')) return { bg: 'bg-yellow-500/30', icon: '⚡', title: effect.type };
-  if (visual.includes('orange')) return { bg: 'bg-orange-500/30', icon: '🔥', title: effect.type };
+  if (visual.includes('cyan')) return { bg: 'bg-cyan-400/40', icon: '❄️', title: effect.type ?? 'frozen' };
+  if (visual.includes('red')) return { bg: 'bg-red-500/30', icon: '⚠️', title: effect.type ?? 'danger' };
+  if (visual.includes('blue')) return { bg: 'bg-blue-500/30', icon: '❄️', title: effect.type ?? 'ice' };
+  if (visual.includes('green')) return { bg: 'bg-green-500/30', icon: '☠️', title: effect.type ?? 'poison' };
+  if (visual.includes('yellow')) return { bg: 'bg-yellow-500/30', icon: '⚡', title: effect.type ?? 'energy' };
+  if (visual.includes('orange')) return { bg: 'bg-orange-500/30', icon: '🔥', title: effect.type ?? 'fire' };
+  if (visual.includes('purple')) return { bg: 'bg-purple-500/30', icon: '👁️', title: effect.type ?? 'magic' };
   
-  // 미리 정의된 스타일
-  return effectStyles[effect.type] ?? { bg: 'bg-purple-500/30', icon: '✨', title: effect.type };
+  // 미리 정의된 스타일 (type으로 찾기)
+  if (effectStyles[effectType]) {
+    return effectStyles[effectType];
+  }
+  
+  // 미리 정의된 스타일 (원래 type으로 찾기)
+  return effectStyles[effect.type ?? ''] ?? { bg: 'bg-purple-500/30', icon: '✨', title: effect.type ?? 'effect' };
 }
 
 export function Square({
@@ -70,6 +84,7 @@ export function Square({
   isDragOver = false,
   isLegalDrop = false,
   isFocused = false,
+  isGazeTarget = false,
   effects = [],
   onClick,
   onDragEnter,
@@ -118,10 +133,27 @@ export function Square({
         isDragOver && !isLegalDrop && 'bg-red-500/20',
         // 키보드 포커스
         isFocused && 'ring-2 ring-yellow-400 ring-inset',
+        // Gaze 시야 내 적 하이라이트
+        isGazeTarget && 'ring-2 ring-purple-500 ring-inset bg-purple-500/20',
         // Effect 배경
         hasEffects && effectStyle?.bg
       )}
     >
+      {/* Gaze Target 표시 (응시 대상) */}
+      {isGazeTarget && (
+        <div
+          className={cn(
+            // 포지셔닝
+            'absolute top-0.5 left-0.5 z-20',
+            // 포인터
+            'pointer-events-none'
+          )}
+          title="응시 대상 (석화 위험)"
+        >
+          <span className="text-sm opacity-80">👁️</span>
+        </div>
+      )}
+
       {/* Effect 표시 */}
       {hasEffects && effectStyle && (
         <div

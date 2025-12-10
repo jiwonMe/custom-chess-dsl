@@ -26,12 +26,14 @@ interface BoardProps {
   state: BoardState;
   legalMoves?: Move[];
   selectedPiece?: PieceType | null;
+  gazeTargets?: PieceType[];  // Pieces in gaze line of sight (for highlighting)
   flipped?: boolean;
   interactive?: boolean;
   highlightLastMove?: boolean;
   showCoordinates?: boolean;
   enableZoomPan?: boolean;
   enableKeyboard?: boolean;
+  showGazeHighlight?: boolean;  // Whether to show gaze target highlights
   onSquareClick?: (pos: Position) => void;
   onPieceSelect?: (piece: PieceType | null) => void;
   onMove?: (move: Move) => void;
@@ -48,12 +50,14 @@ export function Board({
   state,
   legalMoves = [],
   selectedPiece = null,
+  gazeTargets = [],
   flipped = false,
   interactive = true,
   highlightLastMove = true,
   showCoordinates = true,
   enableZoomPan = true,
   enableKeyboard = true,
+  showGazeHighlight = true,
   onSquareClick,
   onPieceSelect,
   onMove,
@@ -116,6 +120,16 @@ export function Board({
     }
     return targets;
   }, [draggedPiece, legalMoves]);
+
+  // Gaze target positions (for highlighting enemies in line of sight)
+  const gazeTargetPositions = useMemo(() => {
+    if (!showGazeHighlight || gazeTargets.length === 0) return new Set<string>();
+    const positions = new Set<string>();
+    for (const target of gazeTargets) {
+      positions.add(`${target.pos.file},${target.pos.rank}`);
+    }
+    return positions;
+  }, [gazeTargets, showGazeHighlight]);
 
   // Space 키 이벤트 리스너
   useEffect(() => {
@@ -566,6 +580,7 @@ export function Board({
                 const isLegalDrop = dragLegalTargets.has(posKey);
                 const isFocused = focusedPos?.file === file && focusedPos?.rank === rank;
                 const isDragging = draggedPiece?.pos.file === file && draggedPiece?.pos.rank === rank;
+                const isGazeTarget = gazeTargetPositions.has(posKey);
                 
                 // Get effects for this square
                 const squareEffects = square?.effects ?? [];
@@ -586,6 +601,7 @@ export function Board({
                     isDragOver={isDragOver}
                     isLegalDrop={isLegalDrop}
                     isFocused={isFocused}
+                    isGazeTarget={isGazeTarget}
                     effects={allEffects}
                     onClick={() => handleSquareClick(pos)}
                     onDragEnter={() => setDragOverPos(pos)}

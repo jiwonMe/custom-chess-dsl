@@ -16,6 +16,10 @@ interface GameStoreState {
   legalMoves: Move[];
   setLegalMoves: (moves: Move[]) => void;
 
+  // Gaze targets (enemies in line of sight for pieces with gaze trait)
+  gazeTargets: Piece[];
+  setGazeTargets: (targets: Piece[]) => void;
+
   // Move history display
   moveHistory: Move[];
   addMove: (move: Move) => void;
@@ -75,6 +79,9 @@ export const useGameStore = create<GameStoreState>()((set) => ({
   legalMoves: [],
   setLegalMoves: (moves) => set({ legalMoves: moves }),
 
+  gazeTargets: [],
+  setGazeTargets: (targets) => set({ gazeTargets: targets }),
+
   moveHistory: [],
   addMove: (move) => set((state) => ({ moveHistory: [...state.moveHistory, move] })),
   clearHistory: () => set({ moveHistory: [] }),
@@ -93,6 +100,7 @@ export const useGameStore = create<GameStoreState>()((set) => ({
       gameState: null,
       selectedPiece: null,
       legalMoves: [],
+      gazeTargets: [],
       moveHistory: [],
       isGameOver: false,
       winner: null,

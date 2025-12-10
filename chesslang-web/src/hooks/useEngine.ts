@@ -16,6 +16,7 @@ interface EngineHook {
   compile: () => void;
   makeMove: (move: Move) => void;
   getLegalMoves: () => Move[];
+  getGazeTargets: (piece: any) => any[];  // Get enemies in gaze line of sight
   reset: () => void;
   undo: () => void;
   executeOptionalTrigger: (triggerId: string) => void;
@@ -191,6 +192,14 @@ export function useEngine(): EngineHook {
     return engineRef.current.instance.getLegalMoves();
   }, []);
 
+  // Get gaze targets for a piece (enemies in line of sight)
+  const getGazeTargets = useCallback((piece: any): any[] => {
+    if (!engineRef.current?.instance || !piece) return [];
+    // Check if piece has gaze trait
+    if (!piece.traits?.has?.('gaze')) return [];
+    return engineRef.current.instance.getGazeTargets(piece);
+  }, []);
+
   // Reset game
   const reset = useCallback(() => {
     if (!engineRef.current?.instance) return;
@@ -241,6 +250,7 @@ export function useEngine(): EngineHook {
     compile,
     makeMove,
     getLegalMoves,
+    getGazeTargets,
     reset,
     undo,
     executeOptionalTrigger,

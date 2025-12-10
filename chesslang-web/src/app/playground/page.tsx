@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Editor } from '@/components/editor/Editor';
 import { Board } from '@/components/board/Board';
@@ -49,7 +49,7 @@ function PlaygroundContent() {
   const [mobileTab, setMobileTab] = useState<MobileTab>('game');
   const [currentExampleId, setCurrentExampleId] = useState<string | null>(null);
 
-  const { compile, makeMove, reset, undo, executeOptionalTrigger, skipOptionalTrigger, isReady } = useEngine();
+  const { compile, makeMove, reset, undo, executeOptionalTrigger, skipOptionalTrigger, getGazeTargets, isReady } = useEngine();
   
   // AI 훅
   const { 
@@ -67,6 +67,12 @@ function PlaygroundContent() {
   
   // 컴파일된 게임 (AI용)
   const compiledGame = useGameStore((s) => s.compiledGame);
+  
+  // Gaze targets - enemies in line of sight for selected piece with gaze trait
+  const gazeTargets = useMemo(() => {
+    if (!selectedPiece) return [];
+    return getGazeTargets(selectedPiece);
+  }, [selectedPiece, getGazeTargets]);
 
   // URL query에서 예제 로드
   useEffect(() => {
@@ -425,9 +431,11 @@ function PlaygroundContent() {
                   }}
                   legalMoves={legalMoves}
                   selectedPiece={selectedPiece}
+                  gazeTargets={gazeTargets}
                   flipped={boardFlipped}
                   interactive={!isGameOver}
                   enableKeyboard={true}
+                  showGazeHighlight={true}
                   onPieceSelect={selectPiece}
                   onMove={handleMove}
                   onPromotion={handlePromotion}
@@ -615,6 +623,7 @@ function PieceStatePanel({ piece }: PieceStatePanelProps) {
   const state = piece.state ?? {};
   const stateEntries = Object.entries(state);
   const hasCooldown = typeof state.cooldown === 'number' && state.cooldown > 0;
+  const isFrozen = typeof state.frozen === 'number' && state.frozen > 0;
 
   return (
     <div
@@ -623,6 +632,8 @@ function PieceStatePanel({ piece }: PieceStatePanelProps) {
         'bg-card/80 backdrop-blur-sm',
         // 보더
         'border rounded-lg',
+        // 석화 시 특별 스타일
+        isFrozen && 'border-cyan-500/50 bg-cyan-500/10',
         // 패딩
         'p-3',
         // 그림자
@@ -641,19 +652,35 @@ function PieceStatePanel({ piece }: PieceStatePanelProps) {
         />
         <span className="font-semibold text-sm">{piece.type}</span>
         <span className="text-xs text-muted-foreground">at {posLabel}</span>
-        {hasCooldown && (
-          <span
-            className={cn(
-              'ml-auto',
-              'px-2 py-0.5',
-              'text-xs font-medium',
-              'bg-blue-500/20 text-blue-400',
-              'rounded-full'
-            )}
-          >
-            ⏱ Cooldown: {String(state.cooldown)}
-          </span>
-        )}
+        
+        {/* 상태 뱃지들 */}
+        <div className="ml-auto flex gap-1">
+          {isFrozen && (
+            <span
+              className={cn(
+                'px-2 py-0.5',
+                'text-xs font-medium',
+                'bg-cyan-500/20 text-cyan-400',
+                'rounded-full',
+                'animate-pulse'
+              )}
+            >
+              ❄️ 석화: {String(state.frozen)}
+            </span>
+          )}
+          {hasCooldown && (
+            <span
+              className={cn(
+                'px-2 py-0.5',
+                'text-xs font-medium',
+                'bg-blue-500/20 text-blue-400',
+                'rounded-full'
+              )}
+            >
+              ⏱ 쿨다운: {String(state.cooldown)}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Traits */}
@@ -690,14 +717,16 @@ function PieceStatePanel({ piece }: PieceStatePanelProps) {
                 <span
                   className={cn(
                     'font-mono',
-                    // 쿨다운이면 파란색, 그 외는 노란색
-                    key === 'cooldown' && typeof value === 'number' && value > 0
-                      ? 'text-blue-400'
-                      : typeof value === 'boolean'
-                      ? value
-                        ? 'text-green-400'
-                        : 'text-red-400'
-                      : 'text-amber-400'
+                    // 석화면 cyan, 쿨다운이면 파란색, 그 외는 노란색
+                    key === 'frozen' && typeof value === 'number' && value > 0
+                      ? 'text-cyan-400'
+                      : key === 'cooldown' && typeof value === 'number' && value > 0
+                        ? 'text-blue-400'
+                        : typeof value === 'boolean'
+                          ? value
+                            ? 'text-green-400'
+                            : 'text-red-400'
+                          : 'text-amber-400'
                   )}
                 >
                   {formatStateValue(key, value)}

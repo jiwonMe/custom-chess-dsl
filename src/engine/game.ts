@@ -269,9 +269,9 @@ export class GameEngine {
    * Get legal moves for a specific piece
    */
   getLegalMovesForPiece(piece: Piece): Move[] {
-    // Check for cooldown restriction
-    if (this.hasCooldown(piece)) {
-      return []; // Piece cannot move while on cooldown
+    // Check for blocking states (cooldown, frozen, etc.)
+    if (this.isBlocked(piece)) {
+      return []; // Piece cannot move while blocked
     }
 
     const pieceDef = this.game.pieces.get(piece.type);
@@ -701,9 +701,18 @@ export class GameEngine {
       : true;
 
     if (shouldSwitchTurn) {
-      // Switch player
+      // Switch player first
+      const previousPlayer = this.state.currentPlayer;
       this.state.currentPlayer =
         this.state.currentPlayer === 'White' ? 'Black' : 'White';
+
+      // Process frozen decay for the new current player FIRST
+      // This unfreezes pieces that were frozen in previous turns
+      this.processFrozenDecay(this.state.currentPlayer, events);
+
+      // Process gaze effects from the player who just moved
+      // This freezes enemies in line of sight for the NEXT turn
+      this.processGazeEffects(previousPlayer, events);
 
       // Sync state
       this.syncState();
@@ -1534,6 +1543,145 @@ export class GameEngine {
     if (!piece.state) return false;
     const cooldown = piece.state['cooldown'];
     return typeof cooldown === 'number' && cooldown > 0;
+  }
+
+  /**
+   * Check if a piece is frozen and cannot move
+   * Looks for 'frozen' property in piece state that is > 0
+   * This supports the 'frozen' effect in DSL:
+   *   effect frozen { blocks: all }
+   *   trigger { do: set piece.state.frozen = N }
+   */
+  isFrozen(piece: Piece): boolean {
+    if (!piece.state) return false;
+    const frozen = piece.state['frozen'];
+    return typeof frozen === 'number' && frozen > 0;
+  }
+
+  /**
+   * Check if a piece is blocked from moving by any state condition
+   * Combines cooldown, frozen, and other blocking states
+   */
+  isBlocked(piece: Piece): boolean {
+    return this.hasCooldown(piece) || this.isFrozen(piece);
+  }
+
+  /**
+   * Process gaze effects: pieces with 'gaze' trait freeze enemies in their line of sight
+   * Uses the piece's capture pattern to determine line of sight
+   */
+  private processGazeEffects(player: Color, events: GameEvent[]): void {
+    const gazingPieces = this.board.getPiecesByColor(player).filter(
+      (p) => p.traits.has('gaze')
+    );
+
+    for (const gazer of gazingPieces) {
+      const pieceDef = this.game.pieces.get(gazer.type);
+      if (!pieceDef) continue;
+
+      // Use capture pattern (or move pattern if capture is 'same') to determine sight
+      const sightPattern = pieceDef.capture === 'same' 
+        ? pieceDef.move 
+        : pieceDef.capture === 'none' 
+          ? pieceDef.move 
+          : pieceDef.capture;
+
+      if (!sightPattern || typeof sightPattern === 'string') continue;
+
+      const ctx: MoveContext = {
+        board: this.board,
+        piece: gazer,
+        state: this.state,
+        checkLegality: false,
+      };
+
+      // Generate all positions in line of sight
+      const sightMoves = generateMovesForPattern(sightPattern, ctx);
+
+      // Find enemies in sight and freeze them
+      for (const sightMove of sightMoves) {
+        const target = this.board.at(sightMove.to);
+        if (target && target.owner !== player) {
+          // Freeze the enemy (set frozen to 1 if not already frozen higher)
+          const currentFrozen = (target.state['frozen'] as number) ?? 0;
+          if (currentFrozen < 1) {
+            target.state['frozen'] = 1;
+            
+            events.push({
+              type: 'petrify',
+              data: { 
+                gazer: gazer.id, 
+                target: target.id, 
+                targetType: target.type,
+                position: sightMove.to 
+              },
+              timestamp: Date.now(),
+            });
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Process frozen decay: reduce frozen counter for all pieces of a player
+   * Called at the start of their turn
+   */
+  private processFrozenDecay(player: Color, events: GameEvent[]): void {
+    const pieces = this.board.getPiecesByColor(player);
+
+    for (const piece of pieces) {
+      const frozen = piece.state['frozen'];
+      if (typeof frozen === 'number' && frozen > 0) {
+        piece.state['frozen'] = frozen - 1;
+        
+        if (frozen - 1 === 0) {
+          events.push({
+            type: 'thaw',
+            data: { piece: piece.id, pieceType: piece.type, position: piece.pos },
+            timestamp: Date.now(),
+          });
+        }
+      }
+    }
+  }
+
+  /**
+   * Get enemies in line of sight for a piece with gaze trait
+   * (Useful for UI highlighting)
+   */
+  getGazeTargets(piece: Piece): Piece[] {
+    if (!piece.traits.has('gaze')) return [];
+
+    const pieceDef = this.game.pieces.get(piece.type);
+    if (!pieceDef) return [];
+
+    const sightPattern = pieceDef.capture === 'same' 
+      ? pieceDef.move 
+      : pieceDef.capture === 'none' 
+        ? pieceDef.move 
+        : pieceDef.capture;
+
+    if (!sightPattern || typeof sightPattern === 'string') return [];
+
+    const ctx: MoveContext = {
+      board: this.board,
+      piece,
+      state: this.state,
+      checkLegality: false,
+    };
+
+    const sightMoves = generateMovesForPattern(sightPattern, ctx);
+    const targets: Piece[] = [];
+
+    for (const sightMove of sightMoves) {
+      const target = this.board.at(sightMove.to);
+      if (target && target.owner !== piece.owner) {
+        targets.push(target);
+      }
+    }
+
+    return targets;
   }
 
   /**
