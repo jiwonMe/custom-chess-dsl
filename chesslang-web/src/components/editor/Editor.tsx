@@ -75,7 +75,7 @@ export function Editor({
       <MonacoEditor
         height="100%"
         language="chesslang"
-        theme="chesslang-ayu-light"
+        theme="chesslang-ayu-dark"
         value={value}
         onChange={handleChange}
         beforeMount={handleBeforeMount}
