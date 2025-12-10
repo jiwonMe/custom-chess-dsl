@@ -1154,7 +1154,23 @@ export class Parser {
   // ============================================================================
 
   private parseExpression(): ExpressionNode {
-    return this.parseAdditive();
+    return this.parseComparison();
+  }
+
+  private parseComparison(): ExpressionNode {
+    const location = this.stream.peek().location;
+    let left = this.parseAdditive();
+
+    while (this.stream.checkAny(
+      TokenType.EQ, TokenType.NE, TokenType.LT, TokenType.GT,
+      TokenType.LE, TokenType.GE, TokenType.STRICT_EQ, TokenType.STRICT_NE
+    )) {
+      const op = this.stream.advance().value;
+      const right = this.parseAdditive();
+      left = { type: 'Expression', kind: 'binary', op, left, right, location };
+    }
+
+    return left;
   }
 
   private parseAdditive(): ExpressionNode {
@@ -1436,6 +1452,118 @@ export class Parser {
         value,
         location,
       };
+    }
+
+    // cancel - stops the current action/event
+    if (this.stream.match(TokenType.CANCEL)) {
+      return { type: 'Action', kind: 'cancel', location };
+    }
+
+    // apply effect to target
+    if (this.stream.match(TokenType.APPLY)) {
+      const effect = this.stream.expect(TokenType.IDENTIFIER).value;
+      // "to" keyword
+      if (this.stream.check(TokenType.IDENTIFIER) && this.stream.peek().value === 'to') {
+        this.stream.advance();
+      }
+      const target = this.parseExpression();
+      return { type: 'Action', kind: 'apply', effect, target, location };
+    }
+
+    // for loop: for variable in iterable: actions
+    if (this.stream.match(TokenType.FOR)) {
+      const variable = this.stream.expect(TokenType.IDENTIFIER).value;
+      this.stream.expect(TokenType.IN);
+      const iterable = this.parseExpression();
+      this.stream.expect(TokenType.COLON);
+      
+      const actions: ActionNode[] = [];
+      // Parse actions in brace block or indented block
+      if (this.stream.match(TokenType.LBRACE)) {
+        this.skipWhitespaceAndIndent();
+        while (!this.stream.check(TokenType.RBRACE) && !this.stream.isAtEnd()) {
+          this.skipWhitespaceAndIndent();
+          if (this.stream.check(TokenType.RBRACE)) break;
+          actions.push(this.parseAction());
+          this.stream.match(TokenType.SEMICOLON);
+          this.skipWhitespaceAndIndent();
+        }
+        this.stream.expect(TokenType.RBRACE);
+      } else if (this.stream.match(TokenType.INDENT)) {
+        while (!this.stream.check(TokenType.DEDENT) && !this.stream.isAtEnd()) {
+          this.stream.skipNewlines();
+          if (this.stream.check(TokenType.DEDENT)) break;
+          actions.push(this.parseAction());
+          this.stream.skipNewlines();
+        }
+        this.stream.match(TokenType.DEDENT);
+      } else {
+        // Single action
+        actions.push(this.parseAction());
+      }
+      
+      return { type: 'Action', kind: 'for', variable, iterable, actions, location };
+    }
+
+    // if condition: actions [else: actions]
+    if (this.stream.match(TokenType.IF)) {
+      const condition = this.parseExpression();
+      this.stream.expect(TokenType.COLON);
+      
+      const thenActions: ActionNode[] = [];
+      // Parse then-actions in brace block
+      if (this.stream.match(TokenType.LBRACE)) {
+        this.skipWhitespaceAndIndent();
+        while (!this.stream.check(TokenType.RBRACE) && !this.stream.isAtEnd()) {
+          this.skipWhitespaceAndIndent();
+          if (this.stream.check(TokenType.RBRACE)) break;
+          thenActions.push(this.parseAction());
+          this.stream.match(TokenType.SEMICOLON);
+          this.skipWhitespaceAndIndent();
+        }
+        this.stream.expect(TokenType.RBRACE);
+      } else if (this.stream.match(TokenType.INDENT)) {
+        while (!this.stream.check(TokenType.DEDENT) && !this.stream.isAtEnd()) {
+          this.stream.skipNewlines();
+          if (this.stream.check(TokenType.DEDENT)) break;
+          thenActions.push(this.parseAction());
+          this.stream.skipNewlines();
+        }
+        this.stream.match(TokenType.DEDENT);
+      } else {
+        // Single action
+        thenActions.push(this.parseAction());
+      }
+      
+      // Optional else
+      let elseActions: ActionNode[] | undefined;
+      if (this.stream.match(TokenType.ELSE)) {
+        this.stream.match(TokenType.COLON); // Optional colon after else
+        elseActions = [];
+        if (this.stream.match(TokenType.LBRACE)) {
+          this.skipWhitespaceAndIndent();
+          while (!this.stream.check(TokenType.RBRACE) && !this.stream.isAtEnd()) {
+            this.skipWhitespaceAndIndent();
+            if (this.stream.check(TokenType.RBRACE)) break;
+            elseActions.push(this.parseAction());
+            this.stream.match(TokenType.SEMICOLON);
+            this.skipWhitespaceAndIndent();
+          }
+          this.stream.expect(TokenType.RBRACE);
+        } else if (this.stream.match(TokenType.INDENT)) {
+          while (!this.stream.check(TokenType.DEDENT) && !this.stream.isAtEnd()) {
+            this.stream.skipNewlines();
+            if (this.stream.check(TokenType.DEDENT)) break;
+            elseActions.push(this.parseAction());
+            this.stream.skipNewlines();
+          }
+          this.stream.match(TokenType.DEDENT);
+        } else {
+          elseActions.push(this.parseAction());
+        }
+      }
+      
+      return { type: 'Action', kind: 'if', condition, thenActions, elseActions, location };
     }
 
     this.error('Expected action');

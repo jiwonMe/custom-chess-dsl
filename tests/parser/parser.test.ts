@@ -195,8 +195,12 @@ trigger test {
 `);
 
       const when = ast.triggers[0]?.when;
-      expect(when?.kind).toBe('comparison');
-      expect(when?.op).toBe('>=');
+      // Comparison is now wrapped in expression condition
+      // The comparison operator is parsed within the expression itself
+      expect(when?.kind).toBe('expression');
+      // The left side contains the binary expression with the comparison
+      expect(when?.left?.kind).toBe('binary');
+      expect(when?.left?.op).toBe('>=');
     });
   });
 

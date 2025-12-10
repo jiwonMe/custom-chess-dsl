@@ -360,6 +360,10 @@ export type Action =
   | WinAction
   | LoseAction
   | DrawAction
+  | CancelAction
+  | ApplyAction
+  | ForAction
+  | IfAction
   | CustomAction;
 
 export interface SetAction {
@@ -418,6 +422,30 @@ export interface LoseAction {
 export interface DrawAction {
   type: 'draw';
   reason?: string;
+}
+
+export interface CancelAction {
+  type: 'cancel';
+}
+
+export interface ApplyAction {
+  type: 'apply';
+  effect: string;
+  target: Expression;
+}
+
+export interface ForAction {
+  type: 'for';
+  variable: string;
+  iterable: Expression;
+  actions: Action[];
+}
+
+export interface IfAction {
+  type: 'if';
+  condition: Expression;
+  thenActions: Action[];
+  elseActions?: Action[];
 }
 
 export interface CustomAction {
@@ -679,6 +707,14 @@ export interface ActionNode extends ASTNode {
     value: number;
     from: ExpressionNode;
   };
+  // For 'for' action
+  variable?: string;
+  iterable?: ExpressionNode;
+  actions?: ActionNode[];
+  // For 'if' action
+  condition?: ExpressionNode;
+  thenActions?: ActionNode[];
+  elseActions?: ActionNode[];
 }
 
 export interface ExpressionNode extends ASTNode {
@@ -877,6 +913,8 @@ export enum TokenType {
   MARK = 'MARK',
   WIN = 'WIN',
   LOSE = 'LOSE',
+  CANCEL = 'CANCEL',
+  APPLY = 'APPLY',
 
   // Logical keywords
   AND = 'AND',

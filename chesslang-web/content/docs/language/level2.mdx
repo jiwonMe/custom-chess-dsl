@@ -436,6 +436,251 @@ setup:
       Berserker: [g8]
 ```
 
+## 고급 커스텀 기물
+
+더 복잡한 동작을 가진 기물들의 예제입니다.
+
+### Vampire (뱀파이어)
+
+잡은 기물을 아군으로 변환하는 강력한 기물입니다.
+
+```chesslang
+piece Vampire {
+  move: step(any) | leap(2, 0)
+  capture: =move
+  traits: [jump]
+  state: { thralls: 0 }
+  value: 6
+}
+
+trigger vampiric_conversion {
+  on: capture
+  when: piece.type == Vampire and captured.type != King
+  do: {
+    transform captured to captured.type
+    set captured.owner = piece.owner
+    set piece.state.thralls = piece.state.thralls + 1
+  }
+}
+```
+
+### Shapeshifter (변신체)
+
+마지막으로 잡은 기물의 이동 패턴을 복사합니다.
+
+```chesslang
+piece Shapeshifter {
+  move: leap(2, 1)              # 기본: 나이트 이동
+  capture: =move
+  traits: [jump]
+  state: { 
+    copiedType: "Knight",
+    captureCount: 0 
+  }
+  value: 5
+}
+
+trigger shapeshifter_copy {
+  on: capture
+  when: piece.type == Shapeshifter
+  do: {
+    set piece.state.copiedType = captured.type
+    set piece.state.captureCount = piece.state.captureCount + 1
+  }
+}
+```
+
+### Guardian (수호자)
+
+인접한 아군 기물을 잡기로부터 보호합니다.
+
+```chesslang
+piece Guardian {
+  move: step(any)
+  capture: =move
+  state: { protected: 0 }
+  value: 4
+}
+
+trigger guardian_protection {
+  on: capture
+  when: any Guardian adjacent to captured where Guardian.owner == captured.owner
+  do: {
+    cancel    # 잡기 취소 - 기물이 보호됨
+    set Guardian.state.protected = Guardian.state.protected + 1
+  }
+}
+```
+
+### Lancer (기병)
+
+전방으로 돌격하여 여러 기물을 잡을 수 있습니다.
+
+```chesslang
+piece Lancer {
+  move: step(orthogonal)                   # 일반 이동
+  capture: slide(forward) where enemy      # 돌격 공격
+  traits: [charge]
+  state: { chargeReady: true }
+  value: 5
+}
+
+trigger lancer_cooldown {
+  on: capture
+  when: piece.type == Lancer
+  do: set piece.state.chargeReady = false
+}
+
+trigger lancer_recover {
+  on: turn_start
+  when: any Lancer where not state.chargeReady
+  do: set piece.state.chargeReady = true
+}
+```
+
+### Necromancer (강령술사)
+
+잡힌 기물에서 영혼을 모아 좀비를 소환합니다.
+
+```chesslang
+piece Necromancer {
+  move: step(diagonal)
+  capture: =move
+  state: { souls: 0 }
+  value: 6
+}
+
+piece Zombie {
+  move: step(forward) | step(orthogonal)
+  capture: step(any) where enemy
+  value: 1
+}
+
+trigger collect_soul {
+  on: capture
+  when: any Necromancer where owner == piece.owner
+  do: set Necromancer.state.souls = Necromancer.state.souls + 1
+}
+
+trigger raise_zombie {
+  on: turn_start
+  when: any Necromancer where state.souls >= 3
+  do: {
+    create Zombie at random_empty_square adjacent to Necromancer
+    set Necromancer.state.souls = Necromancer.state.souls - 3
+  }
+}
+```
+
+### Jester (광대)
+
+잡는 대신 대상 기물과 위치를 교환합니다.
+
+```chesslang
+piece Jester {
+  move: step(any)
+  capture: none        # 잡기 불가, 교환만 가능
+  state: { swapsUsed: 0 }
+  value: 4
+}
+
+trigger jester_swap {
+  on: move
+  when: piece.type == Jester and target has piece
+  do: {
+    let targetPiece = piece_at(target)
+    move targetPiece to origin
+    set piece.state.swapsUsed = piece.state.swapsUsed + 1
+  }
+}
+```
+
+### Medusa (메두사)
+
+대각선 시야의 적 기물을 동결시킵니다.
+
+```chesslang
+piece Medusa {
+  move: step(any)
+  capture: slide(diagonal) where enemy
+  state: { gazeActive: true }
+  value: 5
+}
+
+effect frozen {
+  blocks: [all]
+  duration: 2
+  visual: highlight(cyan, 0.5)
+}
+
+trigger medusa_gaze {
+  on: turn_start
+  when: any Medusa where state.gazeActive
+  do: mark pieces in line(diagonal) from Medusa where enemy with frozen
+}
+```
+
+### Time Bomb (시한폭탄)
+
+3턴 후 폭발하여 주변 기물을 제거합니다.
+
+```chesslang
+piece TimeBomb {
+  move: step(orthogonal)
+  capture: none
+  state: { timer: 3, armed: true }
+  value: 1
+}
+
+trigger bomb_countdown {
+  on: turn_end
+  when: any TimeBomb where state.armed
+  do: set piece.state.timer = piece.state.timer - 1
+}
+
+trigger bomb_explode {
+  on: turn_start
+  when: any TimeBomb where state.timer <= 0
+  do: {
+    remove pieces in radius(2) from TimeBomb where not King
+    remove TimeBomb
+  }
+}
+```
+
+### Teleporter (텔레포터)
+
+쿨다운이 있지만 빈 칸 어디로든 순간이동할 수 있습니다.
+
+```chesslang
+piece Teleporter {
+  move: step(orthogonal)           # 일반 이동
+  capture: step(orthogonal)
+  state: { warpReady: true, warpCooldown: 0 }
+  value: 5
+}
+
+trigger teleporter_warp {
+  on: move
+  when: piece.type == Teleporter and piece.state.warpReady and distance > 1
+  do: {
+    set piece.state.warpReady = false
+    set piece.state.warpCooldown = 3
+  }
+}
+
+trigger warp_cooldown {
+  on: turn_end
+  when: any Teleporter where state.warpCooldown > 0
+  do: {
+    set piece.state.warpCooldown = piece.state.warpCooldown - 1
+    if piece.state.warpCooldown == 0 {
+      set piece.state.warpReady = true
+    }
+  }
+}
+```
+
 ## 모범 사례
 
 1. **단순하게 시작**: 조건을 추가하기 전에 기본 이동 패턴부터 시작

@@ -533,6 +533,40 @@ export class Compiler {
           value: this.compileExpression(node.value as ExpressionNode),
         };
 
+      case 'cancel':
+        return {
+          type: 'cancel',
+        };
+
+      case 'apply':
+        return {
+          type: 'apply',
+          effect: node.effect ?? '',
+          target: this.compileExpression(node.target as ExpressionNode),
+        };
+
+      case 'for':
+        return {
+          type: 'for',
+          variable: node.variable ?? 'item',
+          iterable: this.compileExpression(node.iterable as ExpressionNode),
+          actions: node.actions?.map((a) => this.compileAction(a)) ?? [],
+        };
+
+      case 'if':
+        return {
+          type: 'if',
+          condition: this.compileExpression(node.condition as ExpressionNode),
+          thenActions: node.thenActions?.map((a) => this.compileAction(a)) ?? [],
+          elseActions: node.elseActions?.map((a) => this.compileAction(a)),
+        };
+
+      case 'draw':
+        return {
+          type: 'draw',
+          reason: node.reason,
+        };
+
       default:
         return {
           type: 'custom',

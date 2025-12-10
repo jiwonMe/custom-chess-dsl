@@ -49,7 +49,7 @@ victory:
 # Try modifying this code and click "Run" to play!
 `;
 
-const EXAMPLES: Record<string, string> = {
+export const EXAMPLES: Record<string, string> = {
   // ========================================
   // Level 1: Configure - Basic Variants
   // ========================================
@@ -439,6 +439,320 @@ setup:
     Black Queen: [d8]
     Black King: [e8]
     Black Pawn: [a7, b7, c7, d7, e7, f7, g7, h7]
+`,
+
+  // ========================================
+  // Level 2: Advanced Custom Pieces
+  // ========================================
+
+  'vampire': `# Vampire Chess
+# The Vampire has enhanced movement and tracks captures.
+# Replaces the Queen with a powerful Vampire piece.
+
+game: "Vampire Chess"
+extends: "Standard Chess"
+
+piece Vampire {
+  move: step(any) | leap(2, 0)
+  capture: =move
+  traits: [jump, predator]
+  state: { thralls: 0 }
+}
+
+trigger vampire_feed {
+  on: capture
+  when: piece.type == Vampire
+  do: set piece.state.thralls = piece.state.thralls + 1
+}
+
+setup:
+  replace:
+    Queen: Vampire
+`,
+
+  'shapeshifter': `# Shapeshifter Chess
+# Shapeshifter tracks what it has captured.
+# Starts moving like a Knight.
+
+game: "Shapeshifter Chess"
+extends: "Standard Chess"
+
+piece Shapeshifter {
+  move: leap(2, 1)
+  capture: =move
+  traits: [jump, morph]
+  state: { captureCount: 0 }
+}
+
+trigger shapeshifter_evolve {
+  on: capture
+  when: piece.type == Shapeshifter
+  do: set piece.state.captureCount = piece.state.captureCount + 1
+}
+
+setup:
+  replace:
+    Knight: Shapeshifter
+`,
+
+  'guardian': `# Guardian Chess
+# Guardian is a defensive piece that protects allies.
+# Added alongside existing pieces.
+
+game: "Guardian Chess"
+extends: "Standard Chess"
+
+piece Guardian {
+  move: step(any)
+  capture: =move
+  traits: [protector]
+  state: { shields: 3 }
+}
+
+trigger guardian_defend {
+  on: capture
+  when: piece.type == Guardian
+  do: set piece.state.shields = piece.state.shields - 1
+}
+
+setup:
+  add:
+    White Guardian: [d2, e2]
+    Black Guardian: [d7, e7]
+`,
+
+  'lancer': `# Lancer Chess
+# Lancer has charging ability with cooldown.
+# Slides forward for attack, steps for normal movement.
+
+game: "Lancer Chess"
+extends: "Standard Chess"
+
+piece Lancer {
+  move: step(orthogonal)
+  capture: slide(forward)
+  traits: [charge]
+  state: { exhausted: false }
+}
+
+trigger lancer_tire {
+  on: capture
+  when: piece.type == Lancer
+  do: set piece.state.exhausted = true
+}
+
+trigger lancer_rest {
+  on: turn_start
+  when: piece.type == Lancer
+  do: set piece.state.exhausted = false
+}
+
+setup:
+  replace:
+    Bishop: Lancer
+`,
+
+  'necromancer': `# Necromancer Chess
+# Necromancer collects souls from captures.
+# Also defines a Zombie piece for summoning.
+
+game: "Necromancer Chess"
+extends: "Standard Chess"
+
+piece Necromancer {
+  move: step(diagonal)
+  capture: =move
+  traits: [dark, summoner]
+  state: { souls: 0 }
+}
+
+piece Zombie {
+  move: step(forward) | step(orthogonal)
+  capture: step(any)
+  traits: [undead, slow]
+}
+
+trigger collect_soul {
+  on: capture
+  when: piece.type == Necromancer
+  do: set piece.state.souls = piece.state.souls + 1
+}
+
+setup:
+  add:
+    White Necromancer: [c1]
+    Black Necromancer: [f8]
+`,
+
+  'jester': `# Jester Chess
+# Jester is a tricky piece that cannot capture.
+# Instead, it disrupts the board with swaps.
+
+game: "Jester Chess"
+extends: "Standard Chess"
+
+piece Jester {
+  move: step(any)
+  capture: none
+  traits: [chaos, trickster]
+  state: { swaps: 0 }
+}
+
+trigger jester_trick {
+  on: move
+  when: piece.type == Jester
+  do: set piece.state.swaps = piece.state.swaps + 1
+}
+
+setup:
+  add:
+    White Jester: [d1]
+    Black Jester: [d8]
+`,
+
+  'medusa': `# Medusa Chess
+# Medusa has powerful diagonal attacks.
+# Her gaze can freeze enemies (conceptually).
+
+game: "Medusa Chess"
+extends: "Standard Chess"
+
+piece Medusa {
+  move: step(any)
+  capture: slide(diagonal)
+  traits: [gaze, petrify]
+  state: { frozen: 0 }
+}
+
+effect frozen {
+  blocks: all
+  visual: "cyan"
+}
+
+trigger medusa_petrify {
+  on: capture
+  when: piece.type == Medusa
+  do: set piece.state.frozen = piece.state.frozen + 1
+}
+
+setup:
+  replace:
+    Queen: Medusa
+`,
+
+  'timebomb': `# Time Bomb Chess
+# Time Bombs have a countdown timer.
+# They cannot capture but explode after turns.
+
+game: "Time Bomb Chess"
+extends: "Standard Chess"
+
+piece TimeBomb {
+  move: step(orthogonal)
+  capture: none
+  traits: [explosive, countdown]
+  state: { timer: 3 }
+}
+
+trigger bomb_tick {
+  on: turn_end
+  when: piece.type == TimeBomb
+  do: set piece.state.timer = piece.state.timer - 1
+}
+
+setup:
+  add:
+    White TimeBomb: [d3]
+    Black TimeBomb: [d6]
+`,
+
+  'summoner': `# Summoner Chess
+# Summoner gains essence from captures.
+# Can theoretically summon Minions with enough essence.
+
+game: "Summoner Chess"
+extends: "Standard Chess"
+
+piece Summoner {
+  move: step(diagonal)
+  capture: step(any)
+  traits: [creator, magical]
+  state: { essence: 0 }
+}
+
+piece Minion {
+  move: step(forward)
+  capture: step(diagonal)
+  traits: [temporary]
+}
+
+trigger gain_essence {
+  on: capture
+  when: piece.type == Summoner
+  do: set piece.state.essence = piece.state.essence + 1
+}
+
+setup:
+  add:
+    White Summoner: [c1]
+    Black Summoner: [f8]
+`,
+
+  'mimic': `# Mimic Chess
+# Mimic is an adaptive piece that can copy allies.
+# Tracks how many times it has copied movement.
+
+game: "Mimic Chess"
+extends: "Standard Chess"
+
+piece Mimic {
+  move: step(any)
+  capture: =move
+  traits: [copy, adaptable]
+  state: { copies: 0 }
+}
+
+trigger mimic_adapt {
+  on: move
+  when: piece.type == Mimic
+  do: set piece.state.copies = piece.state.copies + 1
+}
+
+setup:
+  add:
+    White Mimic: [d2, e2]
+    Black Mimic: [d7, e7]
+`,
+
+  'teleporter': `# Teleporter Chess
+# Teleporter can warp with cooldown mechanics.
+# Moves normally but tracks warp usage.
+
+game: "Teleporter Chess"
+extends: "Standard Chess"
+
+piece Teleporter {
+  move: step(orthogonal)
+  capture: step(orthogonal)
+  traits: [warp, phase]
+  state: { cooldown: 0 }
+}
+
+trigger warp_use {
+  on: move
+  when: piece.type == Teleporter
+  do: set piece.state.cooldown = 3
+}
+
+trigger warp_recover {
+  on: turn_end
+  when: piece.type == Teleporter
+  do: set piece.state.cooldown = piece.state.cooldown - 1
+}
+
+setup:
+  replace:
+    Knight: Teleporter
 `,
 
   // ========================================
@@ -1000,6 +1314,7 @@ export const useEditorStore = create<EditorState>()(
 export const EXAMPLE_CATEGORIES = {
   'Level 1: Basic Variants': ['koth', 'three-check', 'racing-kings', 'horde-chess'],
   'Level 2: Custom Pieces': ['custom', 'cannon-chess', 'fairy-pieces', 'gryphon', 'superpawn', 'dragon', 'wazir', 'ferz', 'elephant', 'camel', 'zebra'],
+  'Level 2: Advanced Pieces': ['vampire', 'shapeshifter', 'guardian', 'lancer', 'necromancer', 'jester', 'medusa', 'timebomb', 'summoner', 'mimic', 'teleporter'],
   'Level 2: Effects & Triggers': ['atomic', 'berserk-chess', 'trapper', 'phoenix', 'bomber'],
   'Level 2: Zone Games': ['fortress', 'safe_zones', 'center-control', 'quadrant-chess'],
   'Level 3: Scripts': ['progressive', 'countdown', 'capture-the-flag', 'material-race', 'peaceful-turns'],
@@ -1025,6 +1340,18 @@ export const EXAMPLE_NAMES: Record<string, string> = {
   elephant: 'Elephant Chess',
   camel: 'Camel Chess',
   zebra: 'Zebra Chess',
+  // Level 2 - Advanced Pieces
+  vampire: 'Vampire Chess',
+  shapeshifter: 'Shapeshifter Chess',
+  guardian: 'Guardian Chess',
+  lancer: 'Lancer Chess',
+  necromancer: 'Necromancer Chess',
+  jester: 'Jester Chess',
+  medusa: 'Medusa Chess',
+  timebomb: 'Time Bomb Chess',
+  summoner: 'Summoner Chess',
+  mimic: 'Mimic Chess',
+  teleporter: 'Teleporter Chess',
   // Level 2 - Effects & Triggers
   atomic: 'Atomic Chess',
   'berserk-chess': 'Berserk Chess',

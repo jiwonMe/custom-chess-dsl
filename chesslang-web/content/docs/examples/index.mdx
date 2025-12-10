@@ -175,6 +175,220 @@ piece Cannon {
 }
 ```
 
+## 고급 커스텀 기물
+
+복잡한 동작과 상태를 가진 고급 기물들입니다.
+
+### Vampire (뱀파이어)
+
+잡은 기물을 아군으로 변환합니다.
+
+```chesslang
+game: "Vampire Chess"
+extends: "Standard Chess"
+
+piece Vampire {
+  move: step(any) | leap(2, 0)
+  capture: =move
+  traits: [jump]
+  state: { thralls: 0 }
+  value: 6
+}
+
+# 잡은 기물을 아군으로 변환
+trigger vampiric_conversion {
+  on: capture
+  when: piece.type == Vampire and captured.type != King
+  do: {
+    transform captured to captured.type
+    set captured.owner = piece.owner
+    set piece.state.thralls = piece.state.thralls + 1
+  }
+}
+
+setup:
+  replace:
+    Queen: Vampire
+```
+
+### Necromancer (강령술사)
+
+영혼을 모아 좀비를 소환합니다.
+
+```chesslang
+game: "Necromancer Chess"
+extends: "Standard Chess"
+
+piece Necromancer {
+  move: step(diagonal)
+  capture: =move
+  state: { souls: 0 }
+  value: 6
+}
+
+piece Zombie {
+  move: step(forward) | step(orthogonal)
+  capture: step(any) where enemy
+  value: 1
+}
+
+# 아군이 잡을 때마다 영혼 획득
+trigger collect_soul {
+  on: capture
+  when: any Necromancer where owner == piece.owner
+  do: set Necromancer.state.souls = Necromancer.state.souls + 1
+}
+
+# 3개의 영혼으로 좀비 소환
+trigger raise_zombie {
+  on: turn_start
+  when: any Necromancer where state.souls >= 3
+  do: {
+    create Zombie at random_empty_square adjacent to Necromancer
+    set Necromancer.state.souls = Necromancer.state.souls - 3
+  }
+}
+
+setup:
+  add:
+    White Necromancer: [c1]
+    Black Necromancer: [f8]
+```
+
+### Medusa (메두사)
+
+시선에 닿은 적을 동결시킵니다.
+
+```chesslang
+game: "Medusa Chess"
+extends: "Standard Chess"
+
+piece Medusa {
+  move: step(any)
+  capture: slide(diagonal) where enemy
+  state: { gazeActive: true }
+  value: 5
+}
+
+effect frozen {
+  blocks: [all]
+  duration: 2
+  visual: highlight(cyan, 0.5)
+}
+
+# 대각선 시야의 적을 동결
+trigger medusa_gaze {
+  on: turn_start
+  when: any Medusa where state.gazeActive
+  do: mark pieces in line(diagonal) from Medusa where enemy with frozen
+}
+
+setup:
+  replace:
+    Queen: Medusa
+```
+
+### Time Bomb (시한폭탄)
+
+3턴 후 대폭발합니다.
+
+```chesslang
+game: "Time Bomb Chess"
+extends: "Standard Chess"
+
+piece TimeBomb {
+  move: step(orthogonal)
+  capture: none
+  state: { timer: 3, armed: true }
+  value: 1
+}
+
+# 턴마다 카운트다운
+trigger bomb_countdown {
+  on: turn_end
+  when: any TimeBomb where state.armed
+  do: set piece.state.timer = piece.state.timer - 1
+}
+
+# 타이머가 0이 되면 폭발
+trigger bomb_explode {
+  on: turn_start
+  when: any TimeBomb where state.timer <= 0
+  do: {
+    remove pieces in radius(2) from TimeBomb where not King
+    remove TimeBomb
+  }
+}
+
+setup:
+  add:
+    White TimeBomb: [d3]
+    Black TimeBomb: [d6]
+```
+
+### Guardian (수호자)
+
+인접한 아군을 보호합니다.
+
+```chesslang
+game: "Guardian Chess"
+extends: "Standard Chess"
+
+piece Guardian {
+  move: step(any)
+  capture: =move
+  state: { protected: 0 }
+  value: 4
+}
+
+# 인접한 아군이 잡히려 하면 보호
+trigger guardian_protection {
+  on: capture
+  when: any Guardian adjacent to captured where Guardian.owner == captured.owner
+  do: {
+    cancel    # 잡기 취소
+    set Guardian.state.protected = Guardian.state.protected + 1
+  }
+}
+
+setup:
+  add:
+    White Guardian: [d2, e2]
+    Black Guardian: [d7, e7]
+```
+
+### Jester (광대)
+
+잡는 대신 위치를 교환합니다.
+
+```chesslang
+game: "Jester Chess"
+extends: "Standard Chess"
+
+piece Jester {
+  move: step(any)
+  capture: none        # 잡기 불가
+  state: { swapsUsed: 0 }
+  value: 4
+}
+
+# 대상과 위치 교환
+trigger jester_swap {
+  on: move
+  when: piece.type == Jester and target has piece
+  do: {
+    let targetPiece = piece_at(target)
+    move targetPiece to origin
+    set piece.state.swapsUsed = piece.state.swapsUsed + 1
+  }
+}
+
+setup:
+  add:
+    White Jester: [d1]
+    Black Jester: [d8]
+```
+
 ## 효과와 트리거
 
 ### Atomic Chess

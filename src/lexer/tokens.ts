@@ -91,6 +91,8 @@ export const KEYWORDS: Record<string, TokenType> = {
   mark: TokenType.MARK,
   win: TokenType.WIN,
   lose: TokenType.LOSE,
+  cancel: TokenType.CANCEL,
+  apply: TokenType.APPLY,
 
   // Logical keywords
   and: TokenType.AND,
@@ -253,6 +255,8 @@ export function tokenTypeName(type: TokenType): string {
     [TokenType.MARK]: 'mark',
     [TokenType.WIN]: 'win',
     [TokenType.LOSE]: 'lose',
+    [TokenType.CANCEL]: 'cancel',
+    [TokenType.APPLY]: 'apply',
     [TokenType.AND]: 'and',
     [TokenType.OR]: 'or',
     [TokenType.NOT]: 'not',
