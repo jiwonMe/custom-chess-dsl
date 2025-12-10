@@ -13,6 +13,8 @@ export type {
   Pattern,
   Condition,
   Direction,
+  Effect,
+  PendingOptionalTrigger,
 } from '../../../src/types/index.js';
 
 // Web-specific types

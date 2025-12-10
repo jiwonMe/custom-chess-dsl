@@ -7,17 +7,19 @@ import { MoveIndicator } from './MoveIndicator';
 import { DragOverlay } from './DragOverlay';
 import { PromotionModal } from './PromotionModal';
 import { cn } from '@/lib/utils/cn';
-import type { Position, Move, Piece as PieceType, Color } from '@/types';
+import type { Position, Move, Piece as PieceType, Color, Effect } from '@/types';
 
 interface BoardSquare {
   pos: Position;
   piece: PieceType | null;
+  effects?: Effect[];
 }
 
 interface BoardState {
   board: BoardSquare[][];
   currentPlayer: Color;
   lastMove?: Move;
+  effects?: Effect[];  // Game-level effects with positions
 }
 
 interface BoardProps {
@@ -564,6 +566,14 @@ export function Board({
                 const isLegalDrop = dragLegalTargets.has(posKey);
                 const isFocused = focusedPos?.file === file && focusedPos?.rank === rank;
                 const isDragging = draggedPiece?.pos.file === file && draggedPiece?.pos.rank === rank;
+                
+                // Get effects for this square
+                const squareEffects = square?.effects ?? [];
+                // Also check game-level effects
+                const gameEffects = (state.effects ?? []).filter(
+                  (e) => e.position?.file === file && e.position?.rank === rank
+                );
+                const allEffects = [...squareEffects, ...gameEffects];
 
                 return (
                   <Square
@@ -576,6 +586,7 @@ export function Board({
                     isDragOver={isDragOver}
                     isLegalDrop={isLegalDrop}
                     isFocused={isFocused}
+                    effects={allEffects}
                     onClick={() => handleSquareClick(pos)}
                     onDragEnter={() => setDragOverPos(pos)}
                     onDragLeave={() => {

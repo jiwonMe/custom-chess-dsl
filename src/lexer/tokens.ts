@@ -33,6 +33,8 @@ export const KEYWORDS: Record<string, TokenType> = {
   do: TokenType.DO,
   blocks: TokenType.BLOCKS,
   visual: TokenType.VISUAL,
+  optional: TokenType.OPTIONAL,
+  description: TokenType.DESCRIPTION,
 
   // Level 3 keywords
   script: TokenType.SCRIPT,
@@ -209,6 +211,8 @@ export function tokenTypeName(type: TokenType): string {
     [TokenType.DO]: 'do',
     [TokenType.BLOCKS]: 'blocks',
     [TokenType.VISUAL]: 'visual',
+    [TokenType.OPTIONAL]: 'optional',
+    [TokenType.DESCRIPTION]: 'description',
     [TokenType.SCRIPT]: 'script',
     [TokenType.FUNCTION]: 'function',
     [TokenType.LET]: 'let',

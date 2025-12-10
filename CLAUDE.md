@@ -39,16 +39,30 @@ victory:
 
 **Level 2 (Compose)**: 선언적 DSL
 ```
+# 커스텀 기물 정의
 piece Trapper {
     move: step(any)
     capture: =move
+    traits: [jump]
     state: { traps: 0 }
 }
 
+# 칸에 적용되는 효과 정의
+effect trap {
+    blocks: enemy      # enemy | friend | all | none
+    visual: "red"      # 시각적 표시
+}
+
+# 이벤트 기반 트리거
 trigger place_trap {
     on: move
     when: piece.type == Trapper and piece.state.traps < 3
-    do: mark origin with trap
+    optional: true                          # 사용자 선택
+    description: "덫을 설치하시겠습니까?"    # 선택 메시지
+    do: {
+        mark origin with trap               # 효과 적용
+        set piece.state.traps = piece.state.traps + 1
+    }
 }
 ```
 
@@ -128,7 +142,7 @@ type Pattern =
 
 **Level 1**: `game`, `extends`, `board`, `pieces`, `setup`, `victory`, `draw`, `rules`
 
-**Level 2**: `piece`, `pattern`, `effect`, `trigger`, `action`, `move`, `capture`, `traits`, `state`, `on`, `when`, `do`
+**Level 2**: `piece`, `pattern`, `effect`, `trigger`, `action`, `move`, `capture`, `traits`, `state`, `on`, `when`, `do`, `optional`, `description`, `blocks`, `visual`
 
 **Level 3**: `script`, `function`, `let`, `const`, `if`, `else`, `for`, `while`, `return`
 
@@ -141,6 +155,106 @@ type Pattern =
 **Actions**: `set`, `create`, `remove`, `transform`, `mark`, `move`, `win`, `lose`, `draw`
 
 **Built-in Traits**: `royal`, `jump`, `phase`, `promote`, `immune`, `explosive` (커스텀 trait도 가능)
+
+---
+
+### Effect 시스템
+
+칸(square)에 적용되는 효과를 정의합니다.
+
+```
+effect <name> {
+    blocks: enemy | friend | all | none    # 이동 차단 대상
+    visual: "color" | icon                  # 시각적 표시
+}
+```
+
+**blocks 값:**
+- `enemy`: 효과 소유자의 적 기물 이동 차단
+- `friend`: 효과 소유자의 아군 기물 이동 차단
+- `all`: 모든 기물 이동 차단
+- `none`: 차단 없음 (기본값)
+
+**예시:**
+```
+effect trap { blocks: enemy; visual: "red" }
+effect shield { blocks: enemy; visual: "blue" }
+effect lava { blocks: all; visual: "orange" }
+```
+
+---
+
+### Optional Trigger
+
+사용자에게 실행 여부를 묻는 선택적 트리거입니다.
+
+```
+trigger <name> {
+    on: <event>
+    when: <condition>           # 선택적
+    optional: true              # 선택적 트리거 활성화
+    description: "메시지"       # 다이얼로그에 표시할 텍스트
+    do: <action> | { actions }
+}
+```
+
+**키보드 단축키:**
+- `Y` / `Enter`: 실행
+- `N` / `Escape`: 건너뛰기
+
+---
+
+### Mark 액션
+
+칸에 효과를 적용하는 액션입니다.
+
+```
+mark <position> with <effect>
+```
+
+**position 표현식:**
+- `origin`: 이동 출발 위치
+- `destination` / `target`: 이동 도착 위치
+- `piece.pos`: 기물 현재 위치
+- `[e4]`, `{file: 4, rank: 3}`: 특정 위치
+
+**예시:**
+```
+do: mark origin with trap              # 출발 위치에 덫 설치
+do: mark destination with shield       # 도착 위치에 방어막
+do: mark [d4] with lava                # d4에 용암
+```
+
+---
+
+### 조건 표현식
+
+트리거의 `when` 절에서 사용하는 조건식입니다.
+
+**비교 연산:**
+```
+piece.type == King
+piece.owner == White
+piece.state.moves > 0
+piece.state.cooldown <= 0
+```
+
+**논리 연산:**
+```
+piece.type == Trapper and piece.state.traps < 3
+piece.traits has royal or piece.traits has immune
+not piece.state.moved
+```
+
+**내장 조건:**
+- `empty`: 목적지가 비어있음
+- `enemy`: 목적지에 적 기물
+- `friend`: 목적지에 아군 기물
+- `clear`: 경로가 비어있음
+- `first_move`: 기물의 첫 이동
+- `in zone.<name>`: 특정 존 내 위치
+
+---
 
 ### 상세 스펙
 

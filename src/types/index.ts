@@ -315,6 +315,7 @@ export interface Effect {
   blocks: 'none' | 'enemy' | 'friend' | 'all';
   visual?: string;
   data?: Record<string, unknown>;
+  position?: Position;  // For tracking effect location in game state
 }
 
 export interface EffectDefinition {
@@ -344,6 +345,8 @@ export interface TriggerDefinition {
   on: EventType;
   when?: Condition;
   actions: Action[];
+  optional?: boolean;  // If true, user can choose whether to execute
+  description?: string;  // Description shown in confirmation dialog
 }
 
 // ----------------------------------------------------------------------------
@@ -377,7 +380,7 @@ export interface CreateAction {
   type: 'create';
   pieceType: string;
   position: Expression;
-  owner: Color | Expression;
+  owner: Color | Expression | null;  // null means use context (e.g., current player)
 }
 
 export interface RemoveAction {
@@ -470,6 +473,14 @@ export interface GameState {
   customState: Record<string, unknown>;
   result?: GameResult;
   checkCount?: { White: number; Black: number }; // For three-check variants
+  pendingOptionalTriggers?: PendingOptionalTrigger[];  // Triggers waiting for user decision
+}
+
+export interface PendingOptionalTrigger {
+  triggerId: string;
+  triggerName: string;
+  description?: string;
+  move: Move;
 }
 
 export interface GameResult {
@@ -698,6 +709,8 @@ export interface TriggerNode extends ASTNode {
   on: EventType;
   when?: ConditionNode;
   actions: ActionNode[];
+  optional?: boolean;  // If true, user can choose whether to execute
+  description?: string;  // Description shown in confirmation dialog
 }
 
 export interface PatternNode extends ASTNode {
@@ -738,7 +751,7 @@ export interface ActionNode extends ASTNode {
   op?: string;
   pieceType?: string;
   position?: ExpressionNode;
-  owner?: string | ExpressionNode;
+  owner?: string | ExpressionNode | null;  // null means use context (current player)
   effect?: string;
   newType?: string;
   player?: string | ExpressionNode;
@@ -898,6 +911,8 @@ export enum TokenType {
   DO = 'DO',
   BLOCKS = 'BLOCKS',
   VISUAL = 'VISUAL',
+  OPTIONAL = 'OPTIONAL',
+  DESCRIPTION = 'DESCRIPTION',
 
   // Keywords - Level 3
   SCRIPT = 'SCRIPT',

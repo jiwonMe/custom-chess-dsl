@@ -540,13 +540,17 @@ setup:
 #
 # effect 시스템:
 # - 보드의 특정 칸에 효과를 부여
-# - damages: [enemy] - 적에게 피해
-# - visual: highlight(red) - 빨간색으로 표시
+# - blocks: enemy - 적의 이동 차단
+# - visual: "color" - 시각적 표시 (문자열)
 #
 # trigger 복합 액션:
 # - do: { action1; action2 } - 여러 액션 순차 실행
 # - mark origin with trap: 출발 위치에 trap 효과 부여
 # - set piece.state.traps += 1: 설치 카운트 증가
+#
+# 선택적 트리거:
+# - optional: true - 사용자가 실행 여부 선택 가능
+# - description: "..." - 선택 다이얼로그에 표시할 메시지
 #
 # 전략 팁:
 # - 주요 통로에 덫을 설치하세요
@@ -565,14 +569,16 @@ piece Trapper {
 
 # 덫 효과 정의
 effect trap {
-  damages: [enemy]
-  visual: highlight(red)
+  blocks: enemy
+  visual: "red"
 }
 
-# 이동 시 덫 설치 (최대 3개)
+# 이동 시 덫 설치 (최대 3개, 선택적)
 trigger place_trap {
   on: move
   when: piece.type == Trapper and piece.state.traps < 3
+  optional: true
+  description: "덫을 설치하시겠습니까?"
   do: {
     mark origin with trap
     set piece.state.traps = piece.state.traps + 1
@@ -611,7 +617,7 @@ setup:
 # - state: { canResurrect: true } - 부활 가능 상태
 # - captured.type == Phoenix - 잡힌 기물이 불사조인지 확인
 # - captured.state.canResurrect - 부활 가능 여부 확인
-# - create Phoenix at start_position - 시작 위치에 새로 생성
+# - create Phoenix at origin - 잡힌 위치에 새 불사조 생성 (소유자는 현재 플레이어)
 # - set captured.state.canResurrect = false - 부활 불가로 변경
 #
 # 전략 팁:
@@ -634,7 +640,7 @@ trigger phoenix_rebirth {
   on: capture
   when: captured.type == Phoenix and captured.state.canResurrect
   do: {
-    create Phoenix at start_position
+    create Phoenix at origin
     set captured.state.canResurrect = false
   }
 }
@@ -2143,16 +2149,55 @@ extends: "Standard Chess"
 # First player to lose all pieces wins
 `,
 
-  'zombie-chess': `# Zombie Chess
-# Defeated pawns rise again as Zombies!
+  'zombie-chess': `# ===================================
+# Zombie Chess (좀비 체스)
+# ===================================
+# 잡힌 폰이 좀비로 부활합니다!
+#
+# 좀비 특징:
+# - 모든 방향으로 1칸 이동/잡기
+# - 잡힌 폰은 잡은 기물의 원래 위치에 적 좀비로 부활
+# - 좀비는 부활하지 않음 (한 번만 부활)
+#
+# 핵심 메커니즘:
+# - captured.type == Pawn: 잡힌 기물이 폰인지 확인
+# - create Zombie at origin: 잡는 기물의 출발 위치에 좀비 생성
+# - for captured.owner: 잡힌 기물의 소유자 좀비로 생성
+# - 좀비는 Pawn이 아니므로 트리거 조건 불충족 → 부활 없음
+#
+# 게임 흐름 예시:
+# 1. White가 d5에서 Black pawn을 잡음 (e4→d5)
+# 2. e4(origin)에 Black Zombie가 나타남!
+# 3. 이제 White의 뒤에 적 좀비가 있음
+#
+# 전략 팁:
+# - 폰을 잡으면 내 뒤에 적 좀비가 나타남!
+# - 폰 교환을 신중하게 하세요
+# - 좀비를 잡으면 더 이상 부활하지 않습니다
 
 game: "Zombie Chess"
 extends: "Standard Chess"
 
+# 좀비 기물: 모든 방향 1칸 이동/잡기
 piece Zombie {
   move: step(any)
   capture: =move
+  traits: [undead]
+  state: { resurrected: true }
+  value: 2
+  symbol: "Z"
 }
+
+# 폰이 잡히면 잡는 기물의 원래 위치에 적 좀비로 부활
+# 좀비(Zombie)는 Pawn이 아니므로 이 트리거에 해당하지 않음 → 부활 없음
+trigger pawn_rises {
+  on: capture
+  when: captured.type == Pawn
+  do: create Zombie at origin for captured.owner
+}
+
+# 좀비가 잡히면 아무 일도 일어나지 않음
+# (captured.type == Zombie 트리거가 없으므로 자동으로 처리됨)
 `,
 
   'extinction-chess': `# Extinction Chess

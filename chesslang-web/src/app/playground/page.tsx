@@ -16,6 +16,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { OptionalTriggerDialog } from '@/components/board/OptionalTriggerDialog';
 import type { Position, Move } from '@/types';
 
 export default function PlaygroundPage() {
@@ -32,7 +33,10 @@ export default function PlaygroundPage() {
     gameOverReason,
   } = useGameStore();
 
-  const { compile, makeMove, reset, undo, isReady } = useEngine();
+  const { compile, makeMove, reset, undo, executeOptionalTrigger, skipOptionalTrigger, isReady } = useEngine();
+
+  // Pending optional triggers
+  const pendingTriggers = gameState?.pendingOptionalTriggers ?? [];
 
   // Compile on mount
   useEffect(() => {
@@ -219,6 +223,7 @@ export default function PlaygroundPage() {
                     board: gameState.board,
                     currentPlayer: gameState.currentPlayer,
                     lastMove: gameState.moveHistory[gameState.moveHistory.length - 1],
+                    effects: gameState.effects,
                   }}
                   legalMoves={legalMoves}
                   selectedPiece={selectedPiece}
@@ -230,6 +235,15 @@ export default function PlaygroundPage() {
                   onPromotion={handlePromotion}
                   className="w-full"
                 />
+
+                {/* Optional Trigger Dialog */}
+                {pendingTriggers.length > 0 && (
+                  <OptionalTriggerDialog
+                    triggers={pendingTriggers}
+                    onExecute={executeOptionalTrigger}
+                    onSkip={skipOptionalTrigger}
+                  />
+                )}
 
                 {/* Game Over Overlay */}
                 {isGameOver && (

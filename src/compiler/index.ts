@@ -218,6 +218,8 @@ export class Compiler {
       on: node.on,
       when: node.when ? this.compileCondition(node.when) : undefined,
       actions: node.actions.map((a) => this.compileAction(a)),
+      optional: node.optional,
+      description: node.description,
     };
   }
 
@@ -521,9 +523,12 @@ export class Compiler {
           type: 'create',
           pieceType: node.pieceType ?? 'Pawn',
           position: this.compileExpression(node.position as ExpressionNode),
-          owner: typeof node.owner === 'string'
-            ? node.owner as Color
-            : this.compileExpression(node.owner as ExpressionNode),
+          // owner is optional - null means use context (e.g., captured.owner or current player)
+          owner: node.owner == null
+            ? null
+            : typeof node.owner === 'string'
+              ? node.owner as Color
+              : this.compileExpression(node.owner as ExpressionNode),
         };
 
       case 'remove':

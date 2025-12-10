@@ -759,7 +759,17 @@ export class Parser {
         }
       } else if (this.stream.match(TokenType.VISUAL)) {
         this.stream.expect(TokenType.COLON);
-        visual = this.stream.expect(TokenType.STRING).value;
+        // Accept STRING or IDENTIFIER for visual
+        const token = this.stream.peek();
+        if (token.type === TokenType.STRING) {
+          visual = this.stream.advance().value;
+        } else if (token.type === TokenType.IDENTIFIER) {
+          visual = this.stream.advance().value;
+        } else {
+          // Try to parse as expression (e.g., highlight(red))
+          const expr = this.parseExpression();
+          visual = JSON.stringify(expr);
+        }
       } else {
         this.stream.advance();
       }
@@ -781,6 +791,8 @@ export class Parser {
     let on: EventType = 'move';
     let when: ConditionNode | undefined;
     const actions: ActionNode[] = [];
+    let optional: boolean | undefined;
+    let description: string | undefined;
 
     while (!this.stream.check(TokenType.RBRACE) && !this.stream.isAtEnd()) {
       this.stream.skipNewlines();
@@ -792,6 +804,22 @@ export class Parser {
       } else if (this.stream.match(TokenType.WHEN)) {
         this.stream.expect(TokenType.COLON);
         when = this.parseCondition();
+      } else if (this.stream.match(TokenType.OPTIONAL)) {
+        this.stream.expect(TokenType.COLON);
+        // Accept true/false as boolean or identifier
+        const token = this.stream.peek();
+        if (token.type === TokenType.BOOLEAN) {
+          const value = this.stream.advance().value.toLowerCase();
+          optional = value === 'true';
+        } else if (token.type === TokenType.IDENTIFIER) {
+          const value = this.stream.advance().value.toLowerCase();
+          optional = value === 'true';
+        } else {
+          optional = true; // Default to true if just "optional:" without value
+        }
+      } else if (this.stream.match(TokenType.DESCRIPTION)) {
+        this.stream.expect(TokenType.COLON);
+        description = this.stream.expect(TokenType.STRING).value;
       } else if (this.stream.match(TokenType.DO)) {
         this.stream.expect(TokenType.COLON);
         this.stream.skipNewlines();
@@ -833,7 +861,7 @@ export class Parser {
 
     this.stream.expect(TokenType.RBRACE);
 
-    return { type: 'Trigger', name, on, when, actions, location };
+    return { type: 'Trigger', name, on, when, actions, optional, description, location };
   }
 
   private parsePatternDefinition(): PatternNode {
@@ -1350,13 +1378,19 @@ export class Parser {
       return { type: 'Action', kind: 'set', target, op, value, location };
     }
 
-    // "create piece at position for color" or "add piece at position for color"
+    // "create piece at position [for color]" or "add piece at position [for color]"
+    // 'for color' is optional - defaults to current player if omitted
     if (this.stream.match(TokenType.CREATE) || this.stream.match(TokenType.ADD)) {
       const pieceType = this.stream.expect(TokenType.IDENTIFIER).value;
       this.stream.expect(TokenType.IDENTIFIER); // 'at'
       const position = this.parseExpression();
-      this.stream.expect(TokenType.FOR);
-      const owner = this.parseExpression();
+      
+      // 'for' is optional
+      let owner: ReturnType<typeof this.parseExpression> | null = null;
+      if (this.stream.match(TokenType.FOR)) {
+        owner = this.parseExpression();
+      }
+      
       return { type: 'Action', kind: 'create', pieceType, position, owner, location };
     }
 

@@ -139,23 +139,29 @@ piece_name      = "King" | "Queen" | "Rook" | "Bishop" | "Knight" | "Pawn" | ide
 game: "Trapper Chess"
 extends: "Standard Chess"
 
+# 덫 효과 정의: 적 이동 차단, 빨간색 표시
 effect trap {
     blocks: enemy
-    visual: "X"
+    visual: "red"
 }
 
+# 트래퍼 기물: 이동 후 덫 설치 가능
 piece Trapper {
     move: step(any)
     capture: =move
     state: { traps: 0 }
 }
 
+# 선택적 트리거: 사용자가 덫 설치 여부 선택
 trigger place_trap {
     on: move
     when: piece.type == Trapper and piece.state.traps < 3
-    do:
+    optional: true
+    description: "덫을 설치하시겠습니까?"
+    do: {
         mark origin with trap
-        set piece.state.traps += 1
+        set piece.state.traps = piece.state.traps + 1
+    }
 }
 
 setup:
@@ -206,12 +212,14 @@ visual_prop     = "visual:" string ;
 
 (* Trigger Definition *)
 trigger_def     = "trigger" identifier "{" trigger_body "}" ;
-trigger_body    = on_clause when_clause? do_clause ;
+trigger_body    = on_clause when_clause? optional_clause? description_clause? do_clause ;
 on_clause       = "on:" event_type ;
 event_type      = "move" | "capture" | "captured" | "turn_start" | "turn_end" 
                 | "check" | "enter_zone" | "exit_zone" ;
 when_clause     = "when:" condition_expr ;
-do_clause       = "do:" action_list ;
+optional_clause = "optional:" boolean ;
+description_clause = "description:" string ;
+do_clause       = "do:" action_list | "do:" "{" action_list "}" ;
 action_list     = action+ ;
 action          = set_action | create_action | remove_action | transform_action 
                 | mark_action | move_action | win_action | lose_action | draw_action ;

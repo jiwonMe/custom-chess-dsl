@@ -18,6 +18,8 @@ interface EngineHook {
   getLegalMoves: () => Move[];
   reset: () => void;
   undo: () => void;
+  executeOptionalTrigger: (triggerId: string) => void;
+  skipOptionalTrigger: (triggerId: string) => void;
   isReady: boolean;
 }
 
@@ -211,12 +213,38 @@ export function useEngine(): EngineHook {
     }
   }, [selectPiece, setGameOver, updateState]);
 
+  // Execute optional trigger
+  const executeOptionalTrigger = useCallback(
+    (triggerId: string) => {
+      if (!engineRef.current?.instance) return;
+
+      const engine = engineRef.current.instance;
+      engine.executeOptionalTrigger(triggerId);
+      updateState(engine);
+    },
+    [updateState]
+  );
+
+  // Skip optional trigger
+  const skipOptionalTrigger = useCallback(
+    (triggerId: string) => {
+      if (!engineRef.current?.instance) return;
+
+      const engine = engineRef.current.instance;
+      engine.skipOptionalTrigger(triggerId);
+      updateState(engine);
+    },
+    [updateState]
+  );
+
   return {
     compile,
     makeMove,
     getLegalMoves,
     reset,
     undo,
+    executeOptionalTrigger,
+    skipOptionalTrigger,
     isReady,
   };
 }

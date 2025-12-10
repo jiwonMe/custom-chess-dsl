@@ -11,6 +11,8 @@ import type {
   Pattern,
   Square,
   EventType,
+  Effect,
+  PendingOptionalTrigger,
 } from '../types/index.js';
 import { Board } from './board.js';
 import { pos, posEquals } from './position.js';
@@ -1084,12 +1086,108 @@ export class GameEngine {
           }
         }
 
-        // Execute actions
+        // Check if trigger is optional
+        if (trigger.optional) {
+          // Add to pending optional triggers for user decision
+          if (!this.state.pendingOptionalTriggers) {
+            this.state.pendingOptionalTriggers = [];
+          }
+          this.state.pendingOptionalTriggers.push({
+            triggerId: trigger.name,
+            triggerName: trigger.name,
+            description: trigger.description ?? `Execute ${trigger.name}?`,
+            move: move,
+          });
+          
+          // Emit event for UI
+          events.push({
+            type: 'optional_trigger',
+            data: {
+              triggerId: trigger.name,
+              description: trigger.description ?? `Execute ${trigger.name}?`,
+            },
+            timestamp: Date.now(),
+          });
+          continue;
+        }
+
+        // Execute actions immediately for non-optional triggers
         for (const action of trigger.actions) {
           this.executeAction(action, ctx, move, events);
         }
       }
     }
+  }
+
+  /**
+   * Execute a pending optional trigger (called from UI)
+   */
+  executeOptionalTrigger(triggerId: string): boolean {
+    const pendingIndex = this.state.pendingOptionalTriggers?.findIndex(
+      (t) => t.triggerId === triggerId
+    );
+
+    if (pendingIndex === undefined || pendingIndex === -1) {
+      return false;
+    }
+
+    const pending = this.state.pendingOptionalTriggers![pendingIndex]!;
+    const trigger = this.game.triggers.find((t) => t.name === triggerId);
+
+    if (!trigger) {
+      return false;
+    }
+
+    // Remove from pending
+    this.state.pendingOptionalTriggers!.splice(pendingIndex, 1);
+
+    // Execute the trigger actions
+    const ctx: MoveContext = {
+      board: this.board,
+      piece: pending.move.piece,
+      state: this.state,
+      checkLegality: false,
+    };
+
+    const events: GameEvent[] = [];
+    for (const action of trigger.actions) {
+      this.executeAction(action, ctx, pending.move, events);
+    }
+
+    this.syncState();
+    return true;
+  }
+
+  /**
+   * Skip a pending optional trigger (called from UI)
+   */
+  skipOptionalTrigger(triggerId: string): boolean {
+    const pendingIndex = this.state.pendingOptionalTriggers?.findIndex(
+      (t) => t.triggerId === triggerId
+    );
+
+    if (pendingIndex === undefined || pendingIndex === -1) {
+      return false;
+    }
+
+    // Just remove from pending
+    this.state.pendingOptionalTriggers!.splice(pendingIndex, 1);
+    this.syncState();
+    return true;
+  }
+
+  /**
+   * Check if there are pending optional triggers
+   */
+  hasPendingOptionalTriggers(): boolean {
+    return (this.state.pendingOptionalTriggers?.length ?? 0) > 0;
+  }
+
+  /**
+   * Get pending optional triggers
+   */
+  getPendingOptionalTriggers(): PendingOptionalTrigger[] {
+    return this.state.pendingOptionalTriggers ?? [];
   }
 
   /**
@@ -1109,7 +1207,7 @@ export class GameEngine {
         break;
 
       case 'create':
-        this.executeCreateAction(a, ctx);
+        this.executeCreateAction(a, ctx, move);
         break;
 
       case 'remove':
@@ -1133,6 +1231,10 @@ export class GameEngine {
 
       case 'draw':
         this.state.result = { reason: 'trigger', isDraw: true };
+        break;
+
+      case 'mark':
+        this.executeMarkAction(a, ctx, move);
         break;
     }
   }
@@ -1231,19 +1333,29 @@ export class GameEngine {
    */
   private executeCreateAction(
     action: Record<string, unknown>,
-    ctx: MoveContext
+    ctx: MoveContext,
+    move: Move
   ): void {
     const pieceType = action['pieceType'] as string;
     const posExpr = action['position'];
     const ownerExpr = action['owner'];
 
-    const position = evaluateExpression(posExpr, ctx, {} as Move) as Position;
+    const position = evaluateExpression(posExpr, ctx, move) as Position;
     let owner: Color;
     
-    if (typeof ownerExpr === 'string') {
+    if (ownerExpr == null) {
+      // Default to current player if owner not specified
+      owner = this.state.currentPlayer;
+    } else if (typeof ownerExpr === 'string') {
       owner = ownerExpr as Color;
     } else {
-      owner = evaluateExpression(ownerExpr, ctx, {} as Move) as Color;
+      owner = evaluateExpression(ownerExpr, ctx, move) as Color;
+    }
+
+    // Check if position is valid
+    if (!position || typeof position.file !== 'number' || typeof position.rank !== 'number') {
+      console.warn('Invalid position for create action:', position);
+      return;
     }
 
     const pieceDef = this.game.pieces.get(pieceType);
@@ -1294,6 +1406,47 @@ export class GameEngine {
       this.board.createPiece(newType, piece.owner, piece.pos, traits, { ...state });
       this.syncState();
     }
+  }
+
+  /**
+   * Execute mark action - add effect to a square
+   */
+  private executeMarkAction(
+    action: Record<string, unknown>,
+    ctx: MoveContext,
+    move: Move
+  ): void {
+    const positionExpr = action['position'];
+    const effectName = action['effect'] as string;
+
+    // Evaluate position (e.g., 'origin' -> move.from)
+    const position = evaluateExpression(positionExpr, ctx, move) as Position;
+    if (!position || typeof position.file !== 'number' || typeof position.rank !== 'number') {
+      return;
+    }
+
+    // Look up effect definition
+    const effectDef = this.game.effects.get(effectName);
+    
+    // Create effect instance
+    const effect: Effect = {
+      id: `${effectName}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      type: effectName,
+      visual: effectDef?.visual ?? effectName,
+      blocks: effectDef?.blocks ?? 'none',
+      owner: ctx.piece?.owner ?? this.state.currentPlayer,
+    };
+
+    // Add to board
+    this.board.addEffect(position, effect);
+    
+    // Also track in game state effects array
+    this.state.effects.push({
+      ...effect,
+      position,
+    });
+
+    this.syncState();
   }
 
   /**

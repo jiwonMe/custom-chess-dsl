@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils/cn';
-import type { Position } from '@/types';
+import type { Position, Effect } from '@/types';
 
 interface SquareProps {
   pos: Position;
@@ -12,6 +12,7 @@ interface SquareProps {
   isDragOver?: boolean;
   isLegalDrop?: boolean;
   isFocused?: boolean;
+  effects?: Effect[];
   onClick?: () => void;
   onDragEnter?: () => void;
   onDragLeave?: () => void;
@@ -37,6 +38,29 @@ const getRankLabel = (rank: number): string => {
   return String(rank + 1);
 };
 
+// Effect 시각적 스타일 매핑
+const effectStyles: Record<string, { bg: string; icon: string; title: string }> = {
+  trap: { bg: 'bg-red-500/30', icon: '⚠️', title: '덫' },
+  fire: { bg: 'bg-orange-500/40', icon: '🔥', title: '불' },
+  ice: { bg: 'bg-blue-400/40', icon: '❄️', title: '얼음' },
+  poison: { bg: 'bg-green-500/30', icon: '☠️', title: '독' },
+  shield: { bg: 'bg-yellow-400/30', icon: '🛡️', title: '방패' },
+};
+
+function getEffectStyle(effect: Effect) {
+  const visual = effect.visual?.toLowerCase() ?? effect.type?.toLowerCase() ?? '';
+  
+  // visual 속성에서 색상 추출
+  if (visual.includes('red')) return { bg: 'bg-red-500/30', icon: '⚠️', title: effect.type };
+  if (visual.includes('blue')) return { bg: 'bg-blue-500/30', icon: '❄️', title: effect.type };
+  if (visual.includes('green')) return { bg: 'bg-green-500/30', icon: '☠️', title: effect.type };
+  if (visual.includes('yellow')) return { bg: 'bg-yellow-500/30', icon: '⚡', title: effect.type };
+  if (visual.includes('orange')) return { bg: 'bg-orange-500/30', icon: '🔥', title: effect.type };
+  
+  // 미리 정의된 스타일
+  return effectStyles[effect.type] ?? { bg: 'bg-purple-500/30', icon: '✨', title: effect.type };
+}
+
 export function Square({
   pos,
   isLight,
@@ -46,6 +70,7 @@ export function Square({
   isDragOver = false,
   isLegalDrop = false,
   isFocused = false,
+  effects = [],
   onClick,
   onDragEnter,
   onDragLeave,
@@ -55,6 +80,10 @@ export function Square({
   showFile = false,
   children,
 }: SquareProps) {
+  const hasEffects = effects.length > 0;
+  const primaryEffect = effects[0];
+  const effectStyle = primaryEffect ? getEffectStyle(primaryEffect) : null;
+
   return (
     <div
       onClick={onClick}
@@ -88,9 +117,37 @@ export function Square({
         // 드래그 오버 (불법 이동)
         isDragOver && !isLegalDrop && 'bg-red-500/20',
         // 키보드 포커스
-        isFocused && 'ring-2 ring-yellow-400 ring-inset'
+        isFocused && 'ring-2 ring-yellow-400 ring-inset',
+        // Effect 배경
+        hasEffects && effectStyle?.bg
       )}
     >
+      {/* Effect 표시 */}
+      {hasEffects && effectStyle && (
+        <div
+          className={cn(
+            // 포지셔닝
+            'absolute inset-0',
+            // 레이아웃
+            'flex items-center justify-center',
+            // 포인터
+            'pointer-events-none'
+          )}
+          title={`${effectStyle.title} (${effects.length}개)`}
+        >
+          {/* 효과 아이콘 */}
+          <span
+            className={cn(
+              'text-lg opacity-60',
+              // 애니메이션
+              'animate-pulse'
+            )}
+          >
+            {effectStyle.icon}
+          </span>
+        </div>
+      )}
+
       {children}
 
       {/* Rank label (numbers on the left) */}
@@ -114,6 +171,22 @@ export function Square({
           )}
         >
           {getFileLabel(pos.file)}
+        </span>
+      )}
+
+      {/* Effect 카운트 뱃지 (여러 개일 때) */}
+      {effects.length > 1 && (
+        <span
+          className={cn(
+            'absolute top-0.5 right-0.5',
+            'w-4 h-4 rounded-full',
+            'bg-red-600 text-white',
+            'text-[10px] font-bold',
+            'flex items-center justify-center',
+            'pointer-events-none'
+          )}
+        >
+          {effects.length}
         </span>
       )}
     </div>

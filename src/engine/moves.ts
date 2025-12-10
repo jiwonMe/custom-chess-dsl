@@ -284,6 +284,47 @@ export function evaluateCondition(
     case 'comparison':
       return evaluateComparison(condition, ctx, move);
 
+    case 'custom': {
+      // Handle custom conditions like 'truthy'
+      const cond = condition as { type: 'custom'; name: string; args: unknown[] };
+      if (cond.name === 'truthy' && cond.args.length > 0) {
+        // Evaluate the expression and check if it's truthy
+        const expr = cond.args[0];
+        // If expr is a binary comparison, evaluate it directly
+        if (typeof expr === 'object' && expr !== null && (expr as Record<string, unknown>)['type'] === 'binary') {
+          const binExpr = expr as { type: 'binary'; op: string; left: unknown; right: unknown };
+          const left = evaluateExpression(binExpr.left, ctx, move);
+          const right = evaluateExpression(binExpr.right, ctx, move);
+          switch (binExpr.op) {
+            case '==':
+            case '===':
+              return left === right;
+            case '!=':
+            case '!==':
+              return left !== right;
+            case '<':
+              return (left as number) < (right as number);
+            case '>':
+              return (left as number) > (right as number);
+            case '<=':
+              return (left as number) <= (right as number);
+            case '>=':
+              return (left as number) >= (right as number);
+            case 'and':
+            case '&&':
+              return Boolean(left) && Boolean(right);
+            case 'or':
+            case '||':
+              return Boolean(left) || Boolean(right);
+            default:
+              return Boolean(evaluateExpression(expr, ctx, move));
+          }
+        }
+        return Boolean(evaluateExpression(expr, ctx, move));
+      }
+      return true;
+    }
+
     default:
       return true;
   }
@@ -352,6 +393,16 @@ export function evaluateExpression(
       if (name === 'board') return ctx.board;
       if (name === 'White') return 'White';
       if (name === 'Black') return 'Black';
+      if (name === 'captured') return move.captured;
+      if (name === 'target') return move.to;
+      
+      // Capitalized identifiers are treated as piece type names (strings)
+      // e.g., Trapper, Phoenix, King, Queen, etc.
+      const firstChar = name.charAt(0);
+      if (firstChar && firstChar === firstChar.toUpperCase() && firstChar !== firstChar.toLowerCase()) {
+        return name;
+      }
+      
       return ctx.state.customState[name];
     }
 
@@ -397,8 +448,32 @@ export function evaluateExpression(
  * Create a move if valid
  * Traits affecting this:
  * - 'phase': Can pass through pieces (no capture)
+ * Effects affecting this:
+ * - 'blocks: enemy': Blocks enemy pieces from entering
+ * - 'blocks: friend': Blocks friendly pieces from entering
+ * - 'blocks: all': Blocks all pieces from entering
  */
 function createMove(ctx: MoveContext, to: Position): Move | null {
+  // Check if square has blocking effects
+  const effects = ctx.board.getEffects(to);
+  for (const effect of effects) {
+    if (!effect.blocks || effect.blocks === 'none') continue;
+    
+    // Check if this piece is blocked by the effect
+    const effectOwner = effect.owner;
+    const pieceOwner = ctx.piece.owner;
+    
+    if (effect.blocks === 'all') {
+      return null; // All pieces blocked
+    }
+    if (effect.blocks === 'enemy' && effectOwner !== pieceOwner) {
+      return null; // Enemy of effect owner is blocked
+    }
+    if (effect.blocks === 'friend' && effectOwner === pieceOwner) {
+      return null; // Friend of effect owner is blocked
+    }
+  }
+
   const pieceAtTarget = ctx.board.at(to);
   const hasPhase = ctx.piece.traits.has('phase');
 
