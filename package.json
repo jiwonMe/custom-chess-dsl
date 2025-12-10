@@ -4,11 +4,16 @@
   "description": "A domain-specific language for defining chess variants",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "private": true,
+  "workspaces": [
+    "chesslang-web"
+  ],
   "bin": {
     "chesslang": "./dist/cli/index.js"
   },
   "scripts": {
     "build": "tsc",
+    "build:web": "npm run build && cd chesslang-web && npm run build",
     "dev": "tsc --watch",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
