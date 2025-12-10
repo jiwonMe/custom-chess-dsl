@@ -220,14 +220,14 @@ export default function PlaygroundPage() {
           className={cn(
             // 기본: 전체 너비
             'w-full',
-            // 데스크탑: 절반 너비, 항상 표시
-            'md:w-1/2 md:block',
-            // 모바일: 탭에 따라 표시/숨김
-            mobileTab === 'editor' ? 'block' : 'hidden',
+            // 데스크탑: 절반 너비
+            'md:w-1/2',
             // 보더
             'md:border-r',
             // 플렉스
-            'flex flex-col min-h-0'
+            'flex-col min-h-0',
+            // 모바일: 탭에 따라 표시/숨김, 데스크탑: 항상 flex
+            mobileTab === 'editor' ? 'flex' : 'hidden md:flex'
           )}
         >
           <div className="flex-1 min-h-0">
@@ -273,16 +273,16 @@ export default function PlaygroundPage() {
           className={cn(
             // 기본: 전체 너비
             'w-full',
-            // 데스크탑: 절반 너비, 항상 표시
-            'md:w-1/2 md:flex',
-            // 모바일: 탭에 따라 표시/숨김
-            mobileTab === 'game' ? 'flex' : 'hidden',
+            // 데스크탑: 절반 너비
+            'md:w-1/2',
             // 패딩 및 정렬
             'p-2 md:p-4 flex-col items-center justify-start md:justify-center',
             // 배경
             'bg-muted/10',
             // 오버플로
-            'overflow-y-auto'
+            'overflow-y-auto',
+            // 모바일: 탭에 따라 표시/숨김, 데스크탑: 항상 flex
+            mobileTab === 'game' ? 'flex' : 'hidden md:flex'
           )}
         >
           {gameState ? (
