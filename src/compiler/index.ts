@@ -59,7 +59,7 @@ export class Compiler {
       this.patterns.set(pattern.name, compiled);
     }
 
-    // Compile board configuration
+    // Compile board configuration first (needed for parsing positions)
     const board = this.compileBoardConfig();
 
     // Compile pieces
@@ -81,8 +81,8 @@ export class Compiler {
       this.compileTrigger(t)
     );
 
-    // Compile setup
-    const setup = this.compileSetup(this.ast.setup);
+    // Compile setup with board dimensions
+    const setup = this.compileSetup(this.ast.setup, board.width, board.height);
 
     // Compile victory conditions
     const victory = this.ast.victory.map((v) => this.compileVictoryCondition(v));
@@ -160,20 +160,25 @@ export class Compiler {
 
   private compileBoardConfig(): BoardConfig {
     const boardNode = this.ast.board;
+    
+    // Get board dimensions first (needed for parsing zones)
+    const width = boardNode?.width ?? 8;
+    const height = boardNode?.height ?? 8;
+    
     const zones = new Map<string, Position[]>();
 
     if (boardNode?.zones) {
       for (const [name, squares] of boardNode.zones) {
         const positions = squares
-          .map((s) => parseSquare(s))
+          .map((s) => parseSquare(s, width, height))
           .filter((p): p is Position => p !== null);
         zones.set(name, positions);
       }
     }
 
     return {
-      width: boardNode?.width ?? 8,
-      height: boardNode?.height ?? 8,
+      width,
+      height,
       zones,
     };
   }
@@ -642,14 +647,15 @@ export class Compiler {
     }
   }
 
-  private compileSetup(node?: SetupNode): SetupConfig {
+  private compileSetup(node?: SetupNode, width: number = 8, height: number = 8): SetupConfig {
     const placements: PlacementConfig[] = [];
     let replace: Map<string, string> | undefined;
     let additive = false;
 
     if (node) {
       for (const p of node.placements) {
-        const position = parseSquare(p.square);
+        // Use board dimensions for parsing positions (supports boards larger than 8x8)
+        const position = parseSquare(p.square, width, height);
         if (position) {
           placements.push({
             pieceType: p.pieceType,

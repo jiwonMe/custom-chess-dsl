@@ -79,8 +79,8 @@ export const chessLangLanguageDefinition: monaco.languages.IMonarchLanguage = {
       [/"[^"]*"/, 'string'],
       [/'[^']*'/, 'string'],
 
-      // Square notation (e.g., e4, a1, h8)
-      [/\b[a-h][1-8]\b/, 'number.square'],
+      // Square notation - extended format first (e.g., a10, j12 for larger boards)
+      [/\b[a-z][1-9][0-9]?\b/, 'number.square'],
 
       // Board size (e.g., 8x8)
       [/\b\d+x\d+\b/, 'number.size'],

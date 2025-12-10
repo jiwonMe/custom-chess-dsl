@@ -253,14 +253,10 @@ export const chesslangGrammar: LanguageRegistration = {
     coordinates: {
       patterns: [
         {
-          // 체스 좌표 (a1-h8 형식)
+          // 체스 좌표 (a1-z99 형식, 모든 보드 크기 지원)
+          // 더 긴 패턴을 먼저 매칭 (a10, j12 등)
           name: 'constant.other.coordinate.chesslang',
-          match: '\\b[a-h][1-8]\\b',
-        },
-        {
-          // 확장 좌표 (더 큰 보드용)
-          name: 'constant.other.coordinate.extended.chesslang',
-          match: '\\b[a-z][1-9][0-9]?\\b',
+          match: '\\b[a-z]([1-9][0-9]?|[1-9])\\b',
         },
       ],
     },
