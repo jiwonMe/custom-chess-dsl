@@ -27,21 +27,26 @@ export function pos(file: number, rank: number): Position {
 }
 
 /**
- * Parse algebraic notation (e.g., "e4", "i10", "l12") to Position
- * Supports files a-z and ranks 1-99
+ * Parse algebraic notation (e.g., "e4") to Position
+ * By default validates for standard 8x8 board.
+ * Pass width/height for custom board sizes.
  */
-export function parseSquare(notation: string): Position | null {
-  if (notation.length < 2) return null;
+export function parseSquare(
+  notation: string,
+  width: number = 8,
+  height: number = 8
+): Position | null {
+  if (notation.length < 2 || notation.length > 3) return null;
 
   const fileChar = notation[0]!.toLowerCase();
   const file = FILE_LETTERS.indexOf(fileChar);
 
-  if (file < 0) return null;
+  if (file < 0 || file >= width) return null;
 
   const rankPart = notation.slice(1);
   const rank = parseInt(rankPart, 10) - 1;
 
-  if (isNaN(rank) || rank < 0 || rank > 98) {
+  if (isNaN(rank) || rank < 0 || rank >= height) {
     return null;
   }
 

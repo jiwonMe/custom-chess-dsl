@@ -379,6 +379,12 @@ export interface CreateAction {
 export interface RemoveAction {
   type: 'remove';
   target: Expression;
+  // For range-based removal: "remove pieces in radius(N) from target"
+  range?: {
+    kind: 'radius';
+    value: number;
+    from: Expression;
+  };
 }
 
 export interface TransformAction {
@@ -543,6 +549,7 @@ export interface GameNode extends ASTNode {
   extends?: string;
   board?: BoardNode;
   pieces: PieceNode[];
+  piecesConfig?: PieceConfigNode[]; // Level 1: 기존 기물 속성 변경
   effects: EffectNode[];
   triggers: TriggerNode[];
   patterns: PatternNode[];
@@ -551,6 +558,14 @@ export interface GameNode extends ASTNode {
   draw: DrawNode[];
   rules?: RulesNode;
   scripts: ScriptNode[];
+}
+
+// Level 1: 기존 기물 속성 변경 (pieces: 섹션)
+export interface PieceConfigNode extends ASTNode {
+  type: 'PieceConfig';
+  pieceName: string;
+  promoteTo?: string[]; // promote_to: [Queen, Rook, ...]
+  properties?: Record<string, unknown>; // 기타 속성
 }
 
 export interface BoardNode extends ASTNode {
@@ -627,6 +642,13 @@ export interface ActionNode extends ASTNode {
   effect?: string;
   newType?: string;
   player?: string | ExpressionNode;
+  reason?: string; // For draw action
+  // For range-based removal: "remove pieces in radius(N) from target"
+  range?: {
+    kind: 'radius';
+    value: number;
+    from: ExpressionNode;
+  };
 }
 
 export interface ExpressionNode extends ASTNode {
@@ -664,12 +686,16 @@ export interface VictoryNode extends ASTNode {
   type: 'Victory';
   name: string;
   condition: ConditionNode;
+  // 'add' (default): 새 조건 추가, 'replace': 기존 조건 교체, 'remove': 기존 조건 제거
+  action?: 'add' | 'replace' | 'remove';
 }
 
 export interface DrawNode extends ASTNode {
   type: 'Draw';
   name: string;
   condition: ConditionNode;
+  // 'add' (default): 새 조건 추가, 'replace': 기존 조건 교체, 'remove': 기존 조건 제거
+  action?: 'add' | 'replace' | 'remove';
 }
 
 export interface RulesNode extends ASTNode {

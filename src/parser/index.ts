@@ -3,6 +3,7 @@ import type {
   GameNode,
   BoardNode,
   PieceNode,
+  PieceConfigNode,
   EffectNode,
   TriggerNode,
   PatternNode,
@@ -48,6 +49,7 @@ export class Parser {
     let extendsGame: string | undefined;
     let board: BoardNode | undefined;
     const pieces: PieceNode[] = [];
+    const piecesConfig: PieceConfigNode[] = [];
     const effects: EffectNode[] = [];
     const triggers: TriggerNode[] = [];
     const patterns: PatternNode[] = [];
@@ -77,6 +79,9 @@ export class Parser {
       switch (token.type) {
         case TokenType.BOARD:
           board = this.parseBoardSection();
+          break;
+        case TokenType.PIECES:
+          piecesConfig.push(...this.parsePiecesSection());
           break;
         case TokenType.PIECE:
           pieces.push(this.parsePieceDefinition());
@@ -116,6 +121,7 @@ export class Parser {
       extends: extendsGame,
       board,
       pieces,
+      piecesConfig: piecesConfig.length > 0 ? piecesConfig : undefined,
       effects,
       triggers,
       patterns,
@@ -213,6 +219,75 @@ export class Parser {
     }
 
     return { type: 'Board', width, height, zones, location };
+  }
+
+  /**
+   * Parse pieces: section (Level 1 - configure existing pieces)
+   * Example:
+   *   pieces:
+   *     Pawn:
+   *       promote_to: [Queen, Rook, Bishop, Knight]
+   */
+  private parsePiecesSection(): PieceConfigNode[] {
+    const location = this.stream.peek().location;
+    this.stream.expect(TokenType.PIECES);
+    this.stream.expect(TokenType.COLON);
+    this.stream.skipNewlines();
+
+    const configs: PieceConfigNode[] = [];
+
+    if (this.stream.match(TokenType.INDENT)) {
+      while (!this.stream.check(TokenType.DEDENT) && !this.stream.isAtEnd()) {
+        this.stream.skipNewlines();
+        if (this.stream.check(TokenType.DEDENT)) break;
+
+        // Parse piece name
+        const pieceName = this.stream.expect(TokenType.IDENTIFIER).value;
+        this.stream.expect(TokenType.COLON);
+        this.stream.skipNewlines();
+
+        let promoteTo: string[] | undefined;
+        const properties: Record<string, unknown> = {};
+
+        if (this.stream.match(TokenType.INDENT)) {
+          while (!this.stream.check(TokenType.DEDENT) && !this.stream.isAtEnd()) {
+            this.stream.skipNewlines();
+            if (this.stream.check(TokenType.DEDENT)) break;
+
+            const propName = this.stream.expect(TokenType.IDENTIFIER).value;
+            this.stream.expect(TokenType.COLON);
+
+            if (propName === 'promote_to' || propName === 'promoteTo') {
+              // Parse list of piece types: [Queen, Rook, Bishop, Knight]
+              promoteTo = [];
+              this.stream.expect(TokenType.LBRACKET);
+              while (!this.stream.check(TokenType.RBRACKET) && !this.stream.isAtEnd()) {
+                promoteTo.push(this.stream.expect(TokenType.IDENTIFIER).value);
+                if (!this.stream.match(TokenType.COMMA)) break;
+              }
+              this.stream.expect(TokenType.RBRACKET);
+            } else {
+              // Parse other property value
+              properties[propName] = this.parseLiteral();
+            }
+            this.stream.skipNewlines();
+          }
+          this.stream.match(TokenType.DEDENT);
+        }
+
+        configs.push({
+          type: 'PieceConfig',
+          pieceName,
+          promoteTo,
+          properties: Object.keys(properties).length > 0 ? properties : undefined,
+          location,
+        });
+        this.stream.skipNewlines();
+      }
+      this.stream.match(TokenType.DEDENT);
+    }
+
+    return configs;
   }
 
   private parseSquareList(): string[] {
@@ -368,6 +443,7 @@ export class Parser {
         this.stream.skipNewlines();
         if (this.stream.check(TokenType.DEDENT)) break;
 
+        // Parse add:, replace:, or remove: blocks
         if (this.stream.check(TokenType.ADD)) {
           this.stream.advance();
           this.stream.expect(TokenType.COLON);
@@ -376,13 +452,48 @@ export class Parser {
             while (!this.stream.check(TokenType.DEDENT) && !this.stream.isAtEnd()) {
               this.stream.skipNewlines();
               if (this.stream.check(TokenType.DEDENT)) break;
-              conditions.push(this.parseVictoryCondition(location));
+              conditions.push(this.parseVictoryCondition(location, 'add'));
+              this.stream.skipNewlines();
+            }
+            this.stream.match(TokenType.DEDENT);
+          }
+        } else if (this.stream.check(TokenType.REPLACE)) {
+          this.stream.advance();
+          this.stream.expect(TokenType.COLON);
+          this.stream.skipNewlines();
+          if (this.stream.match(TokenType.INDENT)) {
+            while (!this.stream.check(TokenType.DEDENT) && !this.stream.isAtEnd()) {
+              this.stream.skipNewlines();
+              if (this.stream.check(TokenType.DEDENT)) break;
+              conditions.push(this.parseVictoryCondition(location, 'replace'));
+              this.stream.skipNewlines();
+            }
+            this.stream.match(TokenType.DEDENT);
+          }
+        } else if (this.stream.check(TokenType.REMOVE)) {
+          this.stream.advance();
+          this.stream.expect(TokenType.COLON);
+          this.stream.skipNewlines();
+          if (this.stream.match(TokenType.INDENT)) {
+            while (!this.stream.check(TokenType.DEDENT) && !this.stream.isAtEnd()) {
+              this.stream.skipNewlines();
+              if (this.stream.check(TokenType.DEDENT)) break;
+              // remove: only needs the name, condition is optional
+              const name = this.stream.expect(TokenType.IDENTIFIER).value;
+              conditions.push({
+                type: 'Victory',
+                name,
+                condition: { type: 'Condition', kind: 'expression', location } as ConditionNode,
+                action: 'remove',
+                location,
+              });
               this.stream.skipNewlines();
             }
             this.stream.match(TokenType.DEDENT);
           }
         } else {
-          conditions.push(this.parseVictoryCondition(location));
+          // Direct condition without add:/replace:/remove: prefix (default: add)
+          conditions.push(this.parseVictoryCondition(location, 'add'));
         }
         this.stream.skipNewlines();
       }
@@ -392,11 +503,14 @@ export class Parser {
     return conditions;
   }
 
-  private parseVictoryCondition(location: SourceLocation): VictoryNode {
+  private parseVictoryCondition(
+    location: SourceLocation,
+    action: 'add' | 'replace' | 'remove' = 'add'
+  ): VictoryNode {
     const name = this.stream.expect(TokenType.IDENTIFIER).value;
     this.stream.expect(TokenType.COLON);
     const condition = this.parseCondition();
-    return { type: 'Victory', name, condition, location };
+    return { type: 'Victory', name, condition, action, location };
   }
 
   private parseDrawSection(): DrawNode[] {
@@ -412,16 +526,74 @@ export class Parser {
         this.stream.skipNewlines();
         if (this.stream.check(TokenType.DEDENT)) break;
 
-        const name = this.stream.expect(TokenType.IDENTIFIER).value;
-        this.stream.expect(TokenType.COLON);
-        const condition = this.parseCondition();
-        conditions.push({ type: 'Draw', name, condition, location });
+        // Parse add:, replace:, or remove: blocks
+        if (this.stream.check(TokenType.ADD)) {
+          this.stream.advance();
+          this.stream.expect(TokenType.COLON);
+          this.stream.skipNewlines();
+          if (this.stream.match(TokenType.INDENT)) {
+            while (!this.stream.check(TokenType.DEDENT) && !this.stream.isAtEnd()) {
+              this.stream.skipNewlines();
+              if (this.stream.check(TokenType.DEDENT)) break;
+              conditions.push(this.parseDrawCondition(location, 'add'));
+              this.stream.skipNewlines();
+            }
+            this.stream.match(TokenType.DEDENT);
+          }
+        } else if (this.stream.check(TokenType.REPLACE)) {
+          this.stream.advance();
+          this.stream.expect(TokenType.COLON);
+          this.stream.skipNewlines();
+          if (this.stream.match(TokenType.INDENT)) {
+            while (!this.stream.check(TokenType.DEDENT) && !this.stream.isAtEnd()) {
+              this.stream.skipNewlines();
+              if (this.stream.check(TokenType.DEDENT)) break;
+              conditions.push(this.parseDrawCondition(location, 'replace'));
+              this.stream.skipNewlines();
+            }
+            this.stream.match(TokenType.DEDENT);
+          }
+        } else if (this.stream.check(TokenType.REMOVE)) {
+          this.stream.advance();
+          this.stream.expect(TokenType.COLON);
+          this.stream.skipNewlines();
+          if (this.stream.match(TokenType.INDENT)) {
+            while (!this.stream.check(TokenType.DEDENT) && !this.stream.isAtEnd()) {
+              this.stream.skipNewlines();
+              if (this.stream.check(TokenType.DEDENT)) break;
+              // remove: only needs the name
+              const name = this.stream.expect(TokenType.IDENTIFIER).value;
+              conditions.push({
+                type: 'Draw',
+                name,
+                condition: { type: 'Condition', kind: 'expression', location } as ConditionNode,
+                action: 'remove',
+                location,
+              });
+              this.stream.skipNewlines();
+            }
+            this.stream.match(TokenType.DEDENT);
+          }
+        } else {
+          // Direct condition without add:/replace:/remove: prefix (default: add)
+          conditions.push(this.parseDrawCondition(location, 'add'));
+        }
         this.stream.skipNewlines();
       }
       this.stream.match(TokenType.DEDENT);
     }
 
     return conditions;
+  }
+
+  private parseDrawCondition(
+    location: SourceLocation,
+    action: 'add' | 'replace' | 'remove' = 'add'
+  ): DrawNode {
+    const name = this.stream.expect(TokenType.IDENTIFIER).value;
+    this.stream.expect(TokenType.COLON);
+    const condition = this.parseCondition();
+    return { type: 'Draw', name, condition, action, location };
   }
 
   private parseRulesSection(): RulesNode {
@@ -621,7 +793,13 @@ export class Parser {
       } else if (this.stream.match(TokenType.DO)) {
         this.stream.expect(TokenType.COLON);
         this.stream.skipNewlines();
+
+        // Support three formats:
+        // 1. Indented block (Python-style)
+        // 2. Brace block: do: { action1; action2 }
+        // 3. Single action on same line
         if (this.stream.match(TokenType.INDENT)) {
+          // Format 1: Indented block
           while (!this.stream.check(TokenType.DEDENT) && !this.stream.isAtEnd()) {
             this.stream.skipNewlines();
             if (this.stream.check(TokenType.DEDENT)) break;
@@ -629,7 +807,20 @@ export class Parser {
             this.stream.skipNewlines();
           }
           this.stream.match(TokenType.DEDENT);
+        } else if (this.stream.match(TokenType.LBRACE)) {
+          // Format 2: Brace block
+          this.skipWhitespaceAndIndent();
+          while (!this.stream.check(TokenType.RBRACE) && !this.stream.isAtEnd()) {
+            this.skipWhitespaceAndIndent();
+            if (this.stream.check(TokenType.RBRACE)) break;
+            actions.push(this.parseAction());
+            // Allow optional semicolon between actions
+            this.stream.match(TokenType.SEMICOLON);
+            this.skipWhitespaceAndIndent();
+          }
+          this.stream.expect(TokenType.RBRACE);
         } else {
+          // Format 3: Single action
           actions.push(this.parseAction());
         }
       } else {
@@ -1113,9 +1304,9 @@ export class Parser {
     // Some keywords can be used as identifiers in expressions
     // e.g., "piece.type", "check", etc.
     const keywordAsIdentifier: TokenType[] = [
-      TokenType.PIECE, TokenType.MOVE, TokenType.CAPTURE, TokenType.CHECK,
+      TokenType.PIECE, TokenType.PIECES, TokenType.MOVE, TokenType.CAPTURE, TokenType.CHECK,
       TokenType.EMPTY, TokenType.ENEMY, TokenType.FRIEND, TokenType.CLEAR,
-      TokenType.STATE, TokenType.EFFECT, TokenType.TRIGGER,
+      TokenType.STATE, TokenType.EFFECT, TokenType.TRIGGER, TokenType.CAPTURED,
     ];
     if (keywordAsIdentifier.includes(this.stream.peek().type)) {
       const name = this.stream.advance().value;
@@ -1141,7 +1332,8 @@ export class Parser {
       return { type: 'Action', kind: 'set', target, op, value, location };
     }
 
-    if (this.stream.match(TokenType.CREATE)) {
+    // "create piece at position for color" or "add piece at position for color"
+    if (this.stream.match(TokenType.CREATE) || this.stream.match(TokenType.ADD)) {
       const pieceType = this.stream.expect(TokenType.IDENTIFIER).value;
       this.stream.expect(TokenType.IDENTIFIER); // 'at'
       const position = this.parseExpression();
@@ -1152,6 +1344,39 @@ export class Parser {
 
     if (this.stream.match(TokenType.REMOVE)) {
       const target = this.parseExpression();
+
+      // Check for range-based removal: "remove pieces in radius(N) from target"
+      if (this.stream.check(TokenType.IN) || 
+          (this.stream.check(TokenType.IDENTIFIER) && this.stream.peek().value === 'in')) {
+        this.stream.advance(); // 'in'
+
+        // Expect 'radius' function call
+        if (this.stream.check(TokenType.IDENTIFIER) && this.stream.peek().value === 'radius') {
+          this.stream.advance(); // 'radius'
+          this.stream.expect(TokenType.LPAREN);
+          const radiusValue = parseInt(this.stream.expect(TokenType.NUMBER).value, 10);
+          this.stream.expect(TokenType.RPAREN);
+
+          // Expect 'from'
+          if (this.stream.check(TokenType.IDENTIFIER) && this.stream.peek().value === 'from') {
+            this.stream.advance(); // 'from'
+            const fromTarget = this.parseExpression();
+
+            return {
+              type: 'Action',
+              kind: 'remove',
+              target,
+              range: {
+                kind: 'radius',
+                value: radiusValue,
+                from: fromTarget,
+              },
+              location,
+            };
+          }
+        }
+      }
+
       return { type: 'Action', kind: 'remove', target, location };
     }
 
@@ -1184,6 +1409,18 @@ export class Parser {
     if (this.stream.match(TokenType.LOSE)) {
       const player = this.parseExpression();
       return { type: 'Action', kind: 'lose', player, location };
+    }
+
+    // "draw" or "draw reason"
+    if (this.stream.match(TokenType.DRAW)) {
+      let reason: string | undefined;
+      // Optional reason (string or identifier)
+      if (this.stream.check(TokenType.STRING)) {
+        reason = this.stream.advance().value;
+      } else if (this.stream.check(TokenType.IDENTIFIER)) {
+        reason = this.stream.advance().value;
+      }
+      return { type: 'Action', kind: 'draw', reason, location };
     }
 
     // Custom action or let statement
@@ -1419,6 +1656,21 @@ export class Parser {
 
   private skipToNextLine(): void {
     while (!this.stream.isAtEnd() && !this.stream.check(TokenType.NEWLINE)) {
+      this.stream.advance();
+    }
+  }
+
+  /**
+   * Skip whitespace tokens (NEWLINE, INDENT, DEDENT)
+   * Used inside brace blocks where indentation is not significant
+   */
+  private skipWhitespaceAndIndent(): void {
+    while (
+      !this.stream.isAtEnd() &&
+      (this.stream.check(TokenType.NEWLINE) ||
+        this.stream.check(TokenType.INDENT) ||
+        this.stream.check(TokenType.DEDENT))
+    ) {
       this.stream.advance();
     }
   }

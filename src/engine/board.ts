@@ -595,6 +595,6 @@ export function createStandardBoard(): Board {
  */
 function parseSquares(notations: string[]): Position[] {
   return notations
-    .map(parseSquare)
+    .map(n => parseSquare(n))
     .filter((p): p is Position => p !== null);
 }
