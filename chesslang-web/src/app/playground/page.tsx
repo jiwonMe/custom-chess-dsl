@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Editor } from '@/components/editor/Editor';
 import { Board } from '@/components/board/Board';
 import { Button } from '@/components/ui/button';
@@ -14,10 +14,15 @@ import {
   FlipVertical,
   AlertCircle,
   ChevronDown,
+  Code2,
+  Gamepad2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { OptionalTriggerDialog } from '@/components/board/OptionalTriggerDialog';
 import type { Position, Move } from '@/types';
+
+// 모바일 탭 타입
+type MobileTab = 'editor' | 'game';
 
 export default function PlaygroundPage() {
   const { code, setCode, errors, showProblems, toggleProblems, loadExample } = useEditorStore();
@@ -32,6 +37,9 @@ export default function PlaygroundPage() {
     winner,
     gameOverReason,
   } = useGameStore();
+
+  // 모바일 탭 상태
+  const [mobileTab, setMobileTab] = useState<MobileTab>('game');
 
   const { compile, makeMove, reset, undo, executeOptionalTrigger, skipOptionalTrigger, isReady } = useEngine();
 
@@ -67,16 +75,70 @@ export default function PlaygroundPage() {
     [gameState, isGameOver, makeMove, selectPiece]
   );
 
+  // Run 버튼 클릭 시 모바일에서는 게임 탭으로 전환
+  const handleCompile = useCallback(() => {
+    compile();
+    setMobileTab('game');
+  }, [compile]);
+
   return (
     <div className="h-[calc(100vh-3.5rem)] flex flex-col">
       {/* Toolbar */}
-      <div className="border-b px-4 py-2 flex items-center justify-between bg-muted/30">
-        <div className="flex items-center gap-2">
+      <div className="border-b px-2 md:px-4 py-2 flex items-center justify-between bg-muted/30">
+        <div className="flex items-center gap-1 md:gap-2">
+          {/* Mobile Tab Switcher */}
+          <div className="flex md:hidden border rounded-lg overflow-hidden">
+            <button
+              onClick={() => setMobileTab('editor')}
+              className={cn(
+                'px-3 py-1.5 text-sm flex items-center gap-1',
+                'transition-colors relative',
+                mobileTab === 'editor'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+              )}
+            >
+              <Code2 className="h-4 w-4" />
+              <span className="sr-only sm:not-sr-only">Code</span>
+              {/* 에러 인디케이터 */}
+              {errors.length > 0 && mobileTab !== 'editor' && (
+                <span
+                  className={cn(
+                    'absolute -top-1 -right-1',
+                    'w-4 h-4 text-[10px]',
+                    'bg-destructive text-destructive-foreground',
+                    'rounded-full flex items-center justify-center',
+                    'font-bold'
+                  )}
+                >
+                  {errors.length > 9 ? '!' : errors.length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setMobileTab('game')}
+              className={cn(
+                'px-3 py-1.5 text-sm flex items-center gap-1',
+                'transition-colors',
+                mobileTab === 'game'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+              )}
+            >
+              <Gamepad2 className="h-4 w-4" />
+              <span className="sr-only sm:not-sr-only">Game</span>
+            </button>
+          </div>
+
           {/* Examples dropdown with categories */}
           <div className="relative group">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="hidden sm:flex">
               Examples
               <ChevronDown className="ml-1 h-4 w-4" />
+            </Button>
+            {/* 모바일용 축약 버튼 */}
+            <Button variant="outline" size="icon" className="flex sm:hidden h-8 w-8">
+              <ChevronDown className="h-4 w-4" />
             </Button>
             <div
               className={cn(
@@ -119,7 +181,10 @@ export default function PlaygroundPage() {
                         'hover:bg-accent',
                         'transition-colors'
                       )}
-                      onClick={() => loadExample(exId)}
+                      onClick={() => {
+                        loadExample(exId);
+                        setMobileTab('game');
+                      }}
                     >
                       {EXAMPLE_NAMES[exId] ?? exId}
                     </button>
@@ -130,19 +195,19 @@ export default function PlaygroundPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button onClick={compile} disabled={!isReady} size="sm">
-            <Play className="mr-1 h-4 w-4" />
-            Run
+        <div className="flex items-center gap-1 md:gap-2">
+          <Button onClick={handleCompile} disabled={!isReady} size="sm" className="px-2 md:px-3">
+            <Play className="h-4 w-4 md:mr-1" />
+            <span className="hidden md:inline">Run</span>
           </Button>
-          <Button variant="outline" size="sm" onClick={reset}>
-            <RotateCcw className="mr-1 h-4 w-4" />
-            Reset
+          <Button variant="outline" size="sm" onClick={reset} className="px-2 md:px-3">
+            <RotateCcw className="h-4 w-4 md:mr-1" />
+            <span className="hidden md:inline">Reset</span>
           </Button>
-          <Button variant="ghost" size="icon" onClick={undo}>
+          <Button variant="ghost" size="icon" onClick={undo} className="h-8 w-8">
             <Undo2 className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={toggleBoardFlip}>
+          <Button variant="ghost" size="icon" onClick={toggleBoardFlip} className="h-8 w-8">
             <FlipVertical className="h-4 w-4" />
           </Button>
         </div>
@@ -150,8 +215,21 @@ export default function PlaygroundPage() {
 
       {/* Main content */}
       <div className="flex-1 flex min-h-0">
-        {/* Editor panel */}
-        <div className="w-1/2 border-r flex flex-col min-h-0">
+        {/* Editor panel - 데스크탑에서는 항상 표시, 모바일에서는 탭에 따라 */}
+        <div
+          className={cn(
+            // 기본: 전체 너비
+            'w-full',
+            // 데스크탑: 절반 너비, 항상 표시
+            'md:w-1/2 md:block',
+            // 모바일: 탭에 따라 표시/숨김
+            mobileTab === 'editor' ? 'block' : 'hidden',
+            // 보더
+            'md:border-r',
+            // 플렉스
+            'flex flex-col min-h-0'
+          )}
+        >
           <div className="flex-1 min-h-0">
             <Editor
               value={code}
@@ -190,8 +268,23 @@ export default function PlaygroundPage() {
           )}
         </div>
 
-        {/* Game panel */}
-        <div className="w-1/2 p-4 flex flex-col items-center justify-center bg-muted/10 relative">
+        {/* Game panel - 데스크탑에서는 항상 표시, 모바일에서는 탭에 따라 */}
+        <div
+          className={cn(
+            // 기본: 전체 너비
+            'w-full',
+            // 데스크탑: 절반 너비, 항상 표시
+            'md:w-1/2 md:flex',
+            // 모바일: 탭에 따라 표시/숨김
+            mobileTab === 'game' ? 'flex' : 'hidden',
+            // 패딩 및 정렬
+            'p-2 md:p-4 flex-col items-center justify-start md:justify-center',
+            // 배경
+            'bg-muted/10',
+            // 오버플로
+            'overflow-y-auto'
+          )}
+        >
           {gameState ? (
             <>
               {/* Game info */}
