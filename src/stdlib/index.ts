@@ -19,3 +19,8 @@ export {
   RACING_KINGS,
   getVariants,
 } from './variants.js';
+
+export {
+  mergeVictoryConditions,
+  mergeDrawConditions,
+} from './condition-merger.js';

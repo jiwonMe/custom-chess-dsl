@@ -1,0 +1,237 @@
+---
+title: 승리 & 무승부 조건
+description: ChessLang의 승리 및 무승부 조건 정의와 결합 규칙
+---
+
+# 승리 & 무승부 조건
+
+체스 변형에서 승리 및 무승부 조건을 정의하는 방법과 조건들이 어떻게 결합되는지 설명합니다.
+
+## 핵심 개념: OR 결합
+
+> ⚠️ **가장 중요한 규칙:** 여러 승리/무승부 조건은 **OR로 결합**됩니다.
+> 
+> 조건 중 **하나라도 만족**하면 게임이 종료됩니다.
+
+```chesslang
+# 결과: checkmate OR hill OR three_checks
+# 셋 중 하나라도 만족하면 게임 종료
+victory:
+  add:
+    hill: King in zone.hill
+    three_checks: checks >= 3
+```
+
+## 액션 타입
+
+### add: 조건 추가
+
+기존 조건을 유지하면서 새 조건을 OR로 추가합니다.
+
+```chesslang
+# 기본 checkmate + 새로운 hill 조건
+# 결과: checkmate OR hill
+victory:
+  add:
+    hill: King in zone.hill
+```
+
+**처리 순서:** 마지막에 처리됩니다.
+
+### replace: 조건 교체
+
+같은 이름의 기존 조건을 새 조건으로 교체합니다. OR 결합은 유지됩니다.
+
+```chesslang
+# 기본 checkmate 조건을 king_captured로 교체
+victory:
+  replace:
+    checkmate: King captured
+```
+
+**처리 순서:** `remove` 다음에 처리됩니다.
+
+**참고:** 존재하지 않는 이름을 교체하면 `add`처럼 동작합니다.
+
+### remove: 조건 제거
+
+특정 이름의 조건을 완전히 제거합니다.
+
+```chesslang
+# checkmate 조건 제거
+victory:
+  remove:
+    - checkmate
+    - stalemate
+```
+
+**처리 순서:** 가장 먼저 처리됩니다.
+
+## 처리 순서
+
+조건들은 다음 순서로 처리됩니다:
+
+1. **remove** - 기존 조건 제거
+2. **replace** - 기존 조건 교체
+3. **add** - 새 조건 추가
+
+```chesslang
+# 처리 순서 예시
+victory:
+  add:
+    hill: King in zone.hill      # 3. 마지막에 추가
+  replace:
+    checkmate: King captured     # 2. 교체
+  remove:
+    - stalemate                  # 1. 먼저 제거
+```
+
+## AND 로직 사용하기
+
+여러 조건을 **모두 만족**해야 하는 경우, 단일 조건 내에서 `and`를 사용합니다.
+
+```chesslang
+# 킹이 중앙에 있고 AND 상대 기물이 5개 이하일 때 승리
+victory:
+  add:
+    domination: King in zone.hill and opponent.pieces <= 5
+```
+
+**복합 논리 연산자:**
+
+| 연산자 | 설명 | 예시 |
+|--------|------|------|
+| `and` | 모두 만족 | `A and B` |
+| `or` | 하나 만족 | `A or B` |
+| `not` | 부정 | `not A` |
+
+```chesslang
+# 복잡한 조건
+victory:
+  add:
+    complex: (King in zone.hill or King on rank 8) and opponent.pieces <= 3
+```
+
+## 실전 예제
+
+### 기본: 조건 추가 (OR)
+
+```chesslang
+game: "King of the Hill"
+extends: "Standard Chess"
+
+board:
+  zones:
+    hill: [d4, d5, e4, e5]
+
+# checkmate OR hill
+victory:
+  add:
+    hill: King in zone.hill
+```
+
+### 조건 교체
+
+```chesslang
+game: "Racing Kings"
+extends: "Standard Chess"
+
+# checkmate를 racing으로 교체
+# 결과: racing만 적용
+victory:
+  replace:
+    checkmate: King on rank 8
+```
+
+### 조건 제거 후 추가
+
+```chesslang
+game: "Antichess"
+extends: "Standard Chess"
+
+# 표준 승리 조건 제거 후 새 조건 추가
+victory:
+  remove:
+    - checkmate
+  add:
+    lose_all: pieces == 0         # 모든 기물을 잃으면 승리!
+    stalemate_wins: stalemate     # 스테일메이트도 승리!
+```
+
+### 비대칭 승리 조건
+
+```chesslang
+game: "Horde Chess"
+extends: "Standard Chess"
+
+# 양측에 다른 승리 조건
+victory:
+  remove:
+    - checkmate
+  add:
+    white_wins: opponent.pieces == 0    # 백: 기물 전멸
+    black_wins: checkmate               # 흑: 체크메이트
+```
+
+### 복합 AND 조건
+
+```chesslang
+game: "Domination Chess"
+extends: "Standard Chess"
+
+board:
+  zones:
+    center: [d4, d5, e4, e5]
+
+# checkmate OR domination
+# domination은 두 조건을 모두 만족해야 함 (AND)
+victory:
+  add:
+    domination: King in zone.center and opponent.pieces <= 5
+```
+
+## 무승부 조건
+
+무승부 조건도 동일한 규칙이 적용됩니다.
+
+### 기본 무승부 조건
+
+| 조건명 | 설명 |
+|--------|------|
+| `stalemate` | 합법적인 수가 없음 |
+| `repetition` | 포지션 3회 반복 |
+| `fifty_moves` | 50수 동안 잡기/폰 이동 없음 |
+| `insufficient` | 불충분한 기물 |
+
+### 무승부 조건 수정
+
+```chesslang
+# 무승부 조건 추가
+draw:
+  add:
+    bare_kings: White.pieces == 1 and Black.pieces == 1
+
+# 무승부 조건 교체
+draw:
+  replace:
+    repetition: position_count >= 5    # 5회 반복으로 변경
+
+# 무승부 조건 제거
+draw:
+  remove:
+    - stalemate    # 스테일메이트를 무승부가 아닌 패배로 처리
+```
+
+## 요약 표
+
+| 액션 | 설명 | 결합 방식 | 처리 순서 |
+|------|------|----------|----------|
+| `add` | 새 조건 추가 | OR 결합 | 3번째 |
+| `replace` | 같은 이름 교체 | OR 유지 | 2번째 |
+| `remove` | 조건 제거 | - | 1번째 |
+
+## 관련 문서
+
+- [조건 레퍼런스](/docs/reference/conditions) - 사용 가능한 조건들
+- [레벨 1 가이드](/docs/language/level1) - 기본 문법
+- [예제](/docs/examples) - 실전 예제들

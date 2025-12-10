@@ -44,10 +44,14 @@ board:
   zones:
     hill: [d4, d5, e4, e5]
 
+# 승리 조건: checkmate OR hill (OR 결합)
 victory:
   add:
     hill: King in zone.hill
 ```
+
+> 💡 **조건 결합 규칙:** 여러 승리 조건은 OR로 결합됩니다.
+> 위 예제에서는 체크메이트 **또는** 킹이 중앙 도달 시 승리합니다.
 
 다음에 적합합니다:
 - 승리/무승부 조건 추가
@@ -124,6 +128,7 @@ script {
 - [방향](/docs/reference/directions) - 방향 시스템
 - [조건](/docs/reference/conditions) - 조건 구문
 - [액션](/docs/reference/actions) - 사용 가능한 액션
+- [승리 & 무승부](/docs/reference/victory-draw) - 조건 결합 규칙
 - [스크립트 API](/docs/reference/script-api) - game, board 객체 API
 
 ### 예제

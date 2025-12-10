@@ -37,13 +37,28 @@ description: ChessLang 키워드와 사용법의 완전한 목록
 
 ### 승리 & 무승부
 
-| 키워드 | 설명 | 예시 |
-|--------|------|------|
-| `victory` | 승리 조건 | `victory:` |
-| `draw` | 무승부 조건 | `draw:` |
-| `add` | 조건 추가 | `add:` |
-| `replace` | 조건 교체 | `replace:` |
-| `remove` | 조건 제거 | `remove:` |
+> ⚠️ **핵심:** 여러 조건은 **OR로 결합**됩니다. 하나라도 만족하면 게임이 종료됩니다.
+
+| 키워드 | 설명 | 결합 방식 | 예시 |
+|--------|------|----------|------|
+| `victory` | 승리 조건 블록 | - | `victory:` |
+| `draw` | 무승부 조건 블록 | - | `draw:` |
+| `add` | 새 조건 추가 | 기존 OR 새 조건 | `add:` |
+| `replace` | 같은 이름의 조건 교체 | OR 유지 | `replace:` |
+| `remove` | 조건 제거 | - | `remove:` |
+
+**조건 결합 예시:**
+```chesslang
+# 결과: checkmate OR hill (하나라도 만족시 승리)
+victory:
+  add:
+    hill: King in zone.hill
+
+# AND 로직은 단일 조건 내에서:
+victory:
+  add:
+    complex: King in zone.hill and opponent.pieces <= 5
+```
 
 ### 규칙
 

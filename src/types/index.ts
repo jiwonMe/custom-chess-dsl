@@ -460,15 +460,45 @@ export interface GameEvent {
 // Victory & Draw Conditions
 // ----------------------------------------------------------------------------
 
+/**
+ * Victory condition for a chess variant.
+ * 
+ * **Combination Rules:**
+ * - Multiple victory conditions are combined with OR logic
+ * - If ANY condition is satisfied, the game ends with that victory
+ * - Use `and`/`or` within a single condition for complex logic
+ * 
+ * **Action Types:**
+ * - `add`: Add new condition to existing conditions (OR combination)
+ * - `replace`: Replace an existing condition with same name
+ * - `remove`: Remove an existing condition by name
+ */
 export interface VictoryCondition {
   name: string;
   condition: Condition;
   winner: Color | 'current' | 'opponent';
+  /** Action type when extending a base game */
+  action?: 'add' | 'replace' | 'remove';
 }
 
+/**
+ * Draw condition for a chess variant.
+ * 
+ * **Combination Rules:**
+ * - Multiple draw conditions are combined with OR logic
+ * - If ANY condition is satisfied, the game ends in a draw
+ * - Use `and`/`or` within a single condition for complex logic
+ * 
+ * **Action Types:**
+ * - `add`: Add new condition to existing conditions (OR combination)
+ * - `replace`: Replace an existing condition with same name
+ * - `remove`: Remove an existing condition by name
+ */
 export interface DrawCondition {
   name: string;
   condition: Condition;
+  /** Action type when extending a base game */
+  action?: 'add' | 'replace' | 'remove';
 }
 
 // ----------------------------------------------------------------------------
@@ -682,19 +712,61 @@ export interface PlacementNode extends ASTNode {
   owner: Color;
 }
 
+/**
+ * AST node for victory condition definition.
+ * 
+ * **Combination Rules (OR logic):**
+ * - Multiple victory conditions are combined with OR
+ * - If ANY condition is satisfied, the game ends with that victory
+ * - For AND logic, use `and` within a single condition expression
+ * 
+ * **Example:**
+ * ```chesslang
+ * victory:
+ *   add:                               # OR: checkmate OR hill
+ *     hill: King in zone.hill
+ *   add:
+ *     complex: A and B                 # Single condition with AND
+ * ```
+ */
 export interface VictoryNode extends ASTNode {
   type: 'Victory';
   name: string;
   condition: ConditionNode;
-  // 'add' (default): 새 조건 추가, 'replace': 기존 조건 교체, 'remove': 기존 조건 제거
+  /**
+   * Action when extending a base game:
+   * - 'add' (default): Add to existing conditions (OR combination)
+   * - 'replace': Replace existing condition with same name
+   * - 'remove': Remove existing condition by name
+   */
   action?: 'add' | 'replace' | 'remove';
 }
 
+/**
+ * AST node for draw condition definition.
+ * 
+ * **Combination Rules (OR logic):**
+ * - Multiple draw conditions are combined with OR
+ * - If ANY condition is satisfied, the game ends in a draw
+ * - For AND logic, use `and` within a single condition expression
+ * 
+ * **Example:**
+ * ```chesslang
+ * draw:
+ *   add:                               # OR: stalemate OR bare_king
+ *     bare_king: pieces == 1 and opponent.pieces == 1
+ * ```
+ */
 export interface DrawNode extends ASTNode {
   type: 'Draw';
   name: string;
   condition: ConditionNode;
-  // 'add' (default): 새 조건 추가, 'replace': 기존 조건 교체, 'remove': 기존 조건 제거
+  /**
+   * Action when extending a base game:
+   * - 'add' (default): Add to existing conditions (OR combination)
+   * - 'replace': Replace existing condition with same name
+   * - 'remove': Remove existing condition by name
+   */
   action?: 'add' | 'replace' | 'remove';
 }
 

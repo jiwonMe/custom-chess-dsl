@@ -29,6 +29,10 @@ board:
   zones:
     hill: [d4, d5, e4, e5]
 victory:
+  # 여러 승리 조건은 OR로 결합 (하나라도 만족시 승리)
+  # add: checkmate OR hill
+  # replace: 기존 조건 교체
+  # remove: 기존 조건 제거
   add:
     hill: King in zone.hill
 ```

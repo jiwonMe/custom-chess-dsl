@@ -27,10 +27,14 @@ board:
   zones:
     hill: [d4, d5, e4, e5]
 
+# 승리 조건: checkmate OR hill (OR 결합)
+# 체크메이트 또는 킹이 중앙에 도달하면 승리
 victory:
   add:
     hill: King in zone.hill
 ```
+
+> 💡 **참고:** 여러 승리 조건은 OR로 결합됩니다. 위 예제에서는 기본 체크메이트 조건과 새 hill 조건 중 하나만 만족하면 게임이 종료됩니다.
 
 ## 지금 바로 체험하기
 

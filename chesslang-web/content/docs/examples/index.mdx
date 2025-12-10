@@ -9,6 +9,9 @@ ChessLang으로 만들 수 있는 다양한 체스 변형 예제입니다.
 
 ## 기본 변형 (레벨 1)
 
+> 💡 **조건 결합 규칙:** 여러 승리 조건은 **OR로 결합**됩니다.
+> `add`로 추가된 조건 중 하나라도 만족하면 게임이 종료됩니다.
+
 ### King of the Hill
 
 중앙을 장악하면 승리합니다.
@@ -21,6 +24,8 @@ board:
   zones:
     hill: [d4, d5, e4, e5]
 
+# OR 결합: checkmate OR hill
+# 체크메이트 또는 킹이 중앙에 도달하면 승리
 victory:
   add:
     hill: King in zone.hill
@@ -34,6 +39,8 @@ victory:
 game: "Three-Check"
 extends: "Standard Chess"
 
+# OR 결합: checkmate OR three_checks
+# 체크메이트 또는 3회 체크로 승리
 victory:
   add:
     three_checks: checks >= 3
@@ -61,9 +68,11 @@ setup:
     Bishop: [e2, f2]
     Knight: [g2, h2]
 
+# replace: checkmate 조건을 racing으로 교체
+# 결과: racing 조건만 적용 (체크메이트 무효)
 victory:
   replace:
-    racing: King on rank 8
+    checkmate: King on rank 8
 
 rules:
   check:
@@ -93,11 +102,15 @@ setup:
     Knight: [b8, g8]
     Pawn: [a7, b7, c7, d7, e7, f7, g7, h7]
 
+# 비대칭 승리 조건
+# 백: 모든 흑 기물 제거시 승리
+# 흑: 체크메이트로 승리
 victory:
-  White:
-    capture_all: opponent.pieces == 0
-  Black:
-    checkmate: checkmate
+  remove:
+    - checkmate              # 기본 체크메이트 제거
+  add:
+    white_wins: opponent.pieces == 0    # 백 승리 조건
+    black_wins: checkmate               # 흑 승리 조건
 ```
 
 ## 커스텀 기물 (레벨 2)
@@ -181,6 +194,8 @@ trigger atomic_explosion {
   }
 }
 
+# OR 결합: checkmate OR king_exploded
+# 체크메이트 또는 상대 킹 폭발로 승리
 victory:
   add:
     king_exploded: opponent.King == null

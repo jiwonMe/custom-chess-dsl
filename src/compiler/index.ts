@@ -567,18 +567,38 @@ export class Compiler {
     return { placements, replace };
   }
 
+  /**
+   * Compile a victory condition node.
+   * 
+   * **Combination Rules:**
+   * - Multiple conditions are combined with OR logic
+   * - 'add': Adds to existing conditions (OR)
+   * - 'replace': Replaces condition with same name
+   * - 'remove': Removes condition by name
+   */
   private compileVictoryCondition(node: VictoryNode): VictoryCondition {
     return {
       name: node.name,
       condition: this.compileCondition(node.condition),
       winner: 'current',
+      action: node.action ?? 'add',
     };
   }
 
+  /**
+   * Compile a draw condition node.
+   * 
+   * **Combination Rules:**
+   * - Multiple conditions are combined with OR logic
+   * - 'add': Adds to existing conditions (OR)
+   * - 'replace': Replaces condition with same name
+   * - 'remove': Removes condition by name
+   */
   private compileDrawCondition(node: DrawNode): DrawCondition {
     return {
       name: node.name,
       condition: this.compileCondition(node.condition),
+      action: node.action ?? 'add',
     };
   }
 

@@ -104,10 +104,17 @@ remove_cmd      = "remove:" indent removal+ ;
 placement       = color ":" "{" square ":" piece_name ("," ...)* "}" ;
 
 victory_section = "victory:" indent victory_commands ;
-victory_commands= (add_cmd | remove_cmd | modify_cmd)* ;
+# NOTE: Multiple victory conditions are combined with OR logic
+# (Any condition satisfied -> game ends)
+# For AND logic, use "and" within a single condition expression
+victory_commands= (add_cmd | replace_cmd | remove_cmd)* ;
+add_cmd_vic     = "add:" indent victory_cond+ ;        # OR: base conditions OR new conditions
+replace_cmd     = "replace:" indent victory_cond+ ;    # Replace condition by name
+remove_cmd_vic  = "remove:" indent identifier+ ;       # Remove condition by name
 victory_cond    = identifier ":" condition_expr ;
 
 draw_section    = "draw:" indent draw_commands ;
+# NOTE: Same OR logic applies to draw conditions
 
 rules_section   = "rules:" indent rule_toggle+ ;
 rule_toggle     = identifier ":" boolean ;

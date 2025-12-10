@@ -130,6 +130,19 @@ step(any) where empty or enemy and not check   # 우선순위로 인해 동일
 
 승리 조건을 정의하기 위해 `victory` 섹션에서 사용됩니다.
 
+### 조건 결합 규칙 (OR 로직)
+
+> ⚠️ **중요:** 여러 승리 조건은 **OR로 결합**됩니다.
+> 
+> - 조건 중 **하나라도 만족**하면 게임이 종료됩니다.
+> - AND 로직이 필요하면 **단일 조건 내**에서 `and`를 사용합니다.
+
+| 액션 | 설명 | 결합 방식 |
+|------|------|----------|
+| `add` | 새 조건 추가 | 기존 조건 OR 새 조건 |
+| `replace` | 같은 이름의 조건 교체 | OR 결합 유지 |
+| `remove` | 조건 제거 | - |
+
 ### 내장 조건
 
 | 조건 | 설명 |
@@ -148,11 +161,19 @@ step(any) where empty or enemy and not check   # 우선순위로 인해 동일
 | `pieces <= N` | 기물 수 제한 | `opponent.pieces <= 1` |
 
 ```chesslang
+# OR 결합: checkmate OR hill OR elimination 중 하나 만족시 승리
 victory:
   add:
     hill: King in zone.hill
     elimination: opponent.pieces == 0
-    bare_king: opponent.pieces == 1 and opponent.King
+```
+
+```chesslang
+# AND 로직: 단일 조건 내에서 and 사용
+victory:
+  add:
+    # 킹이 존에 있고 AND 기물이 1개일 때만 승리
+    bare_king_hill: King in zone.hill and opponent.pieces == 1
 ```
 
 ### 카운터 조건
@@ -164,6 +185,7 @@ victory:
 | `moves >= N` | N회 이상 이동 | `moves >= 50` |
 
 ```chesslang
+# checkmate OR three_check 중 하나 만족시 승리
 victory:
   add:
     three_check: checks >= 3
@@ -172,6 +194,18 @@ victory:
 ## 무승부 조건
 
 무승부 조건을 정의하기 위해 `draw` 섹션에서 사용됩니다.
+
+### 조건 결합 규칙 (OR 로직)
+
+> ⚠️ **중요:** 승리 조건과 마찬가지로 여러 무승부 조건은 **OR로 결합**됩니다.
+> 
+> - 조건 중 **하나라도 만족**하면 무승부로 종료됩니다.
+
+| 액션 | 설명 | 결합 방식 |
+|------|------|----------|
+| `add` | 새 조건 추가 | 기존 조건 OR 새 조건 |
+| `replace` | 같은 이름의 조건 교체 | OR 결합 유지 |
+| `remove` | 조건 제거 | - |
 
 ### 내장 무승부 조건
 
@@ -183,19 +217,26 @@ victory:
 | `insufficient` | 불충분한 기물 | 활성화 |
 
 ```chesslang
+# 기존 조건 교체
 draw:
-  modify:
-    repetition: 5      # 5회 반복
-    fifty_moves: 75    # 75수 규칙
+  replace:
+    repetition: position_count >= 5      # 5회 반복으로 변경
 ```
 
 ### 커스텀 무승부 조건
 
 ```chesslang
+# OR 결합: stalemate OR repetition OR ... OR bare_kings 중 하나 만족시 무승부
 draw:
   add:
-    mutual_agreement: both_agree
     bare_kings: White.pieces == 1 and Black.pieces == 1
+```
+
+```chesslang
+# 특정 조건 제거
+draw:
+  remove:
+    - stalemate     # 스테일메이트는 패배로 처리할 때
 ```
 
 ## 트리거 조건
@@ -340,6 +381,7 @@ victory:
 
 ## 참고
 
+- [승리 & 무승부 조건](/docs/reference/victory-draw) - 조건 결합 규칙 상세 설명
 - [액션 레퍼런스](/docs/reference/actions)
 - [방향 레퍼런스](/docs/reference/directions)
 - [레벨 2 - Compose](/docs/language/level2)

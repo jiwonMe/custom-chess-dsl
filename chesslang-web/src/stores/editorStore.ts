@@ -39,6 +39,9 @@ board:
   zones:
     hill: [d4, d5, e4, e5]
 
+# Victory conditions are combined with OR logic:
+# Game ends if checkmate OR hill condition is satisfied.
+# Use "and" within a single condition for AND logic.
 victory:
   add:
     hill: King in zone.hill

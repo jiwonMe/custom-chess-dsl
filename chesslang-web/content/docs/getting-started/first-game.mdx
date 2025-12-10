@@ -45,8 +45,12 @@ victory:
     hill: King in zone.hill
 ```
 
-- `add`: 기존 체크메이트 조건을 유지하면서 새 조건을 추가합니다
+- `add`: 기존 체크메이트 조건을 유지하면서 새 조건을 **OR로** 추가합니다
 - `hill: King in zone.hill`: 킹이 hill 존에 있으면 승리합니다
+
+> 💡 **조건 결합 규칙:** 여러 승리 조건은 OR로 결합됩니다.
+> 
+> 위 코드의 결과: `checkmate OR hill` - 둘 중 하나만 만족해도 승리!
 
 ## 완성된 코드
 
@@ -58,6 +62,8 @@ board:
   zones:
     hill: [d4, d5, e4, e5]
 
+# 승리 조건: checkmate OR hill (OR 결합)
+# 체크메이트 또는 킹이 중앙에 도달하면 승리
 victory:
   add:
     hill: King in zone.hill
@@ -79,12 +85,27 @@ victory:
 
 ### 승리 조건 교체
 
-체크메이트 대신 hill 조건만 사용하려면:
+체크메이트 대신 hill 조건만 사용하려면 `replace`를 사용합니다:
 
 ```chesslang
+# replace: 기존 checkmate 조건을 hill로 교체
+# 결과: hill 조건만 적용 (체크메이트 제거됨)
 victory:
   replace:
-    hill: King in zone.hill
+    checkmate: King in zone.hill
+```
+
+### 승리 조건 제거
+
+특정 조건만 제거하려면:
+
+```chesslang
+# remove: 기존 조건 제거
+victory:
+  remove:
+    - checkmate    # 체크메이트 제거
+  add:
+    hill: King in zone.hill    # 새 조건 추가
 ```
 
 ### 더 큰 존
@@ -122,9 +143,13 @@ trigger mark_hill {
 
 ## 요약
 
-| 키워드 | 설명 |
-|--------|------|
-| `game` | 변형 이름 |
-| `extends` | 기반 게임 |
-| `board.zones` | 이름 지정된 보드 영역 |
-| `victory.add` | 새 승리 조건 추가 |
+| 키워드 | 설명 | 결합 방식 |
+|--------|------|----------|
+| `game` | 변형 이름 | - |
+| `extends` | 기반 게임 | - |
+| `board.zones` | 이름 지정된 보드 영역 | - |
+| `victory.add` | 새 승리 조건 추가 | OR 결합 |
+| `victory.replace` | 기존 조건 교체 | OR 유지 |
+| `victory.remove` | 기존 조건 제거 | - |
+
+> 📖 **자세히 알아보기:** [승리 조건 결합 규칙](/docs/language/level1#조건-결합-규칙-중요)
