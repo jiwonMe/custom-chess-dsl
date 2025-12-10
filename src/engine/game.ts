@@ -267,6 +267,11 @@ export class GameEngine {
    * Get legal moves for a specific piece
    */
   getLegalMovesForPiece(piece: Piece): Move[] {
+    // Check for cooldown restriction
+    if (this.hasCooldown(piece)) {
+      return []; // Piece cannot move while on cooldown
+    }
+
     const pieceDef = this.game.pieces.get(piece.type);
     if (!pieceDef) {
       // Use default patterns for standard pieces
@@ -1296,6 +1301,26 @@ export class GameEngine {
    */
   isGameOver(): boolean {
     return this.state.result !== undefined;
+  }
+
+  /**
+   * Check if a piece has an active cooldown preventing movement
+   * Looks for 'cooldown' property in piece state that is > 0
+   */
+  hasCooldown(piece: Piece): boolean {
+    if (!piece.state) return false;
+    const cooldown = piece.state['cooldown'];
+    return typeof cooldown === 'number' && cooldown > 0;
+  }
+
+  /**
+   * Get piece state info (for UI display)
+   */
+  getPieceState(piece: Piece): Record<string, unknown> | null {
+    if (!piece.state || Object.keys(piece.state).length === 0) {
+      return null;
+    }
+    return piece.state;
   }
 
   /**

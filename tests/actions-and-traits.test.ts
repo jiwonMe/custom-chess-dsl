@@ -309,3 +309,120 @@ setup:
     }
   });
 });
+
+describe('Cooldown Movement Restriction', () => {
+  it('should prevent movement when cooldown > 0', () => {
+    const code = `
+game: "Cooldown Test"
+extends: "Standard Chess"
+
+piece CooldownPiece {
+  move: step(any)
+  capture: =move
+  state: { cooldown: 0 }
+}
+
+trigger set_cooldown {
+  on: move
+  when: piece.type == CooldownPiece
+  do: set piece.state.cooldown = 2
+}
+
+setup:
+  add:
+    White CooldownPiece: [d3]
+`;
+    const ast = parse(code);
+    const compiled = compile(ast);
+    const game = new GameEngine(compiled);
+    
+    // Initial: cooldown = 0, can move
+    let state = game.getState();
+    let piece = state.pieces.find(p => p.type === 'CooldownPiece');
+    expect(piece?.state.cooldown).toBe(0);
+    
+    let moves = game.getLegalMoves().filter(m => m.piece.type === 'CooldownPiece');
+    expect(moves.length).toBeGreaterThan(0);
+    
+    // Make a move - cooldown should be set to 2
+    const move = moves[0];
+    if (move) {
+      game.makeMove(move);
+      
+      state = game.getState();
+      piece = state.pieces.find(p => p.type === 'CooldownPiece');
+      expect(piece?.state.cooldown).toBe(2);
+      
+      // Black's turn - make a simple pawn move
+      const blackMoves = game.getLegalMoves();
+      const pawnMove = blackMoves.find(m => m.piece.type === 'Pawn');
+      if (pawnMove) {
+        game.makeMove(pawnMove);
+        
+        // Now White's turn again - CooldownPiece should NOT be able to move
+        const whiteMoves = game.getLegalMoves().filter(m => m.piece.type === 'CooldownPiece');
+        expect(whiteMoves.length).toBe(0); // Cannot move due to cooldown!
+      }
+    }
+  });
+
+  it('should allow movement when cooldown = 0', () => {
+    const code = `
+game: "No Cooldown Test"
+extends: "Standard Chess"
+
+piece TestPiece {
+  move: step(any)
+  capture: =move
+  state: { cooldown: 0, power: 5 }
+}
+
+setup:
+  add:
+    White TestPiece: [d3]
+`;
+    const ast = parse(code);
+    const compiled = compile(ast);
+    const game = new GameEngine(compiled);
+    
+    // cooldown = 0, should be able to move
+    const moves = game.getLegalMoves().filter(m => m.piece.type === 'TestPiece');
+    expect(moves.length).toBeGreaterThan(0);
+  });
+
+  it('hasCooldown should return correct values', () => {
+    const code = `
+game: "HasCooldown Test"
+extends: "Standard Chess"
+
+piece CooledPiece {
+  move: step(any)
+  state: { cooldown: 5 }
+}
+
+piece NormalPiece {
+  move: step(any)
+  state: { power: 10 }
+}
+
+setup:
+  add:
+    White CooledPiece: [d3]
+    White NormalPiece: [e3]
+`;
+    const ast = parse(code);
+    const compiled = compile(ast);
+    const game = new GameEngine(compiled);
+    
+    const state = game.getState();
+    const cooledPiece = state.pieces.find(p => p.type === 'CooledPiece');
+    const normalPiece = state.pieces.find(p => p.type === 'NormalPiece');
+    
+    expect(cooledPiece).toBeDefined();
+    expect(normalPiece).toBeDefined();
+    
+    // hasCooldown checks
+    expect(game.hasCooldown(cooledPiece!)).toBe(true);
+    expect(game.hasCooldown(normalPiece!)).toBe(false);
+  });
+});

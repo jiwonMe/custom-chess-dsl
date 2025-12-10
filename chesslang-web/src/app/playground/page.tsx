@@ -336,6 +336,13 @@ export default function PlaygroundPage() {
                 )}
               </div>
 
+              {/* Selected Piece Info */}
+              {selectedPiece && (
+                <div className="mt-4 max-w-md w-full">
+                  <PieceStatePanel piece={selectedPiece} />
+                </div>
+              )}
+
               {/* Move history */}
               {gameState.moveHistory.length > 0 && (
                 <div className="mt-4 text-sm text-muted-foreground max-w-md w-full">
@@ -378,4 +385,130 @@ function formatMove(move: Move): string {
   const piece = move.piece.type === 'Pawn' ? '' : move.piece.type[0];
   const capture = move.captured ? 'x' : '';
   return `${piece}${from}${capture}${to}`;
+}
+
+// Piece State Panel Component
+interface PieceStatePanelProps {
+  piece: {
+    type: string;
+    owner: string;
+    pos: Position;
+    traits?: Set<string>;
+    state?: Record<string, unknown>;
+  };
+}
+
+function PieceStatePanel({ piece }: PieceStatePanelProps) {
+  const posLabel = `${getFileLabel(piece.pos.file)}${piece.pos.rank + 1}`;
+  const traits = piece.traits ? Array.from(piece.traits) : [];
+  const state = piece.state ?? {};
+  const stateEntries = Object.entries(state);
+  const hasCooldown = typeof state.cooldown === 'number' && state.cooldown > 0;
+
+  return (
+    <div
+      className={cn(
+        // 배경
+        'bg-card/80 backdrop-blur-sm',
+        // 보더
+        'border rounded-lg',
+        // 패딩
+        'p-3',
+        // 그림자
+        'shadow-sm'
+      )}
+    >
+      {/* 헤더 */}
+      <div className="flex items-center gap-2 mb-2">
+        <div
+          className={cn(
+            // 크기
+            'w-3 h-3 rounded-full',
+            // 색상
+            piece.owner === 'White' ? 'bg-white border border-gray-400' : 'bg-gray-800'
+          )}
+        />
+        <span className="font-semibold text-sm">{piece.type}</span>
+        <span className="text-xs text-muted-foreground">at {posLabel}</span>
+        {hasCooldown && (
+          <span
+            className={cn(
+              'ml-auto',
+              'px-2 py-0.5',
+              'text-xs font-medium',
+              'bg-blue-500/20 text-blue-400',
+              'rounded-full'
+            )}
+          >
+            ⏱ Cooldown: {String(state.cooldown)}
+          </span>
+        )}
+      </div>
+
+      {/* Traits */}
+      {traits.length > 0 && (
+        <div className="mb-2">
+          <div className="text-xs text-muted-foreground mb-1">Traits</div>
+          <div className="flex flex-wrap gap-1">
+            {traits.map((trait) => (
+              <span
+                key={trait}
+                className={cn(
+                  'px-2 py-0.5',
+                  'text-xs',
+                  'bg-purple-500/20 text-purple-300',
+                  'rounded-full',
+                  'border border-purple-500/30'
+                )}
+              >
+                {trait}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* State */}
+      {stateEntries.length > 0 && (
+        <div>
+          <div className="text-xs text-muted-foreground mb-1">State</div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+            {stateEntries.map(([key, value]) => (
+              <div key={key} className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">{key}:</span>
+                <span
+                  className={cn(
+                    'font-mono',
+                    // 쿨다운이면 파란색, 그 외는 노란색
+                    key === 'cooldown' && typeof value === 'number' && value > 0
+                      ? 'text-blue-400'
+                      : typeof value === 'boolean'
+                      ? value
+                        ? 'text-green-400'
+                        : 'text-red-400'
+                      : 'text-amber-400'
+                  )}
+                >
+                  {formatStateValue(key, value)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 상태가 없을 때 */}
+      {traits.length === 0 && stateEntries.length === 0 && (
+        <div className="text-xs text-muted-foreground italic">No special attributes</div>
+      )}
+    </div>
+  );
+}
+
+// Format state value for display
+function formatStateValue(key: string, value: unknown): string {
+  if (typeof value === 'boolean') return value ? 'true' : 'false';
+  if (typeof value === 'number') return value.toString();
+  if (value === null || value === undefined) return 'null';
+  return String(value);
 }

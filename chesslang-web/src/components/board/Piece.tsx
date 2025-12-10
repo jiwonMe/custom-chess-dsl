@@ -7,6 +7,8 @@ interface PieceProps {
   type: string;
   color: Color;
   isDraggable?: boolean;
+  state?: Record<string, unknown> | null;
+  showState?: boolean;
 }
 
 // Unicode chess pieces (standard pieces)
@@ -69,11 +71,58 @@ function getCustomPieceEmoji(type: string): string {
   return letterEmojis[firstLetter] || '⚡';
 }
 
-export function Piece({ type, color, isDraggable = false }: PieceProps) {
+// Get cooldown value from state
+function getCooldown(state?: Record<string, unknown> | null): number | null {
+  if (!state) return null;
+  const cooldown = state['cooldown'];
+  return typeof cooldown === 'number' ? cooldown : null;
+}
+
+// Format state for display
+function formatStateValue(key: string, value: unknown): string {
+  if (typeof value === 'boolean') return value ? '✓' : '✗';
+  if (typeof value === 'number') return value.toString();
+  return String(value);
+}
+
+export function Piece({ type, color, isDraggable = false, state, showState = true }: PieceProps) {
   const isStandardPiece = type in pieceSymbols;
   const symbol = isStandardPiece
     ? pieceSymbols[type]![color]
     : getCustomPieceEmoji(type);
+
+  const cooldown = getCooldown(state);
+  const hasCooldown = cooldown !== null && cooldown > 0;
+
+  // State badge component
+  const StateBadge = () => {
+    if (!showState || !state || Object.keys(state).length === 0) return null;
+
+    return (
+      <div
+        className={cn(
+          // 포지셔닝
+          'absolute -top-1 -right-1 z-10',
+          // 크기
+          'min-w-4 h-4 px-1',
+          // 레이아웃
+          'flex items-center justify-center',
+          // 스타일
+          'rounded-full',
+          'text-[10px] font-bold',
+          // 색상 - 쿨다운이면 파란색, 아니면 노란색
+          hasCooldown
+            ? 'bg-blue-500 text-white border border-blue-300'
+            : 'bg-amber-500 text-white border border-amber-300',
+          // 그림자
+          'shadow-sm'
+        )}
+        title={Object.entries(state).map(([k, v]) => `${k}: ${formatStateValue(k, v)}`).join('\n')}
+      >
+        {hasCooldown ? cooldown : '⚡'}
+      </div>
+    );
+  };
 
   // Standard pieces use unicode chess symbols
   if (isStandardPiece) {
@@ -87,7 +136,9 @@ export function Piece({ type, color, isDraggable = false }: PieceProps) {
           // 선택
           'select-none',
           // 드래그
-          isDraggable && 'cursor-grab active:cursor-grabbing'
+          isDraggable && 'cursor-grab active:cursor-grabbing',
+          // 쿨다운 시 반투명
+          hasCooldown && 'opacity-60'
         )}
         draggable={isDraggable}
       >
@@ -108,6 +159,7 @@ export function Piece({ type, color, isDraggable = false }: PieceProps) {
         >
           {symbol}
         </span>
+        <StateBadge />
       </div>
     );
   }
@@ -123,7 +175,9 @@ export function Piece({ type, color, isDraggable = false }: PieceProps) {
         // 선택
         'select-none',
         // 드래그
-        isDraggable && 'cursor-grab active:cursor-grabbing'
+        isDraggable && 'cursor-grab active:cursor-grabbing',
+        // 쿨다운 시 반투명
+        hasCooldown && 'opacity-60'
       )}
       draggable={isDraggable}
     >
@@ -143,7 +197,9 @@ export function Piece({ type, color, isDraggable = false }: PieceProps) {
             ? 'bg-gradient-to-br from-white to-gray-200 border-gray-400'
             : 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-600',
           // 레이아웃
-          'flex items-center justify-center'
+          'flex items-center justify-center',
+          // 쿨다운 시 그레이스케일
+          hasCooldown && 'grayscale-[30%]'
         )}
       >
         {/* 이모지 */}
@@ -160,6 +216,7 @@ export function Piece({ type, color, isDraggable = false }: PieceProps) {
           {symbol}
         </span>
       </div>
+      <StateBadge />
     </div>
   );
 }

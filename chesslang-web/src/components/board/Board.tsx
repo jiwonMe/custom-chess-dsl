@@ -410,6 +410,8 @@ export function Board({
                         type={piece.type}
                         color={piece.owner}
                         isDraggable={interactive && piece.owner === state.currentPlayer && !isPanMode}
+                        state={piece.state}
+                        showState={true}
                       />
                     )}
                     {isLegalMove && <MoveIndicator isCapture={piece !== null} />}
