@@ -143,7 +143,7 @@ piece Sprinter {
 piece Pawn {
   move: step(forward) where empty
   move: step(forward, 2) where first_move and clear
-  capture: step(forward-diagonal) where enemy
+  capture: step(NE) | step(NW) where enemy   # 대각선 앞으로 잡기
 }
 ```
 
@@ -163,13 +163,13 @@ piece Pawn {
 
 ```chesslang
 piece Pawn {
-  move: step(forward)
-  capture: step(forward-diagonal)    # 다른 잡기 패턴
+  move: step(forward) where empty
+  capture: step(NE) | step(NW) where enemy   # 다른 잡기 패턴
 }
 
 piece Queen {
   move: slide(any)
-  capture: =move                     # move 패턴과 동일
+  capture: =move                             # move 패턴과 동일
 }
 ```
 
@@ -270,10 +270,10 @@ trigger place_trap {
 트리거는 게임 이벤트에 반응합니다:
 
 ```chesslang
-trigger explosion {
+trigger power_up {
   on: capture
-  when: piece.type == Bomb
-  do: remove pieces in radius(1) from target
+  when: piece.type == Warrior
+  do: set piece.state.kills = piece.state.kills + 1
 }
 ```
 
@@ -374,24 +374,31 @@ trigger rage_increase {
 
 ## 완전한 예제
 
-### Atomic Chess
+### Power Warrior Chess
+
+적을 잡을 때마다 킬 카운트가 증가하는 전사 기물입니다:
 
 ```chesslang
-game: "Atomic Chess"
+game: "Power Warrior Chess"
 extends: "Standard Chess"
 
-trigger atomic_explosion {
-  on: capture
-  do: {
-    remove piece
-    remove captured
-    remove pieces in radius(1) from target where not Pawn
-  }
+piece Warrior {
+  move: step(any)
+  capture: =move
+  state: { kills: 0 }
+  value: 4
 }
 
-victory:
+trigger count_kills {
+  on: capture
+  when: piece.type == Warrior
+  do: set piece.state.kills = piece.state.kills + 1
+}
+
+setup:
   add:
-    king_exploded: opponent.King == null
+    White Warrior: [d2, e2]
+    Black Warrior: [d7, e7]
 ```
 
 ### Trapper Chess
@@ -461,6 +468,8 @@ trigger pawn_rises {
 
 ### Cannon Chess
 
+> ⚠️ **참고:** `hop` 패턴은 현재 기본 동작만 구현되어 있습니다.
+
 ```chesslang
 game: "Cannon Chess"
 extends: "Standard Chess"
@@ -473,48 +482,37 @@ piece Cannon {
 }
 
 setup:
-  modify:
-    White:
-      Rook: [a1]
-      Cannon: [h1]
-    Black:
-      Rook: [a8]
-      Cannon: [h8]
+  add:
+    White Cannon: [c1, f1]
+    Black Cannon: [c8, f8]
 ```
 
-### Berserk Chess
+### Cooldown Knight Chess
+
+이동 후 쿨다운이 적용되는 나이트입니다:
 
 ```chesslang
-game: "Berserk Chess"
+game: "Cooldown Knight Chess"
 extends: "Standard Chess"
 
-piece Berserker {
-  move: step(any) * (1 + state.rage)
+piece CooldownKnight {
+  move: leap(2, 1)
   capture: =move
-  state: { rage: 0 }
-  value: 4
+  traits: [jump]
+  state: { cooldown: 0 }
+  value: 3
 }
 
-trigger gain_rage {
-  on: capture
-  when: piece.type == Berserker
-  do: set piece.state.rage = min(piece.state.rage + 1, 3)
-}
-
-trigger lose_rage {
-  on: turn_end
-  when: any Berserker where state.rage > 0
-  do: set piece.state.rage = piece.state.rage - 1
+# 이동 후 쿨다운 설정
+trigger knight_cooldown {
+  on: move
+  when: piece.type == CooldownKnight
+  do: set piece.state.cooldown = 2
 }
 
 setup:
-  modify:
-    White:
-      Knight: [b1]
-      Berserker: [g1]
-    Black:
-      Knight: [b8]
-      Berserker: [g8]
+  replace:
+    Knight: CooldownKnight
 ```
 
 ## 고급 커스텀 기물

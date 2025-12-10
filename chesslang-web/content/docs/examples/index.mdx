@@ -358,29 +358,8 @@ setup:
 
 ## 효과와 트리거
 
-### Atomic Chess
-
-잡기가 폭발을 일으켜 인접 기물을 모두 제거합니다.
-
-```chesslang
-game: "Atomic Chess"
-extends: "Standard Chess"
-
-trigger atomic_explosion {
-  on: capture
-  do: {
-    remove piece
-    remove captured
-    remove pieces in radius(1) from target where not Pawn
-  }
-}
-
-# OR 결합: checkmate OR king_exploded
-# 체크메이트 또는 상대 킹 폭발로 승리
-victory:
-  add:
-    king_exploded: opponent.King == null
-```
+> ⚠️ **참고:** 일부 고급 기능(`pieces in radius`, `adjacent to` 등)은 개발 중입니다.
+> 현재 구현된 기능만 사용하는 예제를 먼저 시도해 보세요.
 
 ### Trapper Chess (덫 설치자 체스)
 

@@ -72,9 +72,10 @@ piece Amazon {
   traits: [jump]
 }
 
-trigger explosion {
+trigger power_up {
   on: capture
-  do: remove pieces in radius(1) from target
+  when: piece.type == Warrior
+  do: set piece.state.kills = piece.state.kills + 1
 }
 ```
 
