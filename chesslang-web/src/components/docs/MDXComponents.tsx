@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import { cn } from '@/lib/utils/cn';
 import { highlightCode } from '@/lib/shiki/highlighter';
+import React from 'react';
 
 // 헤딩 컴포넌트
-export const h1 = ({ children }: { children: React.ReactNode }) => (
+export const h1 = ({ children }: { children?: React.ReactNode }) => (
   <h1 className={cn(
     // 타이포그래피
     'text-4xl font-bold tracking-tight',
@@ -16,7 +17,7 @@ export const h1 = ({ children }: { children: React.ReactNode }) => (
   </h1>
 );
 
-export const h2 = ({ children }: { children: React.ReactNode }) => (
+export const h2 = ({ children }: { children?: React.ReactNode }) => (
   <h2 className={cn(
     // 타이포그래피
     'text-2xl font-semibold tracking-tight',
@@ -31,7 +32,7 @@ export const h2 = ({ children }: { children: React.ReactNode }) => (
   </h2>
 );
 
-export const h3 = ({ children }: { children: React.ReactNode }) => (
+export const h3 = ({ children }: { children?: React.ReactNode }) => (
   <h3 className={cn(
     // 타이포그래피
     'text-xl font-semibold tracking-tight',
@@ -45,7 +46,7 @@ export const h3 = ({ children }: { children: React.ReactNode }) => (
 );
 
 // 본문 컴포넌트
-export const p = ({ children }: { children: React.ReactNode }) => (
+export const p = ({ children }: { children?: React.ReactNode }) => (
   <p className={cn(
     // 줄 높이
     'leading-7',
@@ -57,7 +58,7 @@ export const p = ({ children }: { children: React.ReactNode }) => (
 );
 
 // 리스트 컴포넌트
-export const ul = ({ children }: { children: React.ReactNode }) => (
+export const ul = ({ children }: { children?: React.ReactNode }) => (
   <ul className={cn(
     // 리스트 스타일
     'list-disc',
@@ -70,7 +71,7 @@ export const ul = ({ children }: { children: React.ReactNode }) => (
   </ul>
 );
 
-export const ol = ({ children }: { children: React.ReactNode }) => (
+export const ol = ({ children }: { children?: React.ReactNode }) => (
   <ol className={cn(
     // 리스트 스타일
     'list-decimal',
@@ -84,7 +85,7 @@ export const ol = ({ children }: { children: React.ReactNode }) => (
 );
 
 // 인라인 코드 컴포넌트
-export const code = ({ children }: { children: React.ReactNode }) => (
+export const code = ({ children }: { children?: React.ReactNode }) => (
   <code className={cn(
     // 배경 및 패딩
     'relative rounded bg-muted px-[0.3rem] py-[0.2rem]',
@@ -194,7 +195,7 @@ export async function pre({ children }: PreProps) {
 }
 
 // 링크 컴포넌트
-export const a = ({ href, children }: { href?: string; children: React.ReactNode }) => (
+export const a = ({ href, children }: { href?: string; children?: React.ReactNode }) => (
   <Link
     href={href || '#'}
     className={cn(
@@ -211,7 +212,7 @@ export const a = ({ href, children }: { href?: string; children: React.ReactNode
 );
 
 // 인용구 컴포넌트
-export const blockquote = ({ children }: { children: React.ReactNode }) => (
+export const blockquote = ({ children }: { children?: React.ReactNode }) => (
   <blockquote className={cn(
     // 마진
     'mt-6',
@@ -227,7 +228,7 @@ export const blockquote = ({ children }: { children: React.ReactNode }) => (
 );
 
 // 테이블 컴포넌트
-export const table = ({ children }: { children: React.ReactNode }) => (
+export const table = ({ children }: { children?: React.ReactNode }) => (
   <div className={cn(
     // 마진
     'my-6',
@@ -251,7 +252,7 @@ export const table = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
-export const thead = ({ children }: { children: React.ReactNode }) => (
+export const thead = ({ children }: { children?: React.ReactNode }) => (
   <thead className={cn(
     // 배경
     'bg-zinc-100 dark:bg-zinc-800/50'
@@ -260,7 +261,7 @@ export const thead = ({ children }: { children: React.ReactNode }) => (
   </thead>
 );
 
-export const tbody = ({ children }: { children: React.ReactNode }) => (
+export const tbody = ({ children }: { children?: React.ReactNode }) => (
   <tbody className={cn(
     // 줄무늬 배경
     '[&>tr:nth-child(even)]:bg-zinc-50',
@@ -270,7 +271,7 @@ export const tbody = ({ children }: { children: React.ReactNode }) => (
   </tbody>
 );
 
-export const tr = ({ children }: { children: React.ReactNode }) => (
+export const tr = ({ children }: { children?: React.ReactNode }) => (
   <tr className={cn(
     // 보더
     'border-b border-zinc-200 dark:border-zinc-800',
@@ -284,7 +285,7 @@ export const tr = ({ children }: { children: React.ReactNode }) => (
   </tr>
 );
 
-export const th = ({ children, align }: { children: React.ReactNode; align?: 'left' | 'center' | 'right' }) => (
+export const th = ({ children, align }: { children?: React.ReactNode; align?: 'left' | 'center' | 'right' }) => (
   <th className={cn(
     // 패딩
     'px-4 py-3',
@@ -300,7 +301,7 @@ export const th = ({ children, align }: { children: React.ReactNode; align?: 'le
   </th>
 );
 
-export const td = ({ children, align }: { children: React.ReactNode; align?: 'left' | 'center' | 'right' }) => (
+export const td = ({ children, align }: { children?: React.ReactNode; align?: 'left' | 'center' | 'right' }) => (
   <td className={cn(
     // 패딩
     'px-4 py-3',

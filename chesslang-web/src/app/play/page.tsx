@@ -41,7 +41,7 @@ const variants = [
 ];
 
 export default function PlayPage() {
-  const categories = [...new Set(variants.map((v) => v.category))];
+  const categories = Array.from(new Set(variants.map((v) => v.category)));
 
   return (
     <div className="container max-w-6xl py-12">

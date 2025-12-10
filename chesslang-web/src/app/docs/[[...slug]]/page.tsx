@@ -101,7 +101,7 @@ export default async function DocPage({
       <div className="prose prose-zinc dark:prose-invert max-w-none">
         <MDXRemote 
           source={doc.content} 
-          components={components}
+          components={components as never}
           options={{ mdxOptions }}
         />
       </div>

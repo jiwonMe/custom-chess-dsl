@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "buildCommand": "cd chesslang-web && npm install && npm run build",
+  "outputDirectory": "chesslang-web/.next",
+  "installCommand": "npm install && cd chesslang-web && npm install",
+  "ignoreCommand": "git diff HEAD^ HEAD --quiet -- . ../src"
+}

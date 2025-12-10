@@ -238,7 +238,7 @@ export default function PlaygroundPage() {
                   state={{
                     board: gameState.board,
                     currentPlayer: gameState.currentPlayer,
-                    lastMove: gameState.lastMove,
+                    lastMove: gameState.moveHistory[gameState.moveHistory.length - 1],
                   }}
                   legalMoves={selectedPieceMoves}
                   selectedPiece={selectedPiece}
