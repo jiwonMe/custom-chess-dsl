@@ -136,9 +136,11 @@ type Pattern =
 
 **Directions**: `N`, `S`, `E`, `W`, `NE`, `NW`, `SE`, `SW`, `orthogonal`, `diagonal`, `any`, `forward`
 
-**Conditions**: `empty`, `enemy`, `friend`, `clear`, `check`, `first_move`, `in`
+**Conditions**: `empty`, `enemy`, `friend`, `clear`, `check`, `first_move`, `in`, `and`, `or`, `not`
 
-**Actions**: `set`, `create`, `remove`, `transform`, `mark`, `win`, `lose`
+**Actions**: `set`, `create`, `remove`, `transform`, `mark`, `move`, `win`, `lose`, `draw`
+
+**Built-in Traits**: `royal`, `jump`, `phase`, `promote`, `immune`, `explosive` (커스텀 trait도 가능)
 
 ### 상세 스펙
 
@@ -146,29 +148,44 @@ type Pattern =
 
 ### Current Status
 
+**Core DSL (완료)**
 - [x] 타입 정의 (`src/types/index.ts`)
+- [x] Lexer (`src/lexer/`) - 토큰화, 인덴트 처리
+- [x] Parser (`src/parser/`) - AST 생성, Level 1/2/3 지원
+- [x] Compiler (`src/compiler/`) - AST → CompiledGame
+
+**Engine (완료)**
 - [x] Position 유틸리티 (`src/engine/position.ts`)
 - [x] Board 클래스 (`src/engine/board.ts`)
-- [ ] Lexer
-- [ ] Parser
-- [ ] Compiler
-- [ ] 나머지...
+- [x] Move 생성 (`src/engine/moves.ts`)
+- [x] Game Engine (`src/engine/game.ts`) - 게임 실행, 트리거, 액션
+- [x] Standard Chess (`src/stdlib/standard-chess.ts`)
 
-### Next Steps
+**기능 구현 (완료)**
+- [x] 이동 패턴: `step`, `slide`, `leap`, `hop`
+- [x] 패턴 조합: `|` (or), `+` (then)
+- [x] 조건: `where`, `empty`, `enemy`, `friend`, `clear`, `first_move`
+- [x] 트리거: `on`, `when`, `do`
+- [x] 액션: `set`, `create`, `remove`, `transform`, `mark`, `win`, `lose`, `draw`
+- [x] Traits: `royal`, `jump`, `phase`, `promote`, `immune`, `explosive`
+- [x] State: 기물별 상태 추적, 쿨다운 시스템
+- [x] Setup: `add`, `replace` 모드
+- [x] Victory/Draw: `add`, `replace`, `remove` 모드
 
-1. Lexer 구현 시작
-   - Token 타입 정의
-   - Scanner 구현
-   - 인덴트 처리 (Python-like)
+**Web Platform (완료)**
+- [x] Next.js 14 App
+- [x] Monaco Editor 기반 Playground
+- [x] 실시간 게임 보드
+- [x] 예제 갤러리
+- [x] MDX 문서
 
-2. Level 1 Parser
-   - YAML-like 문법 파싱
-   - 기본 AST 생성
-
-3. Standard Chess 정의
-   - 기본 기물들
-   - 이동 규칙
-   - 특수 규칙 (캐슬링, 앙파상, 프로모션)
+**미구현/개선 예정**
+- [ ] Linter - 문법/의미 오류 검출
+- [ ] Debugger - 게임 상태 추적
+- [ ] LSP - IDE 자동완성, 호버
+- [ ] CLI - 명령줄 도구
+- [ ] `hop` 패턴 완전 구현
+- [ ] 복잡한 `where` 조건
 
 ---
 

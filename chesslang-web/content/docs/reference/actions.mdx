@@ -242,6 +242,7 @@ win White
 win Black
 win player
 win opponent
+win piece.owner
 ```
 
 **예시:**
@@ -257,6 +258,27 @@ trigger elimination {
   on: capture
   when: opponent.pieces == 0
   do: win player
+}
+```
+
+### lose
+
+패자를 선언합니다:
+
+```chesslang
+lose White
+lose Black
+lose player
+lose opponent
+```
+
+**예시:**
+
+```chesslang
+trigger timeout {
+  on: turn_end
+  when: game.state.timer <= 0
+  do: lose player
 }
 ```
 

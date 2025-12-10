@@ -214,13 +214,16 @@ when_clause     = "when:" condition_expr ;
 do_clause       = "do:" action_list ;
 action_list     = action+ ;
 action          = set_action | create_action | remove_action | transform_action 
-                | mark_action | add_action | win_action ;
+                | mark_action | move_action | win_action | lose_action | draw_action ;
 set_action      = "set" lvalue ("=" | "+=" | "-=") rvalue ;
 create_action   = "create" identifier "at" position_expr "for" color ;
 remove_action   = "remove" target_expr ;
 transform_action= "transform" target_expr "to" identifier ;
 mark_action     = "mark" position_expr "with" identifier ;
+move_action     = "move" target_expr "to" position_expr ;
 win_action      = "win" color_expr ;
+lose_action     = "lose" color_expr ;
+draw_action     = "draw" string? ;
 
 (* Condition Expression *)
 condition_expr  = condition_term (("and" | "or") condition_term)* ;

@@ -200,11 +200,10 @@ game: "Atomic Chess"
 extends: "Standard Chess"
 
 # 폭발 트리거: 기물을 잡으면 주변 기물 모두 제거
+# 단일 액션은 중괄호 없이 사용 가능
 trigger atomic_explosion {
   on: capture
-  do: {
-    remove pieces in radius(1) from target
-  }
+  do: remove pieces in radius(1) from target
 }
 
 # 추가 승리 조건: 상대 킹이 폭발로 제거되면 승리

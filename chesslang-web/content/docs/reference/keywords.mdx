@@ -140,12 +140,25 @@ victory:
 | 키워드 | 설명 | 예시 |
 |--------|------|------|
 | `set` | 값 설정 | `set piece.state.x = 1` |
-| `create` | 기물 생성 | `create Pawn at e4` |
+| `create` | 기물 생성 | `create Pawn at e4 for White` |
 | `remove` | 기물 제거 | `remove piece` |
 | `transform` | 타입 변경 | `transform piece to Queen` |
 | `mark` | 효과 적용 | `mark pos with fire` |
+| `move` | 기물 이동 | `move piece to target` |
 | `win` | 승자 선언 | `win White` |
+| `lose` | 패자 선언 | `lose Black` |
 | `draw` | 무승부 선언 | `draw` |
+
+### 내장 특성 (Traits)
+
+| 특성 | 설명 |
+|------|------|
+| `royal` | 잡히면 패배 (체크메이트 대상) |
+| `jump` | 다른 기물을 뛰어넘을 수 있음 |
+| `phase` | 다른 기물을 통과할 수 있음 |
+| `promote` | 끝에 도달하면 승진 가능 |
+| `immune` | 잡히지 않음 |
+| `explosive` | 잡히면 주변 기물을 파괴 |
 
 ## 레벨 3 키워드
 
