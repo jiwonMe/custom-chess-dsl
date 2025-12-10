@@ -1411,6 +1411,9 @@ export class GameEngine {
         this.board.removePiece(piece.pos);
       }
       this.syncState();
+      
+      // Check if any royal piece was removed (game ending condition)
+      this.checkRoyalPieceRemoved(piecesToRemove);
       return;
     }
 
@@ -1421,6 +1424,30 @@ export class GameEngine {
       const piece = target as Piece;
       this.board.removePiece(piece.pos);
       this.syncState();
+      
+      // Check if royal piece was removed
+      this.checkRoyalPieceRemoved([piece]);
+    }
+  }
+
+  /**
+   * Check if any royal piece was removed and end the game
+   */
+  private checkRoyalPieceRemoved(removedPieces: Piece[]): void {
+    for (const piece of removedPieces) {
+      // Check if piece has 'royal' trait (King)
+      const hasRoyalTrait = piece.traits.has('royal') || piece.type === 'King';
+      
+      if (hasRoyalTrait && !this.state.result) {
+        // The player whose King was removed loses
+        const winner = piece.owner === 'White' ? 'Black' : 'White';
+        this.state.result = {
+          winner,
+          reason: `${piece.owner}'s King was destroyed`,
+          isDraw: false,
+        };
+        break;
+      }
     }
   }
 
