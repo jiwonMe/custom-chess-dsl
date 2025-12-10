@@ -18,12 +18,11 @@ description: ChessLang 조건 완전 레퍼런스
 | `empty` | 대상 칸이 비어있음 | `step(forward) where empty` |
 | `enemy` | 대상에 적 기물이 있음 | `step(diagonal) where enemy` |
 | `friend` | 대상에 아군 기물이 있음 | `step(any) where friend` |
-| `occupied` | 대상에 기물이 있음 | `step(any) where occupied` |
 
 ```chesslang
 piece Pawn {
   move: step(forward) where empty
-  capture: step(forward-diagonal) where enemy
+  capture: step(NE) | step(NW) where enemy   # 대각선 앞으로 잡기
 }
 ```
 
@@ -32,7 +31,6 @@ piece Pawn {
 | 조건 | 설명 | 예시 |
 |------|------|------|
 | `clear` | 경로가 막히지 않음 | `step(forward, 2) where clear` |
-| `blocked` | 경로가 막힘 | 특수 이동에 사용 |
 
 ```chesslang
 piece Pawn {
@@ -49,13 +47,11 @@ piece Rook {
 | 조건 | 설명 | 예시 |
 |------|------|------|
 | `first_move` | 기물이 아직 이동하지 않음 | `step(forward, 2) where first_move` |
-| `has_moved` | 기물이 이동한 적 있음 | `step(any) where has_moved` |
 
 ```chesslang
-piece King {
-  move: step(any)
-  # 캐슬링은 first_move 필요
-  move: castle where first_move and not check
+piece Pawn {
+  move: step(forward) where empty
+  move: step(forward, 2) where first_move and clear and empty
 }
 ```
 
@@ -249,15 +245,17 @@ draw:
 |------|----------|------|
 | `piece` | move, capture | 이동하는 기물 |
 | `origin` | move, capture | 시작 위치 |
-| `target` | move, capture | 종료 위치 |
+| `destination` | move, capture | 종료 위치 |
 | `captured` | capture | 잡힌 기물 |
-| `player` | turn_start, turn_end | 현재 플레이어 |
+| `captured.owner` | capture | 잡힌 기물의 소유자 |
+| `captured.type` | capture | 잡힌 기물의 타입 |
 
 ```chesslang
-trigger on_capture {
+# 폰이 잡히면 좀비로 부활
+trigger pawn_rises {
   on: capture
-  when: piece.type == Pawn and captured.type == Queen
-  do: set piece.state.promoted = true
+  when: captured.type == Pawn
+  do: create Zombie at origin for captured.owner
 }
 ```
 
@@ -280,14 +278,14 @@ trigger knight_bonus {
 
 | 조건 | 설명 | 예시 |
 |------|------|------|
-| `piece.state.X == Y` | 상태 값 확인 | `piece.state.rage >= 3` |
-| `piece.traits.has(X)` | 특성 보유 | `piece.traits.has(royal)` |
+| `piece.state.X == Y` | 상태 값 확인 | `piece.state.traps < 3` |
+| `piece.state.X > N` | 상태 값 비교 | `piece.state.rage >= 3` |
 
 ```chesslang
-trigger rage_attack {
+trigger place_trap {
   on: move
-  when: piece.type == Berserker and piece.state.rage >= 3
-  do: transform piece to RagingBerserker
+  when: piece.type == Trapper and piece.state.traps < 3
+  do: set piece.state.traps = piece.state.traps + 1
 }
 ```
 
@@ -295,31 +293,32 @@ trigger rage_attack {
 
 | 조건 | 설명 | 예시 |
 |------|------|------|
-| `target in zone.X` | 대상이 존에 있음 | `target in zone.danger` |
-| `origin on rank N` | 출발지가 랭크에 있음 | `origin on rank 2` |
-| `distance(a, b) < N` | 거리 확인 | `distance(origin, target) > 3` |
+| `X in zone.Y` | X가 존에 있음 | `King in zone.hill` |
+| `destination in zone.X` | 도착지가 존에 있음 | `destination in zone.safe` |
 
 ```chesslang
-trigger teleport_check {
+trigger zone_victory {
   on: move
-  when: distance(origin, target) > 3
-  do: mark target with warp_effect
+  when: piece.type == King and destination in zone.hill
+  do: win piece.owner
 }
 ```
 
-### 존재 조건
+### 비교 조건
+
+조건에서 다양한 비교 연산을 사용할 수 있습니다:
 
 | 조건 | 설명 | 예시 |
 |------|------|------|
-| `exists piece where X` | 조건에 맞는 기물 존재 | `exists Knight where owner == White` |
-| `all pieces where X` | 모든 기물이 조건 충족 | `all Pawns where on rank 7` |
-| `count pieces where X` | 조건 충족 기물 수 | `count Queens where owner == player` |
+| `piece.type == X` | 기물 타입 비교 | `piece.type == Trapper` |
+| `piece.owner == X` | 소유자 비교 | `piece.owner == White` |
+| `piece.state.X < Y` | 상태 값 비교 | `piece.state.traps < 3` |
 
 ```chesslang
-trigger last_piece {
-  on: capture
-  when: count pieces where owner == captured.owner == 1
-  do: win player
+trigger trapper_action {
+  on: move
+  when: piece.type == Trapper and piece.state.traps < 3
+  do: mark origin with trap
 }
 ```
 
@@ -336,10 +335,7 @@ piece DesperatePawn {
   move: step(forward, 2) where first_move and clear and empty
 
   # 대각선으로 잡기
-  capture: step(forward-diagonal) where enemy
-
-  # 위험할 때 뒤로 이동 가능
-  move: step(backward) where check and empty
+  capture: step(NE) | step(NW) where enemy
 }
 ```
 
@@ -348,35 +344,34 @@ piece DesperatePawn {
 ```chesslang
 trigger promote_on_hill {
   on: move
-  when: piece.type == Pawn and target in zone.hill
+  when: piece.type == Pawn and destination in zone.hill
   do: transform piece to Queen
 }
 
-trigger atomic_explosion {
+# 폰이 잡히면 좀비로 부활
+trigger zombie_rise {
   on: capture
-  when: not (captured.type == Pawn)  # 폰은 폭발하지 않음
-  do: {
-    remove pieces in radius(1) from target
-  }
+  when: captured.type == Pawn
+  do: create Zombie at origin for captured.owner
 }
 ```
 
-### 복잡한 승리 조건
+### 승리 조건 예제
 
 ```chesslang
+# King of the Hill - 중앙 점령
+board:
+  zones:
+    hill: [d4, d5, e4, e5]
+
 victory:
   add:
-    # 레이싱 킹스 - 먼저 8랭크에 도달하면 승리
-    race: King on rank 8 and not opponent.King on rank 8
+    hill: King in zone.hill
 
-    # 깃발 잡기 - 상대 코너에 도달
-    flag: King in zone.opponent_corner
-
-    # 제거 - 모든 기물 잡기
-    elimination: opponent.pieces == 0
-
-    # 기물 우위
-    domination: pieces >= opponent.pieces * 2
+# Three-Check - 3회 체크
+victory:
+  add:
+    three_checks: checks >= 3
 ```
 
 ## 참고

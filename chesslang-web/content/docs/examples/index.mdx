@@ -179,214 +179,181 @@ piece Cannon {
 
 복잡한 동작과 상태를 가진 고급 기물들입니다.
 
-### Vampire (뱀파이어)
+### Berserker (광전사)
 
-잡은 기물을 아군으로 변환합니다.
-
-```chesslang
-game: "Vampire Chess"
-extends: "Standard Chess"
-
-piece Vampire {
-  move: step(any) | leap(2, 0)
-  capture: =move
-  traits: [jump]
-  state: { thralls: 0 }
-  value: 6
-}
-
-# 잡은 기물을 아군으로 변환
-trigger vampiric_conversion {
-  on: capture
-  when: piece.type == Vampire and captured.type != King
-  do: {
-    transform captured to captured.type
-    set captured.owner = piece.owner
-    set piece.state.thralls = piece.state.thralls + 1
-  }
-}
-
-setup:
-  replace:
-    Queen: Vampire
-```
-
-### Necromancer (강령술사)
-
-영혼을 모아 좀비를 소환합니다.
+적을 잡을 때마다 분노가 쌓입니다.
 
 ```chesslang
-game: "Necromancer Chess"
+game: "Berserker Chess"
 extends: "Standard Chess"
 
-piece Necromancer {
-  move: step(diagonal)
-  capture: =move
-  state: { souls: 0 }
-  value: 6
-}
-
-piece Zombie {
-  move: step(forward) | step(orthogonal)
-  capture: step(any) where enemy
-  value: 1
-}
-
-# 아군이 잡을 때마다 영혼 획득
-trigger collect_soul {
-  on: capture
-  when: any Necromancer where owner == piece.owner
-  do: set Necromancer.state.souls = Necromancer.state.souls + 1
-}
-
-# 3개의 영혼으로 좀비 소환
-trigger raise_zombie {
-  on: turn_start
-  when: any Necromancer where state.souls >= 3
-  do: {
-    create Zombie at random_empty_square adjacent to Necromancer
-    set Necromancer.state.souls = Necromancer.state.souls - 3
-  }
-}
-
-setup:
-  add:
-    White Necromancer: [c1]
-    Black Necromancer: [f8]
-```
-
-### Medusa (메두사)
-
-시선에 닿은 적을 동결시킵니다.
-
-```chesslang
-game: "Medusa Chess"
-extends: "Standard Chess"
-
-piece Medusa {
+piece Berserker {
   move: step(any)
-  capture: slide(diagonal) where enemy
-  state: { gazeActive: true }
+  capture: =move
+  state: { rage: 0 }
   value: 5
 }
 
-effect frozen {
-  blocks: [all]
-  duration: 2
-  visual: highlight(cyan, 0.5)
+# 적을 잡을 때마다 분노 증가
+trigger rage_buildup {
+  on: capture
+  when: piece.type == Berserker
+  do: set piece.state.rage = piece.state.rage + 1
 }
 
-# 대각선 시야의 적을 동결
-trigger medusa_gaze {
-  on: turn_start
-  when: any Medusa where state.gazeActive
-  do: mark pieces in line(diagonal) from Medusa where enemy with frozen
+setup:
+  add:
+    White Berserker: [c1]
+    Black Berserker: [f8]
+```
+
+### Cooldown Knight (쿨다운 나이트)
+
+나이트가 이동 후 1턴 동안 쿨다운에 들어갑니다.
+
+```chesslang
+game: "Cooldown Knight Chess"
+extends: "Standard Chess"
+
+piece CooldownKnight {
+  move: leap(2, 1)
+  capture: =move
+  traits: [jump]
+  state: { cooldown: 0 }
+  value: 3
+}
+
+# 이동 후 쿨다운 설정
+trigger knight_cooldown {
+  on: move
+  when: piece.type == CooldownKnight
+  do: set piece.state.cooldown = 2
+}
+
+# 턴마다 쿨다운 감소
+trigger reduce_cooldown {
+  on: turn_end
+  do: {
+    for p in pieces: {
+      if p.state.cooldown > 0: {
+        set p.state.cooldown = p.state.cooldown - 1
+      }
+    }
+  }
 }
 
 setup:
   replace:
-    Queen: Medusa
+    Knight: CooldownKnight
 ```
 
-### Time Bomb (시한폭탄)
+### Zombie Chess (좀비 체스)
 
-3턴 후 대폭발합니다.
-
-```chesslang
-game: "Time Bomb Chess"
-extends: "Standard Chess"
-
-piece TimeBomb {
-  move: step(orthogonal)
-  capture: none
-  state: { timer: 3, armed: true }
-  value: 1
-}
-
-# 턴마다 카운트다운
-trigger bomb_countdown {
-  on: turn_end
-  when: any TimeBomb where state.armed
-  do: set piece.state.timer = piece.state.timer - 1
-}
-
-# 타이머가 0이 되면 폭발
-trigger bomb_explode {
-  on: turn_start
-  when: any TimeBomb where state.timer <= 0
-  do: {
-    remove pieces in radius(2) from TimeBomb where not King
-    remove TimeBomb
-  }
-}
-
-setup:
-  add:
-    White TimeBomb: [d3]
-    Black TimeBomb: [d6]
-```
-
-### Guardian (수호자)
-
-인접한 아군을 보호합니다.
+폰이 잡히면 적 좀비로 부활합니다. 좀비는 부활하지 않습니다.
 
 ```chesslang
-game: "Guardian Chess"
+game: "Zombie Chess"
 extends: "Standard Chess"
 
-piece Guardian {
+piece Zombie {
   move: step(any)
   capture: =move
-  state: { protected: 0 }
-  value: 4
+  traits: [undead]
+  state: { resurrected: true }
+  value: 2
 }
 
-# 인접한 아군이 잡히려 하면 보호
-trigger guardian_protection {
+# 폰이 잡히면 잡는 기물의 원래 위치에 적 좀비로 부활
+# 좀비(Zombie)는 Pawn이 아니므로 이 트리거에 해당하지 않음
+trigger pawn_rises {
   on: capture
-  when: any Guardian adjacent to captured where Guardian.owner == captured.owner
-  do: {
-    cancel    # 잡기 취소
-    set Guardian.state.protected = Guardian.state.protected + 1
-  }
+  when: captured.type == Pawn
+  do: create Zombie at origin for captured.owner
 }
-
-setup:
-  add:
-    White Guardian: [d2, e2]
-    Black Guardian: [d7, e7]
 ```
 
-### Jester (광대)
+### Shield Effect (방어막 효과)
 
-잡는 대신 위치를 교환합니다.
+특정 칸에 방어막을 설치하여 적 이동을 차단합니다.
 
 ```chesslang
-game: "Jester Chess"
+game: "Shield Chess"
 extends: "Standard Chess"
 
-piece Jester {
+effect shield {
+  blocks: enemy
+  visual: "blue"
+}
+
+piece Shielder {
   move: step(any)
-  capture: none        # 잡기 불가
-  state: { swapsUsed: 0 }
+  capture: =move
+  state: { shields: 0 }
   value: 4
 }
 
-# 대상과 위치 교환
-trigger jester_swap {
+trigger place_shield {
   on: move
-  when: piece.type == Jester and target has piece
+  when: piece.type == Shielder and piece.state.shields < 2
+  optional: true
+  description: "방어막을 설치하시겠습니까?"
   do: {
-    let targetPiece = piece_at(target)
-    move targetPiece to origin
-    set piece.state.swapsUsed = piece.state.swapsUsed + 1
+    mark origin with shield
+    set piece.state.shields = piece.state.shields + 1
   }
 }
 
 setup:
   add:
-    White Jester: [d1]
-    Black Jester: [d8]
+    White Shielder: [d2]
+    Black Shielder: [d7]
+```
+
+### Power Warrior (파워 전사)
+
+적을 잡을 때마다 킬 카운트가 증가합니다.
+
+```chesslang
+game: "Power Warrior Chess"
+extends: "Standard Chess"
+
+piece Warrior {
+  move: step(any)
+  capture: =move
+  state: { kills: 0 }
+  value: 4
+}
+
+trigger count_kills {
+  on: capture
+  when: piece.type == Warrior
+  do: set piece.state.kills = piece.state.kills + 1
+}
+
+setup:
+  add:
+    White Warrior: [d2, e2]
+    Black Warrior: [d7, e7]
+```
+
+### Jump Bishop (점프 비숍)
+
+장애물을 뛰어넘을 수 있는 비숍입니다.
+
+```chesslang
+game: "Jump Bishop Chess"
+extends: "Standard Chess"
+
+piece JumpBishop {
+  move: slide(diagonal)
+  capture: =move
+  traits: [phase]      # 기물을 통과할 수 있음
+  value: 4
+}
+
+setup:
+  replace:
+    Bishop: JumpBishop
 ```
 
 ## 효과와 트리거
@@ -415,13 +382,19 @@ victory:
     king_exploded: opponent.King == null
 ```
 
-### Trap Chess
+### Trapper Chess (덫 설치자 체스)
 
-트래퍼 기물이 이동한 자리에 함정을 남깁니다.
+트래퍼 기물이 이동한 자리에 덫을 설치할 수 있습니다. 선택적 트리거를 사용합니다.
 
 ```chesslang
-game: "Trap Chess"
+game: "Trapper Chess"
 extends: "Standard Chess"
+
+# 덫 효과: 적 이동 차단
+effect trap {
+  blocks: enemy
+  visual: "red"
+}
 
 piece Trapper {
   move: step(any)
@@ -430,15 +403,12 @@ piece Trapper {
   value: 3
 }
 
-effect trap {
-  on_enter: capture entering where enemy
-  duration: 5
-  visual: highlight(red, 0.3)
-}
-
+# 선택적 트리거: 사용자가 덫 설치 여부 선택
 trigger place_trap {
   on: move
   when: piece.type == Trapper and piece.state.traps < 3
+  optional: true
+  description: "덫을 설치하시겠습니까?"
   do: {
     mark origin with trap
     set piece.state.traps = piece.state.traps + 1
@@ -447,10 +417,8 @@ trigger place_trap {
 
 setup:
   add:
-    White:
-      Trapper: [d2]
-    Black:
-      Trapper: [d7]
+    White Trapper: [c1]
+    Black Trapper: [c8]
 ```
 
 ## 스크립트 변형 (레벨 3)

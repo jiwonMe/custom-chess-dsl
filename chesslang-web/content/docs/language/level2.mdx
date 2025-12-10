@@ -223,43 +223,45 @@ piece Berserker {
 
 ## 효과 (Effects)
 
-효과는 보드의 칸을 수정합니다:
+효과는 보드의 칸을 수정하여 이동 차단이나 시각적 표시를 할 수 있습니다:
 
 ```chesslang
-effect fire {
-  damages: [any]              # 모든 기물에게 피해
-  visual: highlight(red)
-}
-
-effect ice {
-  blocks: [enemy]             # 적 이동을 막음
-  visual: highlight(blue)
-}
-
 effect trap {
-  on_enter: capture(entering) # 들어오는 기물을 잡음
-  visual: highlight(orange)
+  blocks: enemy              # 적 이동을 막음
+  visual: "red"              # 빨간색 표시
+}
+
+effect shield {
+  blocks: enemy              # 적 이동을 막음
+  visual: "blue"             # 파란색 표시
+}
+
+effect lava {
+  blocks: all                # 모든 이동을 막음
+  visual: "orange"           # 주황색 표시
 }
 ```
 
 ### 효과 속성
 
-| 속성 | 설명 |
-|------|------|
-| `damages` | 피해를 받는 기물 |
-| `blocks` | 진입할 수 없는 기물 |
-| `on_enter` | 기물이 들어올 때 액션 |
-| `on_exit` | 기물이 나갈 때 액션 |
-| `duration` | 효과 지속 시간 (턴) |
-| `visual` | 시각적 표현 |
+| 속성 | 값 | 설명 |
+|------|-----|------|
+| `blocks` | `none` | 이동 차단 없음 (기본값) |
+| | `enemy` | 효과 소유자의 적 기물 이동 차단 |
+| | `friend` | 효과 소유자의 아군 기물 이동 차단 |
+| | `all` | 모든 기물 이동 차단 |
+| `visual` | 문자열 | 시각적 표시 색상 (예: `"red"`, `"blue"`) |
 
-### 시각 효과
+### 효과 사용하기
+
+효과는 `mark` 액션으로 칸에 적용됩니다:
 
 ```chesslang
-effect glow {
-  visual: highlight(yellow)
-  visual: border(gold)
-  visual: icon("star")
+# 트리거에서 효과 적용
+trigger place_trap {
+  on: move
+  when: piece.type == Trapper
+  do: mark origin with trap
 }
 ```
 
@@ -291,11 +293,39 @@ trigger multi_action {
 
 ```chesslang
 trigger name {
-  on: event           # 언제 발동할지
-  when: condition     # 추가 조건
-  do: action          # 무엇을 할지
+  on: event              # 언제 발동할지
+  when: condition        # 추가 조건 (선택)
+  optional: true         # 선택적 트리거 (선택)
+  description: "메시지"  # 선택 다이얼로그 메시지 (선택)
+  do: action             # 무엇을 할지
 }
 ```
+
+### 선택적 트리거 (Optional Triggers)
+
+`optional: true`를 사용하면 사용자에게 트리거 실행 여부를 묻습니다:
+
+```chesslang
+trigger place_trap {
+  on: move
+  when: piece.type == Trapper and piece.state.traps < 3
+  optional: true
+  description: "덫을 설치하시겠습니까?"
+  do: {
+    mark origin with trap
+    set piece.state.traps = piece.state.traps + 1
+  }
+}
+```
+
+**키보드 단축키:**
+- `Y` / `Enter`: 트리거 실행
+- `N` / `Escape`: 건너뛰기
+
+| 속성 | 필수 | 설명 |
+|------|------|------|
+| `optional` | 아니오 | `true`면 사용자에게 선택권 부여 |
+| `description` | 아니오 | 선택 다이얼로그에 표시할 메시지 |
 
 ### 이벤트
 
@@ -366,38 +396,67 @@ victory:
 
 ### Trapper Chess
 
+선택적 트리거를 사용한 덫 설치 게임입니다:
+
 ```chesslang
 game: "Trapper Chess"
 extends: "Standard Chess"
 
+# 덫 효과: 적 이동 차단
+effect trap {
+  blocks: enemy
+  visual: "red"
+}
+
+# 트래퍼 기물: 이동 후 덫 설치 가능
 piece Trapper {
   move: step(any)
   capture: =move
-  state: { traps_placed: 0 }
+  state: { traps: 0 }
   value: 3
 }
 
-effect trap {
-  on_enter: capture(entering) where enemy
-  duration: 5
-  visual: highlight(red, 0.3)
-}
-
+# 선택적 트리거: 사용자가 덫 설치 여부 선택
 trigger place_trap {
   on: move
-  when: piece.type == Trapper and piece.state.traps_placed < 3
+  when: piece.type == Trapper and piece.state.traps < 3
+  optional: true
+  description: "덫을 설치하시겠습니까?"
   do: {
     mark origin with trap
-    set piece.state.traps_placed = piece.state.traps_placed + 1
+    set piece.state.traps = piece.state.traps + 1
   }
 }
 
 setup:
   add:
-    White:
-      Trapper: [d1]
-    Black:
-      Trapper: [d8]
+    White Trapper: [c1]
+    Black Trapper: [c8]
+```
+
+### Zombie Chess
+
+폰이 잡히면 좀비로 부활하는 변형입니다:
+
+```chesslang
+game: "Zombie Chess"
+extends: "Standard Chess"
+
+# 좀비: 모든 방향으로 한 칸씩 이동
+piece Zombie {
+  move: step(any)
+  capture: =move
+  traits: [undead]
+  state: { resurrected: true }
+}
+
+# 폰이 잡히면 잡는 기물의 원래 위치에 적 좀비로 부활
+# 좀비(Zombie)는 Pawn이 아니므로 이 트리거에 해당하지 않음 → 좀비는 부활하지 않음
+trigger pawn_rises {
+  on: capture
+  when: captured.type == Pawn
+  do: create Zombie at origin for captured.owner
+}
 ```
 
 ### Cannon Chess
@@ -460,7 +519,9 @@ setup:
 
 ## 고급 커스텀 기물
 
-더 복잡한 동작을 가진 기물들의 예제입니다.
+> ⚠️ **참고:** 아래 예제들은 ChessLang의 설계 비전을 보여주는 것으로, 일부 기능(예: `any X where`, `adjacent to`, `pieces in radius`)은 아직 개발 중입니다. 현재 구현된 기능만 사용하는 예제는 [Trapper Chess](#trapper-chess), [Zombie Chess](#zombie-chess)를 참고하세요.
+
+더 복잡한 동작을 가진 기물들의 설계 예제입니다.
 
 ### Vampire (뱀파이어)
 
@@ -630,9 +691,8 @@ piece Medusa {
 }
 
 effect frozen {
-  blocks: [all]
-  duration: 2
-  visual: highlight(cyan, 0.5)
+  blocks: all
+  visual: "cyan"
 }
 
 trigger medusa_gaze {

@@ -120,16 +120,19 @@ board:
 
 ### 시각적 표시 추가
 
-존에 시각적 효과를 추가할 수 있습니다 (레벨 2):
+효과를 정의하고 특정 칸에 적용할 수 있습니다 (레벨 2):
 
 ```chesslang
 effect hill_marker {
-  visual: highlight(gold, 0.3)
+  blocks: none
+  visual: "gold"
 }
 
-trigger mark_hill {
-  on: game_start
-  do: mark zone.hill with hill_marker
+# 트리거를 사용해 특정 칸에 효과 적용
+trigger mark_center {
+  on: move
+  when: destination in zone.hill
+  do: mark destination with hill_marker
 }
 ```
 

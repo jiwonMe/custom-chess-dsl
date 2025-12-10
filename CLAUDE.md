@@ -123,38 +123,48 @@ interface Piece {
 
 // Move
 interface Move {
-    type: 'normal' | 'capture' | 'castle' | 'en_passant' | 'promotion';
+    type: 'normal' | 'capture' | 'castle_kingside' | 'castle_queenside' 
+        | 'en_passant' | 'promotion' | 'custom';
     piece: Piece;
     from: Position;
     to: Position;
     captured?: Piece;
+    promotion?: string;
+    metadata?: Record<string, unknown>;
 }
 
 // Pattern
 type Pattern = 
     | { type: 'step'; direction: Direction; distance?: number }
     | { type: 'slide'; direction: Direction }
-    | { type: 'leap'; vector: [number, number] }
-    | { type: 'composite'; op: 'or' | 'then'; patterns: Pattern[] };
+    | { type: 'leap'; dx: number; dy: number }
+    | { type: 'hop'; direction: Direction }
+    | { type: 'composite'; op: 'or' | 'then'; patterns: Pattern[] }
+    | { type: 'conditional'; pattern: Pattern; condition: Condition }
+    | { type: 'reference'; name: string };
 ```
 
 ### 문법 키워드
 
-**Level 1**: `game`, `extends`, `board`, `pieces`, `setup`, `victory`, `draw`, `rules`
+**Level 1**: `game`, `extends`, `board`, `size`, `zones`, `pieces`, `setup`, `victory`, `draw`, `rules`, `add`, `remove`, `replace`
 
-**Level 2**: `piece`, `pattern`, `effect`, `trigger`, `action`, `move`, `capture`, `traits`, `state`, `on`, `when`, `do`, `optional`, `description`, `blocks`, `visual`
+**Level 2**: `piece`, `pattern`, `effect`, `trigger`, `move`, `capture`, `traits`, `state`, `on`, `when`, `do`, `optional`, `description`, `blocks`, `visual`
 
-**Level 3**: `script`, `function`, `let`, `const`, `if`, `else`, `for`, `while`, `return`
+**Level 3**: `script`, `function`, `let`, `const`, `var`, `if`, `else`, `for`, `while`, `return`, `of`, `in`
 
 **Patterns**: `step`, `slide`, `leap`, `hop`
 
-**Directions**: `N`, `S`, `E`, `W`, `NE`, `NW`, `SE`, `SW`, `orthogonal`, `diagonal`, `any`, `forward`
+**Directions**: `N`, `S`, `E`, `W`, `NE`, `NW`, `SE`, `SW`, `orthogonal`, `diagonal`, `any`, `forward`, `backward`
 
-**Conditions**: `empty`, `enemy`, `friend`, `clear`, `check`, `first_move`, `in`, `and`, `or`, `not`
+**Conditions**: `empty`, `enemy`, `friend`, `clear`, `check`, `first_move`, `in`, `and`, `or`, `not`, `where`, `captured`
 
-**Actions**: `set`, `create`, `remove`, `transform`, `mark`, `move`, `win`, `lose`, `draw`
+**Actions**: `set`, `create`, `remove`, `transform`, `mark`, `move`, `win`, `lose`, `draw`, `cancel`, `apply`, `for`, `if`
 
 **Built-in Traits**: `royal`, `jump`, `phase`, `promote`, `immune`, `explosive` (커스텀 trait도 가능)
+
+**Colors**: `White`, `Black`
+
+**Event Types**: `move`, `capture`, `captured`, `turn_start`, `turn_end`, `check`, `enter_zone`, `exit_zone`, `game_start`, `game_end`
 
 ---
 
@@ -204,25 +214,70 @@ trigger <name> {
 
 ---
 
-### Mark 액션
+### 액션 레퍼런스
 
+#### mark 액션
 칸에 효과를 적용하는 액션입니다.
-
 ```
 mark <position> with <effect>
 ```
 
 **position 표현식:**
 - `origin`: 이동 출발 위치
-- `destination` / `target`: 이동 도착 위치
+- `destination`: 이동 도착 위치
 - `piece.pos`: 기물 현재 위치
-- `[e4]`, `{file: 4, rank: 3}`: 특정 위치
 
 **예시:**
 ```
 do: mark origin with trap              # 출발 위치에 덫 설치
 do: mark destination with shield       # 도착 위치에 방어막
-do: mark [d4] with lava                # d4에 용암
+```
+
+#### create 액션
+새 기물을 생성합니다.
+```
+create <PieceType> at <position> [for <owner>]
+```
+
+- `for <owner>`: 선택적. 생략 시 현재 플레이어 또는 컨텍스트(예: `captured.owner`)
+
+**예시:**
+```
+do: create Zombie at origin for captured.owner   # 잡힌 기물 소유자의 좀비 생성
+do: create Queen at destination                   # 현재 플레이어의 퀸 생성
+```
+
+#### set 액션
+값을 설정합니다.
+```
+set <target> = <value>
+set <target> += <value>
+set <target> -= <value>
+```
+
+**예시:**
+```
+do: set piece.state.traps = piece.state.traps + 1
+do: set piece.state.cooldown = 2
+```
+
+#### remove 액션
+기물을 제거합니다.
+```
+remove <target>
+```
+
+#### transform 액션
+기물 타입을 변경합니다.
+```
+transform <target> to <PieceType>
+```
+
+#### 제어 흐름 액션
+```
+for <variable> in <iterable>: { ... }
+if <condition>: { ... } else: { ... }
+cancel                                 # 현재 액션 취소
 ```
 
 ---
@@ -237,13 +292,14 @@ piece.type == King
 piece.owner == White
 piece.state.moves > 0
 piece.state.cooldown <= 0
+captured.type == Pawn
 ```
 
 **논리 연산:**
 ```
 piece.type == Trapper and piece.state.traps < 3
-piece.traits has royal or piece.traits has immune
 not piece.state.moved
+(condition1) or (condition2)
 ```
 
 **내장 조건:**
@@ -251,8 +307,22 @@ not piece.state.moved
 - `enemy`: 목적지에 적 기물
 - `friend`: 목적지에 아군 기물
 - `clear`: 경로가 비어있음
+- `check`: 체크 상태
 - `first_move`: 기물의 첫 이동
-- `in zone.<name>`: 특정 존 내 위치
+- `captured`: 캡처 이벤트에서 잡힌 기물 참조
+
+**존 체크:**
+```
+King in zone.hill          # King이 hill 존 내에 있는지
+piece.pos in zone.center   # 기물 위치가 center 존에 있는지
+```
+
+**컨텍스트 변수:**
+- `piece`: 현재 이동하는 기물
+- `origin`: 이동 출발 위치
+- `destination`: 이동 도착 위치
+- `captured`: 잡힌 기물 (capture 이벤트에서)
+- `captured.owner`: 잡힌 기물의 소유자
 
 ---
 
@@ -277,14 +347,19 @@ not piece.state.moved
 
 **기능 구현 (완료)**
 - [x] 이동 패턴: `step`, `slide`, `leap`, `hop`
-- [x] 패턴 조합: `|` (or), `+` (then)
-- [x] 조건: `where`, `empty`, `enemy`, `friend`, `clear`, `first_move`
+- [x] 패턴 조합: `|` (or), `+` (then), `*` (repeat)
+- [x] 조건: `where`, `empty`, `enemy`, `friend`, `clear`, `first_move`, `check`, `captured`
+- [x] 논리 연산: `and`, `or`, `not`
+- [x] 비교 연산: `==`, `!=`, `<`, `>`, `<=`, `>=`
 - [x] 트리거: `on`, `when`, `do`
-- [x] 액션: `set`, `create`, `remove`, `transform`, `mark`, `win`, `lose`, `draw`
+- [x] 선택적 트리거: `optional: true`, `description`
+- [x] 액션: `set`, `create`, `remove`, `transform`, `mark`, `move`, `win`, `lose`, `draw`, `cancel`, `apply`, `for`, `if`
 - [x] Traits: `royal`, `jump`, `phase`, `promote`, `immune`, `explosive`
 - [x] State: 기물별 상태 추적, 쿨다운 시스템
 - [x] Setup: `add`, `replace` 모드
 - [x] Victory/Draw: `add`, `replace`, `remove` 모드
+- [x] Effect 시스템: `blocks` (enemy/friend/all/none), `visual`
+- [x] 컨텍스트 변수: `piece`, `origin`, `destination`, `captured`, `captured.owner`
 
 **Web Platform (완료)**
 - [x] Next.js 14 App
@@ -298,8 +373,10 @@ not piece.state.moved
 - [ ] Debugger - 게임 상태 추적
 - [ ] LSP - IDE 자동완성, 호버
 - [ ] CLI - 명령줄 도구
-- [ ] `hop` 패턴 완전 구현
-- [ ] 복잡한 `where` 조건
+- [ ] `hop` 패턴 완전 구현 (현재 기본 동작만)
+- [ ] 복잡한 `where` 조건 (범위 기반 조건)
+- [ ] Effect 제거/만료 시스템
+- [ ] 게임 저장/로드 기능
 
 ---
 

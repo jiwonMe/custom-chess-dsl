@@ -70,28 +70,23 @@ piece King {
 |------|-----|-----|------|
 | `forward` | N | S | 상대 쪽으로 |
 | `backward` | S | N | 자기 쪽으로 |
-| `left` | W | E | 플레이어의 왼쪽 |
-| `right` | E | W | 플레이어의 오른쪽 |
 
 ```chesslang
 piece Pawn {
   move: step(forward)           # 백은 N, 흑은 S
-  capture: step(forward-left) | step(forward-right)
+  capture: step(NE) | step(NW)  # 대각선 앞으로 잡기
 }
 ```
 
-### 상대 대각선 방향
+### 대각선 잡기
 
-| 방향 | 백 | 흑 | 설명 |
-|------|-----|-----|------|
-| `forward-left` | NW | SE | 앞 왼쪽 |
-| `forward-right` | NE | SW | 앞 오른쪽 |
-| `backward-left` | SW | NE | 뒤 왼쪽 |
-| `backward-right` | SE | NW | 뒤 오른쪽 |
+폰의 대각선 잡기는 절대 방향을 사용합니다:
 
 ```chesslang
 piece Pawn {
-  capture: step(forward-left) | step(forward-right)
+  # 백 폰은 NE, NW로 잡기
+  # 흑 폰은 SE, SW로 잡기 (플레이어별로 정의)
+  capture: step(NE) | step(NW) where enemy
 }
 ```
 
@@ -241,7 +236,7 @@ piece Knight {
 piece Pawn {
   move: step(forward) where empty
   move: step(forward, 2) where first_move and clear
-  capture: step(forward-left) | step(forward-right)
+  capture: step(NE) | step(NW) where enemy
   traits: [promote]
 }
 ```
@@ -282,7 +277,7 @@ piece Zebra {
 ```chesslang
 # 베를리나 폰 - 대각선 이동, 앞으로 잡기
 piece BerolinaPawn {
-  move: step(forward-left) | step(forward-right) where empty
+  move: step(NE) | step(NW) where empty
   capture: step(forward) where enemy
   traits: [promote]
 }

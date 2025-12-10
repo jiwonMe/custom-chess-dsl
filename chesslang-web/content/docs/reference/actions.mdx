@@ -57,32 +57,36 @@ trigger level_up {
 ```chesslang
 create Pawn at e4
 create Queen at d1 for White
-create piece.type at target
+create Zombie at origin for captured.owner
 ```
 
 **매개변수:**
 
-| 매개변수 | 설명 |
-|----------|------|
-| type | 생성할 기물 타입 |
-| position | 배치할 위치 |
-| owner | 소유자 플레이어 (선택) |
+| 매개변수 | 필수 | 설명 |
+|----------|------|------|
+| type | 예 | 생성할 기물 타입 |
+| position | 예 | 배치할 위치 (`at` 키워드) |
+| owner | 아니오 | 소유자 플레이어 (`for` 키워드, 생략 시 현재 플레이어) |
+
+**위치 표현식:**
+- `origin`: 이동 출발 위치
+- `destination` / `target`: 이동 도착 위치
+- `e4`, `[e4]`: 특정 칸
 
 **예시:**
 
 ```chesslang
-trigger spawn_reinforcement {
-  on: turn_start
-  when: game.turnNumber % 10 == 0
-  do: create Pawn at random_empty(zone.spawn)
+# 좀비 체스: 폰이 잡히면 적 좀비로 부활
+trigger pawn_rises {
+  on: capture
+  when: captured.type == Pawn
+  do: create Zombie at origin for captured.owner
 }
 
 trigger split {
   on: move
   when: piece.type == Divider
-  do: {
-    create Pawn at origin for piece.owner
-  }
+  do: create Pawn at origin for piece.owner
 }
 ```
 
@@ -168,31 +172,30 @@ trigger rage_mode {
 칸에 효과를 적용합니다:
 
 ```chesslang
-mark target with fire
-mark origin with trap
-mark pos with effect for duration
+mark target with trap
+mark origin with shield
+mark [e4] with lava
 ```
 
 **매개변수:**
 
 | 매개변수 | 설명 |
 |----------|------|
-| position | 표시할 칸 |
-| effect | 적용할 효과 |
-| duration | 지속 시간 (선택) |
+| position | 표시할 칸 (`origin`, `destination`, `[e4]` 등) |
+| effect | 적용할 효과 (`with` 키워드) |
+
+**위치 표현식:**
+- `origin`: 이동 출발 위치
+- `destination` / `target`: 이동 도착 위치
+- `piece.pos`: 기물 현재 위치
+- `[e4]`, `{file: 4, rank: 3}`: 특정 위치
 
 **예시:**
 
 ```chesslang
-effect fire {
-  damages: [any]
-  visual: highlight(red)
-}
-
-trigger leave_fire {
-  on: move
-  when: piece.type == Dragon
-  do: mark origin with fire for 3
+effect trap {
+  blocks: enemy
+  visual: "red"
 }
 
 trigger create_trap {
@@ -202,32 +205,6 @@ trigger create_trap {
     mark origin with trap
     set piece.state.traps = piece.state.traps + 1
   }
-}
-```
-
-### unmark
-
-칸에서 효과를 제거합니다:
-
-```chesslang
-unmark target
-unmark pos with fire
-unmark all with ice
-```
-
-**예시:**
-
-```chesslang
-trigger cleanse {
-  on: move
-  when: piece.type == Healer
-  do: unmark target
-}
-
-trigger melt_ice {
-  on: turn_start
-  when: game.state.temperature > 0
-  do: unmark all with ice
 }
 ```
 
@@ -301,21 +278,21 @@ trigger mutual_destruction {
 }
 ```
 
-### end_turn
+### cancel
 
-현재 턴을 종료합니다:
+현재 액션/이벤트를 취소합니다:
 
 ```chesslang
-end_turn
+cancel
 ```
 
 **예시:**
 
 ```chesslang
-trigger forced_end {
-  on: move
-  when: piece.type == Sprinter
-  do: end_turn
+trigger guardian_protection {
+  on: capture
+  when: any Guardian adjacent to captured where Guardian.owner == captured.owner
+  do: cancel    # 잡기 취소 - 기물이 보호됨
 }
 ```
 
@@ -337,127 +314,106 @@ trigger complex_capture {
 }
 ```
 
-### 조건부 액션
+### for 루프
 
-액션 내에서 조건을 사용합니다:
+반복적으로 액션을 실행합니다:
+
+```chesslang
+for variable in iterable: {
+  actions
+}
+```
+
+**예시:**
+
+```chesslang
+trigger clear_all_traps {
+  on: turn_start
+  when: piece.type == Cleaner
+  do: {
+    for p in pieces where type == Trap {
+      remove p
+    }
+  }
+}
+```
+
+### if 조건문
+
+조건에 따라 다른 액션을 실행합니다:
+
+```chesslang
+if condition: {
+  then_actions
+} else: {
+  else_actions
+}
+```
+
+**예시:**
 
 ```chesslang
 trigger conditional_reward {
   on: capture
   do: {
-    if captured.value >= 5 {
+    if captured.value >= 5: {
       transform piece to piece.state.evolved_form
-    } else {
+    } else: {
       set piece.state.exp = piece.state.exp + captured.value
     }
   }
 }
 ```
 
-## 효과 액션
-
-효과 정의에서 사용되는 액션들:
-
-### on_enter
-
-기물이 칸에 들어올 때 액션:
-
-```chesslang
-effect spike_trap {
-  on_enter: {
-    damage entering by 1
-    remove entering where hp <= 0
-  }
-}
-```
-
-### on_exit
-
-기물이 칸에서 나갈 때 액션:
-
-```chesslang
-effect sticky {
-  on_exit: {
-    set exiting.state.slowed = true
-  }
-}
-```
-
-### on_turn
-
-매 턴 액션:
-
-```chesslang
-effect poison {
-  on_turn: {
-    damage occupant by 1
-  }
-}
-```
-
 ## 완전한 예시
 
-### Atomic Chess 폭발
+### Trapper Chess (덫 설치자 체스)
+
+선택적 트리거를 사용한 덫 설치 게임입니다:
 
 ```chesslang
-trigger atomic_explosion {
-  on: capture
-  do: {
-    # 잡는 기물 제거
-    remove piece
-
-    # 폰을 제외한 인접 기물 모두 제거
-    for p in pieces in radius(1) from target {
-      if p.type != Pawn {
-        remove p
-      }
-    }
-  }
+# 덫 효과: 적 이동 차단
+effect trap {
+  blocks: enemy
+  visual: "red"
 }
-```
 
-### Trapper 기물
-
-```chesslang
 piece Trapper {
   move: step(any)
   capture: =move
-  state: { traps_placed: 0, max_traps: 3 }
+  state: { traps: 0 }
 }
 
-effect trap {
-  on_enter: capture entering where enemy
-  duration: 5
-  visual: highlight(red, 0.3)
-}
-
+# 선택적 트리거: 사용자가 덫 설치 여부 선택
 trigger place_trap {
   on: move
-  when: piece.type == Trapper and piece.state.traps_placed < piece.state.max_traps
+  when: piece.type == Trapper and piece.state.traps < 3
+  optional: true
+  description: "덫을 설치하시겠습니까?"
   do: {
     mark origin with trap
-    set piece.state.traps_placed = piece.state.traps_placed + 1
+    set piece.state.traps = piece.state.traps + 1
   }
 }
 ```
 
-### Phoenix 부활
+### Zombie Chess (좀비 체스)
+
+폰이 잡히면 좀비로 부활합니다:
 
 ```chesslang
-piece Phoenix {
-  move: slide(diagonal)
+piece Zombie {
+  move: step(any)
   capture: =move
-  state: { rebirths: 0, max_rebirths: 1 }
-  value: 7
+  traits: [undead]
+  state: { resurrected: true }
 }
 
-trigger phoenix_rebirth {
+# 폰이 잡히면 잡는 기물의 원래 위치에 적 좀비로 부활
+trigger pawn_rises {
   on: capture
-  when: captured.type == Phoenix and captured.state.rebirths < captured.state.max_rebirths
-  do: {
-    create Phoenix at captured.start_pos for captured.owner
-    set created.state.rebirths = captured.state.rebirths + 1
-  }
+  when: captured.type == Pawn
+  do: create Zombie at origin for captured.owner
 }
 ```
 
@@ -465,7 +421,7 @@ trigger phoenix_rebirth {
 
 ```chesslang
 piece Warrior {
-  move: step(any) * (1 + state.power)
+  move: step(any)
   capture: =move
   state: { power: 0, kills: 0 }
 }
@@ -475,10 +431,6 @@ trigger warrior_power_up {
   when: piece.type == Warrior
   do: {
     set piece.state.kills = piece.state.kills + 1
-    if piece.state.kills >= 3 {
-      set piece.state.power = piece.state.power + 1
-      set piece.state.kills = 0
-    }
   }
 }
 ```

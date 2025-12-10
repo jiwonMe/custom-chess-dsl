@@ -106,13 +106,15 @@ victory:
 
 | 키워드 | 설명 | 예시 |
 |--------|------|------|
-| `effect` | 보드 효과 정의 | `effect fire { }` |
-| `damages` | 피해 대상 | `damages: [any]` |
-| `blocks` | 차단 대상 | `blocks: [enemy]` |
-| `on_enter` | 진입 액션 | `on_enter: capture(entering)` |
-| `on_exit` | 퇴장 액션 | `on_exit: heal(exiting)` |
-| `duration` | 효과 지속 시간 | `duration: 3` |
-| `visual` | 시각 스타일 | `visual: highlight(red)` |
+| `effect` | 보드 효과 정의 | `effect trap { }` |
+| `blocks` | 이동 차단 대상 | `blocks: enemy` |
+| `visual` | 시각적 표시 | `visual: "red"` |
+
+**blocks 값:**
+- `none`: 차단 없음 (기본값)
+- `enemy`: 효과 소유자의 적 기물 차단
+- `friend`: 효과 소유자의 아군 기물 차단
+- `all`: 모든 기물 차단
 
 ### 트리거
 
@@ -121,6 +123,8 @@ victory:
 | `trigger` | 트리거 정의 | `trigger explode { }` |
 | `on` | 이벤트 타입 | `on: capture` |
 | `when` | 조건 | `when: piece.type == Bomb` |
+| `optional` | 선택적 트리거 | `optional: true` |
+| `description` | 선택 다이얼로그 메시지 | `description: "실행할까요?"` |
 | `do` | 액션 | `do: remove piece` |
 
 ### 이벤트
@@ -143,11 +147,14 @@ victory:
 | `create` | 기물 생성 | `create Pawn at e4 for White` |
 | `remove` | 기물 제거 | `remove piece` |
 | `transform` | 타입 변경 | `transform piece to Queen` |
-| `mark` | 효과 적용 | `mark pos with fire` |
+| `mark` | 효과 적용 | `mark origin with trap` |
 | `move` | 기물 이동 | `move piece to target` |
 | `win` | 승자 선언 | `win White` |
 | `lose` | 패자 선언 | `lose Black` |
 | `draw` | 무승부 선언 | `draw` |
+| `cancel` | 현재 이벤트 취소 | `cancel` |
+| `for` | 루프 실행 | `for p in pieces: remove p` |
+| `if` | 조건부 실행 | `if x > 0: set y = 1` |
 
 ### 내장 특성 (Traits)
 
@@ -273,8 +280,10 @@ victory:
 ```
 game, extends, board, size, zones, setup, pieces, victory, draw, rules,
 piece, pattern, effect, trigger, action, move, capture, traits, state,
-on, when, do, where, if, else, for, while, break, continue, return,
+on, when, do, where, optional, description, blocks, visual,
+if, else, for, while, break, continue, return,
 function, let, const, script, true, false, null, and, or, not,
+set, create, remove, transform, mark, win, lose, cancel,
 White, Black, King, Queen, Rook, Bishop, Knight, Pawn
 ```
 

@@ -189,6 +189,7 @@ leap_pattern    = "leap" "(" number "," number ")" ;
 hop_pattern     = "hop" "(" direction ")" ;
 direction       = "N" | "S" | "E" | "W" | "NE" | "NW" | "SE" | "SW" 
                 | "orthogonal" | "diagonal" | "any" | "forward" | "backward" ;
+(* N=North, S=South, E=East, W=West, NE=Northeast, etc. *)
 condition_clause= "where" condition_expr ;
 
 (* Piece Definition *)
@@ -199,7 +200,7 @@ move_def        = "move:" pattern_expr ;
 capture_def     = "capture:" (pattern_expr | "=move" | "none") ;
 traits_def      = "traits:" "[" trait_list "]" ;
 trait_list      = trait ("," trait)* ;
-trait           = "royal" | "jump" | "promote" | identifier ;
+trait           = "royal" | "jump" | "phase" | "promote" | "immune" | "explosive" | identifier ;
 state_def       = "state:" "{" state_pairs "}" ;
 state_pairs     = (identifier ":" literal)* ;
 
@@ -215,16 +216,17 @@ trigger_def     = "trigger" identifier "{" trigger_body "}" ;
 trigger_body    = on_clause when_clause? optional_clause? description_clause? do_clause ;
 on_clause       = "on:" event_type ;
 event_type      = "move" | "capture" | "captured" | "turn_start" | "turn_end" 
-                | "check" | "enter_zone" | "exit_zone" ;
+                | "check" | "enter_zone" | "exit_zone" | "game_start" | "game_end" ;
 when_clause     = "when:" condition_expr ;
 optional_clause = "optional:" boolean ;
 description_clause = "description:" string ;
 do_clause       = "do:" action_list | "do:" "{" action_list "}" ;
 action_list     = action+ ;
 action          = set_action | create_action | remove_action | transform_action 
-                | mark_action | move_action | win_action | lose_action | draw_action ;
+                | mark_action | move_action | win_action | lose_action | draw_action
+                | cancel_action | apply_action | for_action | if_action ;
 set_action      = "set" lvalue ("=" | "+=" | "-=") rvalue ;
-create_action   = "create" identifier "at" position_expr "for" color ;
+create_action   = "create" identifier "at" position_expr ("for" owner_expr)? ;
 remove_action   = "remove" target_expr ;
 transform_action= "transform" target_expr "to" identifier ;
 mark_action     = "mark" position_expr "with" identifier ;
@@ -232,6 +234,11 @@ move_action     = "move" target_expr "to" position_expr ;
 win_action      = "win" color_expr ;
 lose_action     = "lose" color_expr ;
 draw_action     = "draw" string? ;
+cancel_action   = "cancel" ;
+apply_action    = "apply" identifier "to" target_expr ;
+for_action      = "for" identifier "in" iterable_expr ":" "{" action_list "}" ;
+if_action       = "if" condition_expr ":" "{" action_list "}" ("else" ":" "{" action_list "}")? ;
+owner_expr      = color | value_expr ;
 
 (* Condition Expression *)
 condition_expr  = condition_term (("and" | "or") condition_term)* ;
@@ -240,7 +247,7 @@ condition_factor= comparison | membership | builtin_cond | "(" condition_expr ")
 comparison      = value_expr comp_op value_expr ;
 comp_op         = "==" | "!=" | "<" | ">" | "<=" | ">=" ;
 membership      = value_expr "in" collection_expr ;
-builtin_cond    = "empty" | "enemy" | "friend" | "clear" | "check" | identifier ;
+builtin_cond    = "empty" | "enemy" | "friend" | "clear" | "check" | "first_move" | "captured" | identifier ;
 
 (* Value Expressions *)
 value_expr      = literal | lvalue | function_call ;
@@ -354,21 +361,53 @@ arrow_func      = (identifier | "(" param_list? ")") "=>" (expression | block) ;
 ```typescript
 // Token types
 enum TokenType {
-    // Keywords
-    GAME, EXTENDS, BOARD, PIECE, EFFECT, TRIGGER, PATTERN,
-    MOVE, CAPTURE, TRAITS, STATE, ON, WHEN, DO, SCRIPT,
+    // Level 1 Keywords
+    GAME, EXTENDS, BOARD, SIZE, ZONES, PIECES, SETUP, 
+    VICTORY, DRAW, RULES, ADD, REMOVE, REPLACE,
+    
+    // Level 2 Keywords
+    PIECE, EFFECT, TRIGGER, PATTERN, MOVE, CAPTURE, 
+    TRAITS, STATE, ON, WHEN, DO, BLOCKS, VISUAL, 
+    OPTIONAL, DESCRIPTION,
+    
+    // Level 3 Keywords
+    SCRIPT, FUNCTION, LET, CONST, VAR, IF, ELSE, 
+    FOR, WHILE, RETURN, OF, IN,
+    
+    // Pattern Keywords
+    STEP, SLIDE, LEAP, HOP,
+    
+    // Direction Keywords
+    N, S, E, W, NE, NW, SE, SW, 
+    ORTHOGONAL, DIAGONAL, ANY, FORWARD, BACKWARD,
+    
+    // Condition Keywords
+    EMPTY, ENEMY, FRIEND, CLEAR, CHECK, FIRST_MOVE, CAPTURED,
+    
+    // Action Keywords
+    SET, CREATE, TRANSFORM, MARK, WIN, LOSE, CANCEL, APPLY,
+    
+    // Logical Keywords
+    AND, OR, NOT, WHERE,
     
     // Literals
-    NUMBER, STRING, BOOLEAN, IDENTIFIER, SQUARE,
+    NUMBER, STRING, BOOLEAN, NULL, IDENTIFIER, SQUARE,
+    
+    // Colors
+    WHITE, BLACK,
     
     // Operators
-    COLON, COMMA, DOT, PIPE, PLUS, STAR, EQUALS,
+    COLON, COMMA, DOT, PIPE, PLUS, MINUS, STAR, SLASH, PERCENT,
+    EQUALS, PLUS_EQUALS, MINUS_EQUALS, STAR_EQUALS, SLASH_EQUALS,
+    EQ, STRICT_EQ, NE, STRICT_NE, LT, GT, LE, GE,
+    AMPERSAND, DOUBLE_AMPERSAND, DOUBLE_PIPE, BANG, QUESTION,
+    ARROW, FAT_ARROW,
+    
+    // Brackets
     LPAREN, RPAREN, LBRACE, RBRACE, LBRACKET, RBRACKET,
-    EQ, NE, LT, GT, LE, GE, AND, OR, NOT,
-    PLUS_EQ, MINUS_EQ,
     
     // Special
-    INDENT, DEDENT, NEWLINE, EOF, ERROR
+    INDENT, DEDENT, NEWLINE, SEMICOLON, EOF, ERROR
 }
 
 interface Token {
@@ -870,12 +909,14 @@ trigger mark_rook_moved {
 }
 
 setup:
-    White:
-        rank(1): [R, N, B, Q, K, B, N, R]
-        rank(2): P * 8
-    Black:
-        rank(8): [R, N, B, Q, K, B, N, R]
-        rank(7): P * 8
+    # 이상적인 문법 (future):
+    # White:
+    #     rank(1): [R, N, B, Q, K, B, N, R]
+    #     rank(2): P * 8
+    
+    # 현재 지원되는 문법:
+    # White: { e1: King, d1: Queen, ... }
+    # 또는 extends: "Standard Chess" 사용 시 자동 설정
 
 victory:
     checkmate: in_check and no_legal_moves
