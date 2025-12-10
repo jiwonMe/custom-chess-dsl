@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Editor } from '@/components/editor/Editor';
 import { Board } from '@/components/board/Board';
 import { Button } from '@/components/ui/button';
-import { useEditorStore, EXAMPLE_CATEGORIES, EXAMPLE_NAMES } from '@/stores/editorStore';
+import { useEditorStore, EXAMPLE_CATEGORIES, EXAMPLE_NAMES, EXAMPLES } from '@/stores/editorStore';
 import { useGameStore } from '@/stores/gameStore';
 import { useEngine } from '@/hooks/useEngine';
 import {
@@ -16,6 +17,7 @@ import {
   ChevronDown,
   Code2,
   Gamepad2,
+  Share2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { OptionalTriggerDialog } from '@/components/board/OptionalTriggerDialog';
@@ -24,7 +26,10 @@ import type { Position, Move } from '@/types';
 // 모바일 탭 타입
 type MobileTab = 'editor' | 'game';
 
-export default function PlaygroundPage() {
+// Playground 내용 컴포넌트 (useSearchParams 사용을 위해 분리)
+function PlaygroundContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const { code, setCode, errors, showProblems, toggleProblems, loadExample } = useEditorStore();
   const {
     gameState,
@@ -40,11 +45,21 @@ export default function PlaygroundPage() {
 
   // 모바일 탭 상태
   const [mobileTab, setMobileTab] = useState<MobileTab>('game');
+  const [currentExampleId, setCurrentExampleId] = useState<string | null>(null);
 
   const { compile, makeMove, reset, undo, executeOptionalTrigger, skipOptionalTrigger, isReady } = useEngine();
 
   // Pending optional triggers
   const pendingTriggers = gameState?.pendingOptionalTriggers ?? [];
+
+  // URL query에서 예제 로드
+  useEffect(() => {
+    const exampleParam = searchParams.get('example');
+    if (exampleParam && exampleParam in EXAMPLES) {
+      loadExample(exampleParam);
+      setCurrentExampleId(exampleParam);
+    }
+  }, [searchParams, loadExample]);
 
   // Compile on mount
   useEffect(() => {
@@ -52,6 +67,24 @@ export default function PlaygroundPage() {
       compile();
     }
   }, [isReady, compile]);
+
+  // 예제 로드 + URL 업데이트
+  const handleLoadExample = useCallback((exId: string) => {
+    loadExample(exId);
+    setCurrentExampleId(exId);
+    setMobileTab('game');
+    // URL 업데이트
+    router.push(`/playground?example=${exId}`, { scroll: false });
+  }, [loadExample, router]);
+
+  // 현재 예제 공유 링크 복사
+  const handleShare = useCallback(() => {
+    const url = currentExampleId
+      ? `${window.location.origin}/playground?example=${currentExampleId}`
+      : `${window.location.origin}/playground`;
+    navigator.clipboard.writeText(url);
+    // TODO: 토스트 알림 추가
+  }, [currentExampleId]);
 
   // Handle move (from Board component)
   const handleMove = useCallback(
@@ -179,12 +212,11 @@ export default function PlaygroundPage() {
                         'w-full px-3 py-2',
                         'text-left text-sm',
                         'hover:bg-accent',
-                        'transition-colors'
+                        'transition-colors',
+                        // 현재 선택된 예제 하이라이트
+                        currentExampleId === exId && 'bg-accent/50 font-medium'
                       )}
-                      onClick={() => {
-                        loadExample(exId);
-                        setMobileTab('game');
-                      }}
+                      onClick={() => handleLoadExample(exId)}
                     >
                       {EXAMPLE_NAMES[exId] ?? exId}
                     </button>
@@ -196,6 +228,9 @@ export default function PlaygroundPage() {
         </div>
 
         <div className="flex items-center gap-1 md:gap-2">
+          <Button onClick={handleShare} variant="ghost" size="icon" className="h-8 w-8" title="Share link">
+            <Share2 className="h-4 w-4" />
+          </Button>
           <Button onClick={handleCompile} disabled={!isReady} size="sm" className="px-2 md:px-3">
             <Play className="h-4 w-4 md:mr-1" />
             <span className="hidden md:inline">Run</span>
@@ -617,4 +652,28 @@ function formatStateValue(key: string, value: unknown): string {
   if (typeof value === 'number') return value.toString();
   if (value === null || value === undefined) return 'null';
   return String(value);
+}
+
+// 메인 페이지 export - Suspense로 감싸서 useSearchParams 사용 가능하게
+export default function PlaygroundPage() {
+  return (
+    <Suspense fallback={<PlaygroundSkeleton />}>
+      <PlaygroundContent />
+    </Suspense>
+  );
+}
+
+// 로딩 스켈레톤
+function PlaygroundSkeleton() {
+  return (
+    <div className="h-[calc(100vh-3.5rem)] flex flex-col">
+      <div className="border-b px-4 py-2 bg-muted/30 h-12" />
+      <div className="flex-1 flex">
+        <div className="w-1/2 border-r bg-muted/20 animate-pulse" />
+        <div className="w-1/2 bg-muted/10 flex items-center justify-center">
+          <div className="text-muted-foreground">Loading...</div>
+        </div>
+      </div>
+    </div>
+  );
 }

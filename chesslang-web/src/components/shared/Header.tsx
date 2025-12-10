@@ -9,9 +9,7 @@ import { cn } from '@/lib/utils/cn';
 
 const navLinks = [
   { href: '/playground', label: '플레이그라운드' },
-  { href: '/play', label: '플레이' },
   { href: '/docs', label: '문서' },
-  { href: '/examples', label: '예제' },
 ];
 
 export function Header() {
