@@ -76,40 +76,41 @@ export function getDocBySlug(slug: string[]): Doc | null {
 export function getDocsNavigation(): NavItem[] {
   return [
     {
-      title: 'Getting Started',
+      title: '시작하기',
       href: '/docs/getting-started',
       items: [
-        { title: 'Introduction', href: '/docs/getting-started' },
-        { title: 'Your First Game', href: '/docs/getting-started/first-game' },
+        { title: '소개', href: '/docs/getting-started' },
+        { title: '첫 번째 게임', href: '/docs/getting-started/first-game' },
       ],
     },
     {
-      title: 'Language Guide',
+      title: '언어 가이드',
       href: '/docs/language',
       items: [
-        { title: 'Overview', href: '/docs/language' },
-        { title: 'Level 1: Configure', href: '/docs/language/level1' },
-        { title: 'Level 2: Compose', href: '/docs/language/level2' },
-        { title: 'Level 3: Script', href: '/docs/language/level3' },
+        { title: '개요', href: '/docs/language' },
+        { title: '레벨 1: Configure', href: '/docs/language/level1' },
+        { title: '레벨 2: Compose', href: '/docs/language/level2' },
+        { title: '레벨 3: Script', href: '/docs/language/level3' },
       ],
     },
     {
-      title: 'Reference',
+      title: '레퍼런스',
       href: '/docs/reference',
       items: [
-        { title: 'Overview', href: '/docs/reference' },
-        { title: 'Keywords', href: '/docs/reference/keywords' },
-        { title: 'Patterns', href: '/docs/reference/patterns' },
-        { title: 'Directions', href: '/docs/reference/directions' },
-        { title: 'Conditions', href: '/docs/reference/conditions' },
-        { title: 'Actions', href: '/docs/reference/actions' },
+        { title: '개요', href: '/docs/reference' },
+        { title: '키워드', href: '/docs/reference/keywords' },
+        { title: '패턴', href: '/docs/reference/patterns' },
+        { title: '방향', href: '/docs/reference/directions' },
+        { title: '조건', href: '/docs/reference/conditions' },
+        { title: '액션', href: '/docs/reference/actions' },
+        { title: '스크립트 API', href: '/docs/reference/script-api' },
       ],
     },
     {
-      title: 'Examples',
+      title: '예제',
       href: '/docs/examples',
       items: [
-        { title: 'All Examples', href: '/docs/examples' },
+        { title: '모든 예제', href: '/docs/examples' },
       ],
     },
   ];

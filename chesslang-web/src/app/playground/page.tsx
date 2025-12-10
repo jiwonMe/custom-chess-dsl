@@ -4,7 +4,7 @@ import { useEffect, useCallback } from 'react';
 import { Editor } from '@/components/editor/Editor';
 import { Board } from '@/components/board/Board';
 import { Button } from '@/components/ui/button';
-import { useEditorStore } from '@/stores/editorStore';
+import { useEditorStore, EXAMPLE_CATEGORIES, EXAMPLE_NAMES } from '@/stores/editorStore';
 import { useGameStore } from '@/stores/gameStore';
 import { useEngine } from '@/hooks/useEngine';
 import {
@@ -14,20 +14,9 @@ import {
   FlipVertical,
   AlertCircle,
   ChevronDown,
-  Share2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import type { Position, Move } from '@/types';
-
-const examples = [
-  { id: 'koth', name: 'King of the Hill' },
-  { id: 'three-check', name: 'Three-Check' },
-  { id: 'atomic', name: 'Atomic Chess' },
-  { id: 'custom', name: 'Custom Pieces' },
-  { id: 'large-board', name: 'Large Board (10x10)' },
-  { id: 'mini-chess', name: 'Mini Chess (5x6)' },
-  { id: 'wide-board', name: 'Wide Board (12x8)' },
-];
 
 export default function PlaygroundPage() {
   const { code, setCode, errors, showProblems, toggleProblems, loadExample } = useEditorStore();
@@ -99,21 +88,59 @@ export default function PlaygroundPage() {
       {/* Toolbar */}
       <div className="border-b px-4 py-2 flex items-center justify-between bg-muted/30">
         <div className="flex items-center gap-2">
-          {/* Examples dropdown */}
+          {/* Examples dropdown with categories */}
           <div className="relative group">
             <Button variant="outline" size="sm">
               Examples
               <ChevronDown className="ml-1 h-4 w-4" />
             </Button>
-            <div className="absolute top-full left-0 mt-1 w-48 bg-popover border rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-              {examples.map((ex) => (
-                <button
-                  key={ex.id}
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-accent transition-colors"
-                  onClick={() => loadExample(ex.id)}
-                >
-                  {ex.name}
-                </button>
+            <div
+              className={cn(
+                // 포지셔닝
+                'absolute top-full left-0 mt-1',
+                // 크기
+                'w-64',
+                // 배경 및 테두리
+                'bg-popover border rounded-md shadow-lg',
+                // 가시성
+                'opacity-0 invisible group-hover:opacity-100 group-hover:visible',
+                // 트랜지션
+                'transition-all',
+                // 스택
+                'z-50',
+                // 스크롤
+                'max-h-[70vh] overflow-y-auto'
+              )}
+            >
+              {Object.entries(EXAMPLE_CATEGORIES).map(([category, examples]) => (
+                <div key={category}>
+                  {/* 카테고리 헤더 */}
+                  <div
+                    className={cn(
+                      'px-3 py-1.5',
+                      'text-xs font-semibold text-muted-foreground',
+                      'bg-muted/50',
+                      'border-b first:rounded-t-md'
+                    )}
+                  >
+                    {category}
+                  </div>
+                  {/* 예제 목록 */}
+                  {examples.map((exId) => (
+                    <button
+                      key={exId}
+                      className={cn(
+                        'w-full px-3 py-2',
+                        'text-left text-sm',
+                        'hover:bg-accent',
+                        'transition-colors'
+                      )}
+                      onClick={() => loadExample(exId)}
+                    >
+                      {EXAMPLE_NAMES[exId] ?? exId}
+                    </button>
+                  ))}
+                </div>
               ))}
             </div>
           </div>
@@ -180,7 +207,7 @@ export default function PlaygroundPage() {
         </div>
 
         {/* Game panel */}
-        <div className="w-1/2 p-4 flex flex-col items-center justify-center bg-muted/10">
+        <div className="w-1/2 p-4 flex flex-col items-center justify-center bg-muted/10 relative">
           {gameState ? (
             <>
               {/* Game info */}
@@ -205,21 +232,109 @@ export default function PlaygroundPage() {
                 )}
               </div>
 
-              {/* Board */}
-              <Board
-                state={{
-                  board: gameState.board,
-                  currentPlayer: gameState.currentPlayer,
-                  lastMove: gameState.lastMove,
-                }}
-                legalMoves={selectedPieceMoves}
-                selectedPiece={selectedPiece}
-                flipped={boardFlipped}
-                interactive={!isGameOver}
-                onSquareClick={handleSquareClick}
-                onPieceSelect={selectPiece}
-                className="w-full max-w-md"
-              />
+              {/* Board with game over overlay */}
+              <div className="relative w-full max-w-md">
+                <Board
+                  state={{
+                    board: gameState.board,
+                    currentPlayer: gameState.currentPlayer,
+                    lastMove: gameState.lastMove,
+                  }}
+                  legalMoves={selectedPieceMoves}
+                  selectedPiece={selectedPiece}
+                  flipped={boardFlipped}
+                  interactive={!isGameOver}
+                  onSquareClick={handleSquareClick}
+                  onPieceSelect={selectPiece}
+                  className="w-full"
+                />
+
+                {/* Game Over Overlay */}
+                {isGameOver && (
+                  <div
+                    className={cn(
+                      // 포지셔닝
+                      'absolute inset-0',
+                      // 플렉스
+                      'flex flex-col items-center justify-center',
+                      // 배경
+                      'bg-black/70 backdrop-blur-sm',
+                      // 애니메이션
+                      'animate-in fade-in duration-300',
+                      // 라운드
+                      'rounded-lg'
+                    )}
+                  >
+                    {/* 승리/무승부 아이콘 */}
+                    <div
+                      className={cn(
+                        // 크기
+                        'text-6xl mb-4',
+                        // 애니메이션
+                        'animate-in zoom-in duration-500'
+                      )}
+                    >
+                      {winner ? (winner === 'White' ? '♔' : '♚') : '🤝'}
+                    </div>
+
+                    {/* 결과 텍스트 */}
+                    <div
+                      className={cn(
+                        // 텍스트
+                        'text-3xl font-bold mb-2',
+                        // 색상
+                        winner === 'White'
+                          ? 'text-white'
+                          : winner === 'Black'
+                          ? 'text-gray-300'
+                          : 'text-yellow-400'
+                      )}
+                    >
+                      {winner ? `${winner} Wins!` : 'Draw!'}
+                    </div>
+
+                    {/* 승리 이유 */}
+                    {gameOverReason && (
+                      <div className="text-lg text-gray-400 mb-6 capitalize">
+                        by {gameOverReason.replace(/_/g, ' ')}
+                      </div>
+                    )}
+
+                    {/* 버튼들 */}
+                    <div className="flex gap-3">
+                      <Button
+                        onClick={reset}
+                        className={cn(
+                          // 배경
+                          'bg-emerald-600 hover:bg-emerald-700',
+                          // 텍스트
+                          'text-white font-semibold',
+                          // 패딩
+                          'px-6 py-2'
+                        )}
+                      >
+                        <RotateCcw className="mr-2 h-4 w-4" />
+                        Play Again
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={undo}
+                        className={cn(
+                          // 보더
+                          'border-gray-500',
+                          // 텍스트
+                          'text-gray-300 hover:text-white',
+                          // 배경
+                          'hover:bg-gray-700'
+                        )}
+                      >
+                        <Undo2 className="mr-2 h-4 w-4" />
+                        Undo
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Move history */}
               {gameState.moveHistory.length > 0 && (

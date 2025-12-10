@@ -92,6 +92,9 @@ export class Compiler {
     // Compile rules
     const rules = this.compileRules(this.ast.rules);
 
+    // Compile scripts
+    const scripts = this.ast.scripts.map((s) => s.code);
+
     if (this.errors.length > 0) {
       throw this.errors[0];
     }
@@ -107,6 +110,7 @@ export class Compiler {
       victory,
       draw,
       rules,
+      scripts,
     };
   }
 
@@ -275,6 +279,12 @@ export class Compiler {
         return { type: 'check' };
       case 'first_move':
         return { type: 'first_move' };
+      case 'captured':
+        // Standalone "captured" condition
+        return {
+          type: 'piece_captured',
+          pieceType: 'King', // Default to King
+        };
 
       case 'logical':
         return {
@@ -299,9 +309,34 @@ export class Compiler {
         };
 
       case 'in':
+        // "King in zone.hill" or similar
         return {
           type: 'in_zone',
           zone: this.extractZoneName(node.right as ExpressionNode),
+          pieceType: this.extractPieceType(node.left as ExpressionNode),
+        };
+
+      case 'on_rank':
+        // "King on rank 8"
+        return {
+          type: 'on_rank',
+          pieceType: this.extractPieceType(node.subject as ExpressionNode),
+          rank: this.extractNumber(node.value as ExpressionNode),
+        };
+
+      case 'on_file':
+        // "King on file a"
+        return {
+          type: 'on_file',
+          pieceType: this.extractPieceType(node.subject as ExpressionNode),
+          file: this.extractString(node.value as ExpressionNode),
+        };
+
+      case 'piece_captured':
+        // "King captured"
+        return {
+          type: 'piece_captured',
+          pieceType: this.extractPieceType(node.subject as ExpressionNode),
         };
 
       case 'expression':
@@ -315,6 +350,33 @@ export class Compiler {
       default:
         return { type: 'empty' };
     }
+  }
+
+  private extractPieceType(expr: ExpressionNode | undefined): string {
+    if (!expr) return 'King';
+    if (expr.kind === 'identifier' && expr.name) {
+      return expr.name;
+    }
+    return 'King';
+  }
+
+  private extractNumber(expr: ExpressionNode | undefined): number {
+    if (!expr) return 0;
+    if (expr.kind === 'literal' && typeof expr.value === 'number') {
+      return expr.value;
+    }
+    return 0;
+  }
+
+  private extractString(expr: ExpressionNode | undefined): string {
+    if (!expr) return '';
+    if (expr.kind === 'literal' && typeof expr.value === 'string') {
+      return expr.value;
+    }
+    if (expr.kind === 'identifier' && expr.name) {
+      return expr.name;
+    }
+    return '';
   }
 
   private compileExpression(node: ExpressionNode): Expression {

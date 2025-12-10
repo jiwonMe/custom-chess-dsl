@@ -1,23 +1,23 @@
 ---
-title: Level 2 - Compose
-description: Declarative DSL for custom pieces, effects, and triggers
+title: 레벨 2 - Compose
+description: 커스텀 기물, 효과, 트리거를 위한 선언적 DSL
 ---
 
-# Level 2: Compose
+# 레벨 2: Compose (조합)
 
-Level 2 introduces a declarative DSL for creating custom pieces, board effects, and game triggers. This is where ChessLang becomes truly powerful.
+레벨 2는 커스텀 기물, 보드 효과, 게임 트리거를 만들기 위한 선언적 DSL을 도입합니다. 여기서 ChessLang의 진정한 힘이 발휘됩니다.
 
-## Overview
+## 개요
 
-Level 2 enables:
-- Defining custom pieces with unique movement patterns
-- Creating board effects that modify game behavior
-- Setting up triggers that respond to game events
-- Composing complex interactions declaratively
+레벨 2로 가능한 것들:
+- 고유한 이동 패턴을 가진 커스텀 기물 정의
+- 게임 동작을 수정하는 보드 효과 생성
+- 게임 이벤트에 반응하는 트리거 설정
+- 복잡한 상호작용을 선언적으로 조합
 
-## Custom Pieces
+## 커스텀 기물
 
-### Basic Piece Definition
+### 기본 기물 정의
 
 ```chesslang
 piece Amazon {
@@ -26,47 +26,47 @@ piece Amazon {
 }
 ```
 
-This creates an "Amazon" - a piece that combines Queen and Knight movement.
+이렇게 하면 퀸과 나이트의 이동을 결합한 "Amazon"이 생성됩니다.
 
-### Piece Properties
+### 기물 속성
 
-| Property | Required | Description |
-|----------|----------|-------------|
-| `move` | Yes | Movement pattern |
-| `capture` | No | Capture pattern (default: same as move) |
-| `traits` | No | Special abilities |
-| `state` | No | Piece-specific state |
-| `value` | No | Material value (for evaluation) |
-| `symbol` | No | Display symbol |
+| 속성 | 필수 | 설명 |
+|------|------|------|
+| `move` | 예 | 이동 패턴 |
+| `capture` | 아니오 | 잡기 패턴 (기본값: move와 동일) |
+| `traits` | 아니오 | 특수 능력 |
+| `state` | 아니오 | 기물 고유 상태 |
+| `value` | 아니오 | 기물 가치 (평가용) |
+| `symbol` | 아니오 | 표시 심볼 |
 
-### Movement Patterns
+### 이동 패턴
 
 #### step
 
-Move a fixed number of squares:
+고정된 수의 칸을 이동합니다:
 
 ```chesslang
 piece King {
-  move: step(any)              # 1 square in any direction
+  move: step(any)              # 모든 방향으로 1칸
 }
 
 piece Pawn {
-  move: step(forward)          # 1 square forward
+  move: step(forward)          # 앞으로 1칸
   move: step(forward, 2) where first_move and clear
 }
 ```
 
 #### slide
 
-Move any number of squares until blocked:
+막힐 때까지 여러 칸을 이동합니다:
 
 ```chesslang
 piece Rook {
-  move: slide(orthogonal)      # Any number of squares N/S/E/W
+  move: slide(orthogonal)      # 북/남/동/서 방향으로 무제한
 }
 
 piece Bishop {
-  move: slide(diagonal)        # Any number of squares diagonally
+  move: slide(diagonal)        # 대각선으로 무제한
 }
 
 piece Queen {
@@ -76,15 +76,15 @@ piece Queen {
 
 #### leap
 
-Jump to a specific offset (ignores pieces in between):
+특정 오프셋으로 점프합니다 (중간 기물 무시):
 
 ```chesslang
 piece Knight {
-  move: leap(2, 1)             # All 8 rotations included automatically
+  move: leap(2, 1)             # 8가지 회전 모두 자동 포함
 }
 
 piece Camel {
-  move: leap(3, 1)             # Longer leap
+  move: leap(3, 1)             # 더 긴 점프
 }
 
 piece Zebra {
@@ -94,20 +94,20 @@ piece Zebra {
 
 #### hop
 
-Jump over a piece and land on the other side:
+기물을 뛰어넘어 반대편에 착지합니다:
 
 ```chesslang
 piece Cannon {
   move: slide(orthogonal)
-  capture: hop(orthogonal)     # Must hop over exactly one piece
+  capture: hop(orthogonal)     # 정확히 하나의 기물을 뛰어넘어야 함
 }
 ```
 
-### Pattern Combinators
+### 패턴 조합자
 
 #### Or (`|`)
 
-Choose between patterns:
+패턴 중 선택:
 
 ```chesslang
 piece Queen {
@@ -117,7 +117,7 @@ piece Queen {
 
 #### Then (`+`)
 
-Sequential movement:
+순차적 이동:
 
 ```chesslang
 piece Gryphon {
@@ -127,7 +127,7 @@ piece Gryphon {
 
 #### Repeat (`*`)
 
-Repeat a pattern:
+패턴 반복:
 
 ```chesslang
 piece Sprinter {
@@ -135,9 +135,9 @@ piece Sprinter {
 }
 ```
 
-### Conditions (`where`)
+### 조건 (`where`)
 
-Add conditions to patterns:
+패턴에 조건을 추가합니다:
 
 ```chesslang
 piece Pawn {
@@ -147,60 +147,60 @@ piece Pawn {
 }
 ```
 
-Available conditions:
+사용 가능한 조건:
 
-| Condition | Description |
-|-----------|-------------|
-| `empty` | Target square is empty |
-| `enemy` | Target has enemy piece |
-| `friend` | Target has friendly piece |
-| `clear` | Path is clear (no pieces blocking) |
-| `first_move` | This is the piece's first move |
-| `check` | King is in check |
-| `not check` | King is not in check |
+| 조건 | 설명 |
+|------|------|
+| `empty` | 대상 칸이 비어있음 |
+| `enemy` | 대상 칸에 적 기물이 있음 |
+| `friend` | 대상 칸에 아군 기물이 있음 |
+| `clear` | 경로에 기물이 없음 |
+| `first_move` | 기물의 첫 이동 |
+| `check` | 킹이 체크 상태 |
+| `not check` | 킹이 체크 상태가 아님 |
 
-### Capture Patterns
+### 잡기 패턴
 
 ```chesslang
 piece Pawn {
   move: step(forward)
-  capture: step(forward-diagonal)    # Different capture pattern
+  capture: step(forward-diagonal)    # 다른 잡기 패턴
 }
 
 piece Queen {
   move: slide(any)
-  capture: =move                     # Same as move pattern
+  capture: =move                     # move 패턴과 동일
 }
 ```
 
-### Traits
+### 특성 (Traits)
 
-Traits give pieces special abilities:
+특성은 기물에 특수 능력을 부여합니다:
 
 ```chesslang
 piece Knight {
   move: leap(2, 1)
-  traits: [jump]    # Can jump over pieces
+  traits: [jump]    # 기물을 뛰어넘을 수 있음
 }
 
 piece King {
   move: step(any)
-  traits: [royal]   # Game ends if captured/checkmated
+  traits: [royal]   # 잡히면/체크메이트되면 게임 종료
 }
 ```
 
-Built-in traits:
+내장 특성:
 
-| Trait | Description |
-|-------|-------------|
-| `jump` | Can leap over pieces |
-| `royal` | Game loss if captured |
-| `promote` | Can promote on reaching end |
-| `castle` | Can castle with Rook |
+| 특성 | 설명 |
+|------|------|
+| `jump` | 기물을 뛰어넘을 수 있음 |
+| `royal` | 잡히면 패배 |
+| `promote` | 끝에 도달하면 승진 가능 |
+| `castle` | 룩과 캐슬링 가능 |
 
-### Piece State
+### 기물 상태
 
-Track piece-specific information:
+기물 고유 정보를 추적합니다:
 
 ```chesslang
 piece Berserker {
@@ -209,39 +209,39 @@ piece Berserker {
 }
 ```
 
-## Effects
+## 효과 (Effects)
 
-Effects modify squares on the board:
+효과는 보드의 칸을 수정합니다:
 
 ```chesslang
 effect fire {
-  damages: [any]              # Damages any piece
+  damages: [any]              # 모든 기물에게 피해
   visual: highlight(red)
 }
 
 effect ice {
-  blocks: [enemy]             # Blocks enemy movement
+  blocks: [enemy]             # 적 이동을 막음
   visual: highlight(blue)
 }
 
 effect trap {
-  on_enter: capture(entering) # Captures piece that enters
+  on_enter: capture(entering) # 들어오는 기물을 잡음
   visual: highlight(orange)
 }
 ```
 
-### Effect Properties
+### 효과 속성
 
-| Property | Description |
-|----------|-------------|
-| `damages` | Which pieces take damage |
-| `blocks` | Which pieces cannot enter |
-| `on_enter` | Action when piece enters |
-| `on_exit` | Action when piece exits |
-| `duration` | How long effect lasts (turns) |
-| `visual` | Visual representation |
+| 속성 | 설명 |
+|------|------|
+| `damages` | 피해를 받는 기물 |
+| `blocks` | 진입할 수 없는 기물 |
+| `on_enter` | 기물이 들어올 때 액션 |
+| `on_exit` | 기물이 나갈 때 액션 |
+| `duration` | 효과 지속 시간 (턴) |
+| `visual` | 시각적 표현 |
 
-### Visual Effects
+### 시각 효과
 
 ```chesslang
 effect glow {
@@ -251,9 +251,9 @@ effect glow {
 }
 ```
 
-## Triggers
+## 트리거 (Triggers)
 
-Triggers respond to game events:
+트리거는 게임 이벤트에 반응합니다:
 
 ```chesslang
 trigger explosion {
@@ -265,28 +265,28 @@ trigger explosion {
 }
 ```
 
-### Trigger Structure
+### 트리거 구조
 
 ```chesslang
 trigger name {
-  on: event           # When to trigger
-  when: condition     # Additional conditions
-  do: action          # What to do
+  on: event           # 언제 발동할지
+  when: condition     # 추가 조건
+  do: action          # 무엇을 할지
 }
 ```
 
-### Events
+### 이벤트
 
-| Event | Description | Available Variables |
-|-------|-------------|---------------------|
-| `move` | Any move | `piece`, `origin`, `target` |
-| `capture` | Piece captured | `piece`, `captured`, `origin`, `target` |
-| `check` | Check given | `piece`, `king` |
-| `turn_start` | Turn begins | `player` |
-| `turn_end` | Turn ends | `player` |
-| `game_start` | Game begins | - |
+| 이벤트 | 설명 | 사용 가능한 변수 |
+|--------|------|------------------|
+| `move` | 모든 이동 | `piece`, `origin`, `target` |
+| `capture` | 기물 잡힘 | `piece`, `captured`, `origin`, `target` |
+| `check` | 체크 줌 | `piece`, `king` |
+| `turn_start` | 턴 시작 | `player` |
+| `turn_end` | 턴 종료 | `player` |
+| `game_start` | 게임 시작 | - |
 
-### Actions
+### 액션
 
 ```chesslang
 trigger promote_on_hill {
@@ -308,19 +308,19 @@ trigger rage_increase {
 }
 ```
 
-Available actions:
+사용 가능한 액션:
 
-| Action | Description |
-|--------|-------------|
-| `set X = Y` | Set a value |
-| `create Piece at pos` | Create a new piece |
-| `remove piece` | Remove a piece |
-| `transform piece to Type` | Change piece type |
-| `mark pos with effect` | Apply effect to square |
-| `win Player` | Declare winner |
-| `draw` | Declare draw |
+| 액션 | 설명 |
+|------|------|
+| `set X = Y` | 값 설정 |
+| `create Piece at pos` | 새 기물 생성 |
+| `remove piece` | 기물 제거 |
+| `transform piece to Type` | 기물 타입 변경 |
+| `mark pos with effect` | 칸에 효과 적용 |
+| `win Player` | 승자 선언 |
+| `draw` | 무승부 선언 |
 
-## Complete Examples
+## 완전한 예제
 
 ### Atomic Chess
 
@@ -386,7 +386,7 @@ extends: "Standard Chess"
 
 piece Cannon {
   move: slide(orthogonal)
-  capture: hop(orthogonal)   # Must jump over exactly one piece
+  capture: hop(orthogonal)   # 정확히 하나의 기물을 뛰어넘어야 함
   value: 5
   symbol: "C"
 }
@@ -436,16 +436,16 @@ setup:
       Berserker: [g8]
 ```
 
-## Best Practices
+## 모범 사례
 
-1. **Start Simple**: Begin with basic movement patterns before adding conditions
-2. **Test Incrementally**: Add one feature at a time and test
-3. **Use Clear Names**: Name your pieces and effects descriptively
-4. **Consider Balance**: Assign appropriate values to custom pieces
-5. **Document Behavior**: Add comments for complex triggers
+1. **단순하게 시작**: 조건을 추가하기 전에 기본 이동 패턴부터 시작
+2. **점진적 테스트**: 한 번에 하나의 기능만 추가하고 테스트
+3. **명확한 이름 사용**: 기물과 효과의 이름을 설명적으로 작성
+4. **밸런스 고려**: 커스텀 기물에 적절한 가치 할당
+5. **동작 문서화**: 복잡한 트리거에 주석 추가
 
-## Next Steps
+## 다음 단계
 
-- Learn [Level 3](/docs/language/level3) for scripted logic
-- See [Movement Patterns](/docs/reference/patterns) reference
-- Explore [Examples](/docs/examples) for inspiration
+- 스크립트 로직은 [레벨 3](/docs/language/level3)를 배우세요
+- [이동 패턴](/docs/reference/patterns) 레퍼런스 참고
+- 영감을 얻으려면 [예제](/docs/examples)를 탐색하세요

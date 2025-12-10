@@ -11,6 +11,8 @@ export const chesslangGrammar: LanguageRegistration = {
   patterns: [
     // 주석
     { include: '#comments' },
+    // 스크립트 블록
+    { include: '#script-block' },
     // 문자열
     { include: '#strings' },
     // 숫자
@@ -30,7 +32,12 @@ export const chesslangGrammar: LanguageRegistration = {
     comments: {
       patterns: [
         {
-          // 한 줄 주석
+          // 한 줄 주석 (# 스타일)
+          name: 'comment.line.number-sign.chesslang',
+          match: '#.*$',
+        },
+        {
+          // 한 줄 주석 (// 스타일)
           name: 'comment.line.double-slash.chesslang',
           match: '//.*$',
         },
@@ -39,6 +46,103 @@ export const chesslangGrammar: LanguageRegistration = {
           name: 'comment.block.chesslang',
           begin: '/\\*',
           end: '\\*/',
+        },
+      ],
+    },
+    'script-block': {
+      patterns: [
+        {
+          // script { ... } 블록
+          name: 'meta.embedded.block.javascript.chesslang',
+          begin: '\\b(script)\\s*(\\{)',
+          beginCaptures: {
+            '1': { name: 'keyword.control.script.chesslang' },
+            '2': { name: 'punctuation.section.block.begin.chesslang' },
+          },
+          end: '(\\})',
+          endCaptures: {
+            '1': { name: 'punctuation.section.block.end.chesslang' },
+          },
+          patterns: [
+            { include: '#script-contents' },
+          ],
+        },
+      ],
+    },
+    'script-contents': {
+      patterns: [
+        // 주석
+        {
+          name: 'comment.line.double-slash.js',
+          match: '//.*$',
+        },
+        {
+          name: 'comment.block.js',
+          begin: '/\\*',
+          end: '\\*/',
+        },
+        // 문자열
+        {
+          name: 'string.quoted.double.js',
+          begin: '"',
+          end: '"',
+          patterns: [{ name: 'constant.character.escape.js', match: '\\\\.' }],
+        },
+        {
+          name: 'string.quoted.single.js',
+          begin: "'",
+          end: "'",
+          patterns: [{ name: 'constant.character.escape.js', match: '\\\\.' }],
+        },
+        // 숫자
+        {
+          name: 'constant.numeric.js',
+          match: '\\b\\d+(\\.\\d+)?\\b',
+        },
+        // JS 키워드
+        {
+          name: 'keyword.control.js',
+          match: '\\b(if|else|for|while|do|switch|case|break|continue|return|throw|try|catch|finally)\\b',
+        },
+        // 선언 키워드
+        {
+          name: 'storage.type.js',
+          match: '\\b(var|let|const|function)\\b',
+        },
+        // 불리언/특수 값
+        {
+          name: 'constant.language.js',
+          match: '\\b(true|false|null|undefined|this)\\b',
+        },
+        // game/board API
+        {
+          name: 'variable.language.chesslang',
+          match: '\\b(game|board|piece|event|player|opponent)\\b',
+        },
+        // 메서드/속성 호출
+        {
+          name: 'entity.name.function.js',
+          match: '\\b(on|state|isCheck|isCheckmate|endTurn|declareWinner|declareDraw|allowExtraMove|pieces|at|movePiece|removePiece|createPiece|emptySquares|adjacent|getPieces|console|log|warn|error)\\b',
+        },
+        // 연산자
+        {
+          name: 'keyword.operator.js',
+          match: '(===|!==|==|!=|<=|>=|&&|\\|\\||\\+\\+|--|\\+=|-=|\\*=|/=|=>|[+\\-*/%<>=!&|^~?:])',
+        },
+        // 괄호
+        {
+          name: 'punctuation.definition.block.js',
+          match: '[{}\\[\\]()]',
+        },
+        // 세미콜론/콤마
+        {
+          name: 'punctuation.separator.js',
+          match: '[;,]',
+        },
+        // 식별자
+        {
+          name: 'variable.other.js',
+          match: '\\b[a-zA-Z_][a-zA-Z0-9_]*\\b',
         },
       ],
     },

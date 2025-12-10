@@ -77,6 +77,13 @@ export const KEYWORDS: Record<string, TokenType> = {
   check: TokenType.CHECK,
   first_move: TokenType.FIRST_MOVE,
 
+  // Victory condition keywords
+  rank: TokenType.RANK,
+  file: TokenType.FILE,
+  captured: TokenType.CAPTURED,
+  checks: TokenType.CHECKS,
+  opponent: TokenType.OPPONENT,
+
   // Action keywords
   set: TokenType.SET,
   create: TokenType.CREATE,
@@ -235,6 +242,11 @@ export function tokenTypeName(type: TokenType): string {
     [TokenType.CLEAR]: 'clear',
     [TokenType.CHECK]: 'check',
     [TokenType.FIRST_MOVE]: 'first_move',
+    [TokenType.RANK]: 'rank',
+    [TokenType.FILE]: 'file',
+    [TokenType.CAPTURED]: 'captured',
+    [TokenType.CHECKS]: 'checks',
+    [TokenType.OPPONENT]: 'opponent',
     [TokenType.SET]: 'set',
     [TokenType.CREATE]: 'create',
     [TokenType.TRANSFORM]: 'transform',

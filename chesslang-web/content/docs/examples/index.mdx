@@ -1,30 +1,17 @@
 ---
-title: Examples
-description: Learn ChessLang through practical examples
+title: 예제
+description: 실용적인 ChessLang 변형 예제
 ---
 
-# Examples
+# ChessLang 예제
 
-Learn ChessLang by studying these practical examples. Each example includes complete code you can copy and paste into the [Playground](/playground).
+ChessLang으로 만들 수 있는 다양한 체스 변형 예제입니다.
 
-## Quick Reference
+## 기본 변형 (레벨 1)
 
-| Example | Level | Features |
-|---------|-------|----------|
-| [King of the Hill](#king-of-the-hill) | 1 | Zones, victory conditions |
-| [Three-Check](#three-check) | 1 | Counter-based victory |
-| [Racing Kings](#racing-kings) | 1 | Modified setup, no check |
-| [Atomic Chess](#atomic-chess) | 2 | Triggers, area effects |
-| [Horde Chess](#horde-chess) | 1 | Asymmetric setup |
-| [Custom Pieces](#custom-pieces) | 2 | Piece definitions |
-| [Trap Chess](#trap-chess) | 2 | Effects, state |
-| [Progressive Chess](#progressive-chess) | 3 | Scripts, game flow |
+### King of the Hill
 
----
-
-## King of the Hill
-
-**Level 1** - Win by moving your King to the center.
+중앙을 장악하면 승리합니다.
 
 ```chesslang
 game: "King of the Hill"
@@ -39,18 +26,9 @@ victory:
     hill: King in zone.hill
 ```
 
-**Key Concepts:**
-- Defining board zones
-- Adding victory conditions
-- Zone references in conditions
+### Three-Check
 
-[Try in Playground →](/playground?example=koth)
-
----
-
-## Three-Check
-
-**Level 1** - Win by giving check three times.
+3회 체크하면 승리합니다.
 
 ```chesslang
 game: "Three-Check"
@@ -61,17 +39,9 @@ victory:
     three_checks: checks >= 3
 ```
 
-**Key Concepts:**
-- Counter-based victory conditions
-- Game state tracking
+### Racing Kings
 
-[Try in Playground →](/playground?example=three-check)
-
----
-
-## Racing Kings
-
-**Level 1** - Race your King to the 8th rank. No checks allowed.
+체크 없이 8랭크에 먼저 도달하면 승리합니다.
 
 ```chesslang
 game: "Racing Kings"
@@ -80,16 +50,16 @@ extends: "Standard Chess"
 setup:
   White:
     King: [a1]
-    Queen: [a2]
-    Rook: [b1, b2]
-    Bishop: [c1, c2]
-    Knight: [d1, d2]
+    Queen: [b1]
+    Rook: [c1, d1]
+    Bishop: [e1, f1]
+    Knight: [g1, h1]
   Black:
-    King: [h1]
-    Queen: [h2]
-    Rook: [g1, g2]
-    Bishop: [f1, f2]
-    Knight: [e1, e2]
+    King: [a2]
+    Queen: [b2]
+    Rook: [c2, d2]
+    Bishop: [e2, f2]
+    Knight: [g2, h2]
 
 victory:
   replace:
@@ -100,48 +70,9 @@ rules:
     cannot_give: true
 ```
 
-**Key Concepts:**
-- Custom piece setup
-- Replacing victory conditions
-- Modifying check rules
+### Horde Chess
 
-[Try in Playground →](/playground?example=racing)
-
----
-
-## Atomic Chess
-
-**Level 2** - Captures cause explosions that destroy adjacent pieces.
-
-```chesslang
-game: "Atomic Chess"
-extends: "Standard Chess"
-
-trigger atomic_explosion {
-  on: capture
-  do: {
-    remove piece
-    remove pieces in radius(1) from target where not Pawn
-  }
-}
-
-victory:
-  add:
-    king_exploded: opponent.King == null
-```
-
-**Key Concepts:**
-- Triggers responding to captures
-- Area-based piece removal
-- Multiple victory conditions
-
-[Try in Playground →](/playground?example=atomic)
-
----
-
-## Horde Chess
-
-**Level 1** - White has 36 pawns, Black plays normally.
+백은 폰 대군, 흑은 표준 세트입니다.
 
 ```chesslang
 game: "Horde Chess"
@@ -149,13 +80,11 @@ extends: "Standard Chess"
 
 setup:
   White:
-    Pawn: [
-      a1, b1, c1, d1, e1, f1, g1, h1,
-      a2, b2, c2, d2, e2, f2, g2, h2,
-      a3, b3, c3, d3, e3, f3, g3, h3,
-      a4, b4, c4, d4, e4, f4, g4, h4,
-      f5, g5
-    ]
+    Pawn: [a1, b1, c1, d1, e1, f1, g1, h1,
+           a2, b2, c2, d2, e2, f2, g2, h2,
+           a3, b3, c3, d3, e3, f3, g3, h3,
+           a4, b4, c4, d4, e4, f4, g4, h4,
+           f5, g5]
   Black:
     King: [e8]
     Queen: [d8]
@@ -166,85 +95,100 @@ setup:
 
 victory:
   White:
-    eliminate: opponent.pieces == 0
+    capture_all: opponent.pieces == 0
   Black:
     checkmate: checkmate
 ```
 
-**Key Concepts:**
-- Asymmetric setup
-- Player-specific victory conditions
+## 커스텀 기물 (레벨 2)
 
-[Try in Playground →](/playground?example=horde)
+### Amazon (아마존)
 
----
-
-## Custom Pieces
-
-**Level 2** - Create fairy chess pieces.
+퀸과 나이트의 조합입니다.
 
 ```chesslang
-game: "Fairy Chess"
+game: "Amazon Chess"
 extends: "Standard Chess"
 
-# Amazon = Queen + Knight
 piece Amazon {
   move: slide(orthogonal) | slide(diagonal) | leap(2, 1)
   capture: =move
   value: 12
-  traits: [jump]
-}
-
-# Chancellor = Rook + Knight
-piece Chancellor {
-  move: slide(orthogonal) | leap(2, 1)
-  capture: =move
-  value: 8
-  traits: [jump]
-}
-
-# Archbishop = Bishop + Knight
-piece Archbishop {
-  move: slide(diagonal) | leap(2, 1)
-  capture: =move
-  value: 7
-  traits: [jump]
-}
-
-# Camel = (3,1) leaper
-piece Camel {
-  move: leap(3, 1)
-  capture: =move
-  value: 2
-  traits: [jump]
 }
 
 setup:
-  modify:
+  replace:
     White:
       Queen: []
       Amazon: [d1]
-      Chancellor: [a1]
-      Archbishop: [h1]
     Black:
       Queen: []
       Amazon: [d8]
-      Chancellor: [a8]
-      Archbishop: [h8]
 ```
 
-**Key Concepts:**
-- Defining custom pieces
-- Movement patterns
-- Pattern combinators
+### Chancellor (챈슬러)
 
-[Try in Playground →](/playground?example=fairy)
+룩과 나이트의 조합입니다.
 
----
+```chesslang
+piece Chancellor {
+  move: slide(orthogonal) | leap(2, 1)
+  capture: =move
+  value: 9
+}
+```
 
-## Trap Chess
+### Archbishop (대주교)
 
-**Level 2** - Place traps that capture enemy pieces.
+비숍과 나이트의 조합입니다.
+
+```chesslang
+piece Archbishop {
+  move: slide(diagonal) | leap(2, 1)
+  capture: =move
+  value: 8
+}
+```
+
+### Cannon (포)
+
+중국 장기의 포처럼 잡기 위해 기물을 뛰어넘어야 합니다.
+
+```chesslang
+piece Cannon {
+  move: slide(orthogonal)
+  capture: hop(orthogonal)
+  value: 5
+}
+```
+
+## 효과와 트리거
+
+### Atomic Chess
+
+잡기가 폭발을 일으켜 인접 기물을 모두 제거합니다.
+
+```chesslang
+game: "Atomic Chess"
+extends: "Standard Chess"
+
+trigger atomic_explosion {
+  on: capture
+  do: {
+    remove piece
+    remove captured
+    remove pieces in radius(1) from target where not Pawn
+  }
+}
+
+victory:
+  add:
+    king_exploded: opponent.King == null
+```
+
+### Trap Chess
+
+트래퍼 기물이 이동한 자리에 함정을 남깁니다.
 
 ```chesslang
 game: "Trap Chess"
@@ -275,202 +219,192 @@ trigger place_trap {
 setup:
   add:
     White:
-      Trapper: [c1]
+      Trapper: [d2]
     Black:
-      Trapper: [c8]
+      Trapper: [d7]
 ```
 
-**Key Concepts:**
-- Piece with state
-- Board effects
-- Effect duration
-- Triggers with conditions
+## 스크립트 변형 (레벨 3)
 
-[Try in Playground →](/playground?example=trap)
+### Progressive Chess
 
----
-
-## Berserk Chess
-
-**Level 2** - Berserkers grow stronger with each capture.
-
-```chesslang
-game: "Berserk Chess"
-extends: "Standard Chess"
-
-piece Berserker {
-  move: step(any) * (1 + state.rage)
-  capture: =move
-  state: { rage: 0 }
-  value: 4
-}
-
-trigger gain_rage {
-  on: capture
-  when: piece.type == Berserker
-  do: set piece.state.rage = min(piece.state.rage + 1, 3)
-}
-
-trigger rage_decay {
-  on: turn_end
-  do: {
-    for p in pieces where type == Berserker and state.rage > 0 {
-      set p.state.rage = p.state.rage - 1
-    }
-  }
-}
-
-setup:
-  modify:
-    White:
-      Knight: [b1]
-      Berserker: [g1]
-    Black:
-      Knight: [b8]
-      Berserker: [g8]
-```
-
-**Key Concepts:**
-- Dynamic movement based on state
-- State modification triggers
-- Turn-based effects
-
-[Try in Playground →](/playground?example=berserk)
-
----
-
-## Cannon Chess
-
-**Level 2** - Chinese Chess-inspired cannons.
-
-```chesslang
-game: "Cannon Chess"
-extends: "Standard Chess"
-
-piece Cannon {
-  move: slide(orthogonal)
-  capture: hop(orthogonal)    # Must hop over one piece to capture
-  value: 5
-  symbol: "C"
-}
-
-setup:
-  modify:
-    White:
-      Rook: [a1]
-      Cannon: [h1]
-    Black:
-      Rook: [a8]
-      Cannon: [h8]
-```
-
-**Key Concepts:**
-- Different move and capture patterns
-- Hop pattern for capturing
-
-[Try in Playground →](/playground?example=cannon)
-
----
-
-## Progressive Chess
-
-**Level 3** - Each turn, you get one more move than your opponent's last turn.
+각 턴마다 이동 횟수가 1씩 증가합니다.
 
 ```chesslang
 game: "Progressive Chess"
 extends: "Standard Chess"
 
 script {
-  // Initialize game state
-  game.state.movesRequired = 1;
   game.state.movesThisTurn = 0;
+  game.state.movesRequired = 1;
 
   game.on("move", function(event) {
     game.state.movesThisTurn++;
+    var opponent = event.player === "White" ? "Black" : "White";
 
-    // Check for check - turn ends immediately
-    if (game.isCheck(opponent(game.currentPlayer))) {
+    if (game.isCheck(opponent)) {
       game.endTurn();
       return;
     }
 
-    // Check if required moves completed
     if (game.state.movesThisTurn >= game.state.movesRequired) {
       game.endTurn();
     }
   });
 
   game.on("turnEnd", function(event) {
-    // Next player gets one more move
     game.state.movesRequired++;
     game.state.movesThisTurn = 0;
   });
-
-  // Display moves remaining
-  game.getStatus = function() {
-    const remaining = game.state.movesRequired - game.state.movesThisTurn;
-    return `Moves remaining: ${remaining}`;
-  };
 }
 ```
 
-**Key Concepts:**
-- Level 3 scripting
-- Game state management
-- Event handlers
-- Custom game flow
+### Countdown Chess
 
-[Try in Playground →](/playground?example=progressive)
-
----
-
-## Phoenix Chess
-
-**Level 2/3** - The Phoenix respawns once when captured.
+각 플레이어당 50수 제한입니다.
 
 ```chesslang
-game: "Phoenix Chess"
+game: "Countdown Chess"
 extends: "Standard Chess"
 
-piece Phoenix {
-  move: slide(diagonal)
+script {
+  game.state.whiteMoves = 50;
+  game.state.blackMoves = 50;
+
+  game.on("move", function(event) {
+    if (event.player === "White") {
+      game.state.whiteMoves--;
+      console.log("백 남은 이동:", game.state.whiteMoves);
+      if (game.state.whiteMoves <= 0) {
+        game.declareWinner("Black", "백이 이동 횟수를 소진함");
+      }
+    } else {
+      game.state.blackMoves--;
+      console.log("흑 남은 이동:", game.state.blackMoves);
+      if (game.state.blackMoves <= 0) {
+        game.declareWinner("White", "흑이 이동 횟수를 소진함");
+      }
+    }
+    game.endTurn();
+  });
+}
+```
+
+### Material Race
+
+15점어치의 기물을 먼저 잡으면 승리합니다.
+
+```chesslang
+game: "Material Race"
+extends: "Standard Chess"
+
+script {
+  game.state.whiteCaptures = 0;
+  game.state.blackCaptures = 0;
+
+  var pieceValues = {
+    "Pawn": 1,
+    "Knight": 3,
+    "Bishop": 3,
+    "Rook": 5,
+    "Queen": 9
+  };
+
+  game.on("capture", function(event) {
+    var capturedType = event.captured.type;
+    var value = pieceValues[capturedType] || 0;
+
+    if (event.player === "White") {
+      game.state.whiteCaptures += value;
+      console.log("백 잡은 점수:", game.state.whiteCaptures);
+      if (game.state.whiteCaptures >= 15) {
+        game.declareWinner("White", "15점 달성");
+      }
+    } else {
+      game.state.blackCaptures += value;
+      console.log("흑 잡은 점수:", game.state.blackCaptures);
+      if (game.state.blackCaptures >= 15) {
+        game.declareWinner("Black", "15점 달성");
+      }
+    }
+  });
+}
+```
+
+## 큰 보드 변형
+
+### Capablanca Chess (10x8)
+
+챈슬러와 대주교가 추가된 10x8 보드입니다.
+
+```chesslang
+game: "Capablanca Chess"
+extends: "Standard Chess"
+
+board:
+  size: 10x8
+
+piece Chancellor {
+  move: slide(orthogonal) | leap(2, 1)
   capture: =move
-  state: { canRespawn: true }
-  value: 5
+  value: 9
 }
 
-trigger phoenix_respawn {
-  on: capture
-  when: captured.type == Phoenix and captured.state.canRespawn
-  do: {
-    create Phoenix at captured.startPos for captured.owner
-    set created.state.canRespawn = false
-  }
+piece Archbishop {
+  move: slide(diagonal) | leap(2, 1)
+  capture: =move
+  value: 8
 }
 
 setup:
-  modify:
-    White:
-      Bishop: [c1]
-      Phoenix: [f1]
-    Black:
-      Bishop: [c8]
-      Phoenix: [f8]
+  White:
+    King: [f1]
+    Queen: [e1]
+    Chancellor: [h1]
+    Archbishop: [c1]
+    Rook: [a1, j1]
+    Bishop: [d1, g1]
+    Knight: [b1, i1]
+    Pawn: [a2, b2, c2, d2, e2, f2, g2, h2, i2, j2]
+  Black:
+    King: [f8]
+    Queen: [e8]
+    Chancellor: [h8]
+    Archbishop: [c8]
+    Rook: [a8, j8]
+    Bishop: [d8, g8]
+    Knight: [b8, i8]
+    Pawn: [a7, b7, c7, d7, e7, f7, g7, h7, i7, j7]
 ```
 
-**Key Concepts:**
-- Piece respawning
-- Start position tracking
-- One-time abilities
+### Mini Chess (5x6)
 
-[Try in Playground →](/playground?example=phoenix)
+작은 보드의 빠른 게임입니다.
 
----
+```chesslang
+game: "Mini Chess"
+extends: "Standard Chess"
 
-## What's Next?
+board:
+  size: 5x6
 
-- **Combine features**: Mix examples to create unique variants
-- **Experiment**: Modify values and see what happens
-- **Share**: Export your creations to share with others
+setup:
+  White:
+    King: [c1]
+    Queen: [b1]
+    Rook: [a1, e1]
+    Bishop: [d1]
+    Pawn: [a2, b2, c2, d2, e2]
+  Black:
+    King: [c6]
+    Queen: [b6]
+    Rook: [a6, e6]
+    Bishop: [d6]
+    Pawn: [a5, b5, c5, d5, e5]
+```
 
-See the [Language Guide](/docs/language/level1) for complete documentation.
+## 더 알아보기
+
+- [플레이그라운드](/playground)에서 예제를 실행해 보세요
+- [언어 가이드](/docs/language)에서 문법을 배워보세요
+- [레퍼런스](/docs/reference)에서 상세 문서를 확인하세요

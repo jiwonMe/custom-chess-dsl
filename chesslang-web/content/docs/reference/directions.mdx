@@ -1,24 +1,24 @@
 ---
-title: Directions Reference
-description: Complete reference for ChessLang direction system
+title: 방향 레퍼런스
+description: ChessLang 방향 시스템 완전 레퍼런스
 ---
 
-# Directions Reference
+# 방향 레퍼런스
 
-Directions define how pieces move across the board. ChessLang provides both absolute and relative direction systems.
+방향은 기물이 보드를 가로질러 이동하는 방법을 정의합니다. ChessLang은 절대 및 상대 방향 시스템을 모두 제공합니다.
 
-## Absolute Directions
+## 절대 방향
 
-Absolute directions are the same regardless of which player is moving.
+절대 방향은 어떤 플레이어가 이동하든 동일합니다.
 
-### Cardinal Directions
+### 직선 방향
 
-| Direction | Vector | Description |
-|-----------|--------|-------------|
-| `N` | (0, +1) | North (toward rank 8) |
-| `S` | (0, -1) | South (toward rank 1) |
-| `E` | (+1, 0) | East (toward file h) |
-| `W` | (-1, 0) | West (toward file a) |
+| 방향 | 벡터 | 설명 |
+|------|------|------|
+| `N` | (0, +1) | 북 (랭크 8 방향) |
+| `S` | (0, -1) | 남 (랭크 1 방향) |
+| `E` | (+1, 0) | 동 (파일 h 방향) |
+| `W` | (-1, 0) | 서 (파일 a 방향) |
 
 ```chesslang
 piece Rook {
@@ -26,14 +26,14 @@ piece Rook {
 }
 ```
 
-### Diagonal Directions
+### 대각선 방향
 
-| Direction | Vector | Description |
-|-----------|--------|-------------|
-| `NE` | (+1, +1) | Northeast |
-| `NW` | (-1, +1) | Northwest |
-| `SE` | (+1, -1) | Southeast |
-| `SW` | (-1, -1) | Southwest |
+| 방향 | 벡터 | 설명 |
+|------|------|------|
+| `NE` | (+1, +1) | 북동 |
+| `NW` | (-1, +1) | 북서 |
+| `SE` | (+1, -1) | 남동 |
+| `SW` | (-1, -1) | 남서 |
 
 ```chesslang
 piece Bishop {
@@ -41,18 +41,18 @@ piece Bishop {
 }
 ```
 
-### Direction Groups
+### 방향 그룹
 
-| Group | Includes | Description |
-|-------|----------|-------------|
-| `orthogonal` | N, S, E, W | All cardinal directions |
-| `diagonal` | NE, NW, SE, SW | All diagonal directions |
-| `any` | All 8 | All directions |
+| 그룹 | 포함 | 설명 |
+|------|------|------|
+| `orthogonal` | N, S, E, W | 모든 직선 방향 |
+| `diagonal` | NE, NW, SE, SW | 모든 대각선 방향 |
+| `any` | 모두 8 | 모든 방향 |
 
 ```chesslang
 piece Queen {
   move: slide(orthogonal) | slide(diagonal)
-  # Equivalent to: slide(any)
+  # 다음과 동일: slide(any)
 }
 
 piece King {
@@ -60,34 +60,34 @@ piece King {
 }
 ```
 
-## Relative Directions
+## 상대 방향
 
-Relative directions depend on which player is moving. They automatically flip for Black.
+상대 방향은 어떤 플레이어가 이동하는지에 따라 달라집니다. 흑에게는 자동으로 뒤집힙니다.
 
-### Player-Relative Directions
+### 플레이어 기준 방향
 
-| Direction | White | Black | Description |
-|-----------|-------|-------|-------------|
-| `forward` | N | S | Toward opponent's side |
-| `backward` | S | N | Toward own side |
-| `left` | W | E | Player's left |
-| `right` | E | W | Player's right |
+| 방향 | 백 | 흑 | 설명 |
+|------|-----|-----|------|
+| `forward` | N | S | 상대 쪽으로 |
+| `backward` | S | N | 자기 쪽으로 |
+| `left` | W | E | 플레이어의 왼쪽 |
+| `right` | E | W | 플레이어의 오른쪽 |
 
 ```chesslang
 piece Pawn {
-  move: step(forward)           # N for White, S for Black
+  move: step(forward)           # 백은 N, 흑은 S
   capture: step(forward-left) | step(forward-right)
 }
 ```
 
-### Relative Diagonal Directions
+### 상대 대각선 방향
 
-| Direction | White | Black | Description |
-|-----------|-------|-------|-------------|
-| `forward-left` | NW | SE | Forward and left |
-| `forward-right` | NE | SW | Forward and right |
-| `backward-left` | SW | NE | Backward and left |
-| `backward-right` | SE | NW | Backward and right |
+| 방향 | 백 | 흑 | 설명 |
+|------|-----|-----|------|
+| `forward-left` | NW | SE | 앞 왼쪽 |
+| `forward-right` | NE | SW | 앞 오른쪽 |
+| `backward-left` | SW | NE | 뒤 왼쪽 |
+| `backward-right` | SE | NW | 뒤 오른쪽 |
 
 ```chesslang
 piece Pawn {
@@ -95,9 +95,9 @@ piece Pawn {
 }
 ```
 
-## Direction Visualization
+## 방향 시각화
 
-### For White Player
+### 백 플레이어 기준
 
 ```
     NW   N   NE
@@ -107,7 +107,7 @@ piece Pawn {
     SW   S   SE
 ```
 
-### For Black Player
+### 흑 플레이어 기준
 
 ```
     SE   S   SW
@@ -117,159 +117,127 @@ piece Pawn {
     NE   N   NW
 ```
 
-Note: Relative directions flip, so `forward` always points toward the opponent.
+참고: 상대 방향은 뒤집혀서 `forward`는 항상 상대를 향합니다.
 
-## Using Directions with Patterns
+## 패턴과 방향 사용
 
 ### step
 
-Move a fixed number of squares:
+고정된 수의 칸을 이동합니다:
 
 ```chesslang
-# One square in any direction
+# 모든 방향으로 1칸
 step(any)
 
-# Two squares forward
+# 앞으로 2칸
 step(forward, 2)
 
-# One square diagonally
+# 대각선으로 1칸
 step(diagonal)
 ```
 
 ### slide
 
-Move any number of squares until blocked:
+막힐 때까지 여러 칸을 이동합니다:
 
 ```chesslang
-# Slide in cardinal directions (Rook)
+# 직선 방향으로 슬라이드 (룩)
 slide(orthogonal)
 
-# Slide diagonally (Bishop)
+# 대각선으로 슬라이드 (비숍)
 slide(diagonal)
 
-# Slide in all directions (Queen)
+# 모든 방향으로 슬라이드 (퀸)
 slide(any)
 ```
 
-### Combining Directions
+### 방향 조합
 
-Use `|` to combine multiple directions:
+`|`를 사용하여 여러 방향을 조합합니다:
 
 ```chesslang
-# Rook movement
+# 룩 이동
 move: slide(N) | slide(S) | slide(E) | slide(W)
 
-# Same as
+# 다음과 동일
 move: slide(orthogonal)
 ```
 
-## Direction Modifiers
+## 방향 수정자
 
-### Distance
+### 거리
 
-Specify exact distance with `step`:
+`step`으로 정확한 거리를 지정합니다:
 
 ```chesslang
-step(N)        # 1 square north
-step(N, 2)     # 2 squares north
-step(N, 3)     # 3 squares north
+step(N)        # 북으로 1칸
+step(N, 2)     # 북으로 2칸
+step(N, 3)     # 북으로 3칸
 ```
 
-### Maximum Distance
+### 최대 거리
 
-Limit sliding distance:
+슬라이드 거리를 제한합니다:
 
 ```chesslang
-slide(orthogonal, 3)    # Slide up to 3 squares
+slide(orthogonal, 3)    # 최대 3칸 슬라이드
 ```
 
-## Custom Directions
+## 커스텀 방향
 
-For movements that don't fit standard directions, use `leap`:
+표준 방향에 맞지 않는 이동은 `leap`을 사용합니다:
 
 ```chesslang
-# Knight's L-shape
-leap(2, 1)    # All 8 rotations included
+# 나이트의 L자형
+leap(2, 1)    # 8가지 회전 모두 포함
 
-# Camel
+# 캐멀
 leap(3, 1)
 
-# Zebra
+# 제브라
 leap(3, 2)
 
-# Giraffe
+# 기린
 leap(4, 1)
 ```
 
-The `leap` function automatically generates all symmetrical positions:
+`leap` 함수는 자동으로 모든 대칭 위치를 생성합니다:
 - (2, 1), (-2, 1), (2, -1), (-2, -1)
 - (1, 2), (-1, 2), (1, -2), (-1, -2)
 
-## Direction Arithmetic
+## 예시
 
-In Level 3 scripts, you can work with directions programmatically:
-
-```chesslang
-script {
-  // Direction vectors
-  const N = { file: 0, rank: 1 };
-  const E = { file: 1, rank: 0 };
-
-  // Combine directions
-  const NE = {
-    file: N.file + E.file,
-    rank: N.rank + E.rank
-  };
-
-  // Scale direction
-  const N2 = {
-    file: N.file * 2,
-    rank: N.rank * 2
-  };
-
-  // Apply direction to position
-  function moveInDirection(pos, dir, distance = 1) {
-    return {
-      file: pos.file + dir.file * distance,
-      rank: pos.rank + dir.rank * distance
-    };
-  }
-}
-```
-
-## Examples
-
-### Standard Pieces
+### 표준 기물
 
 ```chesslang
-# King - one step in any direction
+# 킹 - 모든 방향으로 1칸
 piece King {
   move: step(any)
   traits: [royal]
 }
 
-# Queen - slide in any direction
+# 퀸 - 모든 방향으로 슬라이드
 piece Queen {
   move: slide(any)
 }
 
-# Rook - slide orthogonally
+# 룩 - 직선으로 슬라이드
 piece Rook {
   move: slide(orthogonal)
 }
 
-# Bishop - slide diagonally
+# 비숍 - 대각선으로 슬라이드
 piece Bishop {
   move: slide(diagonal)
 }
 
-# Knight - L-shape leap
+# 나이트 - L자형 점프
 piece Knight {
   move: leap(2, 1)
   traits: [jump]
 }
 
-# Pawn - forward movement
+# 폰 - 앞으로 이동
 piece Pawn {
   move: step(forward) where empty
   move: step(forward, 2) where first_move and clear
@@ -278,70 +246,65 @@ piece Pawn {
 }
 ```
 
-### Fairy Pieces
+### 페어리 기물
 
 ```chesslang
-# Amazon - Queen + Knight
+# 아마존 - 퀸 + 나이트
 piece Amazon {
   move: slide(any) | leap(2, 1)
 }
 
-# Chancellor - Rook + Knight
+# 챈슬러 - 룩 + 나이트
 piece Chancellor {
   move: slide(orthogonal) | leap(2, 1)
 }
 
-# Archbishop - Bishop + Knight
+# 대주교 - 비숍 + 나이트
 piece Archbishop {
   move: slide(diagonal) | leap(2, 1)
 }
 
-# Camel - (3,1) leaper
+# 캐멀 - (3,1) 점프
 piece Camel {
   move: leap(3, 1)
   traits: [jump]
 }
 
-# Zebra - (3,2) leaper
+# 제브라 - (3,2) 점프
 piece Zebra {
   move: leap(3, 2)
   traits: [jump]
 }
-
-# Nightrider - repeated Knight moves
-piece Nightrider {
-  move: (leap(2, 1)) *    # Unlimited Knight moves in same direction
-}
 ```
 
-### Custom Movement
+### 커스텀 이동
 
 ```chesslang
-# Berolina Pawn - moves diagonally, captures forward
+# 베를리나 폰 - 대각선 이동, 앞으로 잡기
 piece BerolinaPawn {
   move: step(forward-left) | step(forward-right) where empty
   capture: step(forward) where enemy
   traits: [promote]
 }
 
-# Gryphon - diagonal then orthogonal
+# 그리폰 - 대각선 후 직선
 piece Gryphon {
   move: step(diagonal) + slide(orthogonal)
 }
 
-# Wazir - one square orthogonally
+# 와지르 - 직선으로 1칸
 piece Wazir {
   move: step(orthogonal)
 }
 
-# Ferz - one square diagonally
+# 페르즈 - 대각선으로 1칸
 piece Ferz {
   move: step(diagonal)
 }
 ```
 
-## See Also
+## 참고
 
-- [Movement Patterns](/docs/reference/patterns)
-- [Conditions Reference](/docs/reference/conditions)
-- [Level 2 - Compose](/docs/language/level2)
+- [이동 패턴](/docs/reference/patterns)
+- [조건 레퍼런스](/docs/reference/conditions)
+- [레벨 2 - Compose](/docs/language/level2)

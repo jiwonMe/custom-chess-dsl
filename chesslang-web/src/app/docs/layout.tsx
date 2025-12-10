@@ -12,7 +12,7 @@ export default function DocsLayout({
   return (
     <div className={cn(
       // 레이아웃
-      'container flex gap-8',
+      'container mx-auto flex gap-8',
       // 최소 높이
       'min-h-[calc(100vh-4rem)]'
     )}>

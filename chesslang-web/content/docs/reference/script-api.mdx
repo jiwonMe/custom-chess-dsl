@@ -1,0 +1,227 @@
+---
+title: 스크립트 API 레퍼런스
+description: ChessLang 스크립트의 game, board 객체 레퍼런스
+---
+
+# 스크립트 API 레퍼런스
+
+ChessLang 레벨 3 스크립트는 복잡한 게임 로직을 구현하기 위해 `game` 및 `board` 객체와 전역 유틸리티 함수를 제공합니다.
+
+## 전역 유틸리티
+
+스크립트 블록 내에서 전역으로 사용 가능한 유틸리티 함수입니다:
+
+| 함수 | 설명 | 매개변수 | 반환값 |
+|------|------|----------|--------|
+| `toSquare` | 위치 객체 `{ file: number, rank: number }`를 대수 표기법 (예: "e4")으로 변환 | `pos: Position` | `string` |
+| `parseSquare` | 대수 표기법 문자열 (예: "e4")을 위치 객체 `{ file: number, rank: number }`로 변환 | `notation: string` | `Position \| null` |
+| `distance` | 두 위치 사이의 체비셰프 거리 (dx, dy 중 최대값) 계산 | `pos1: Position`, `pos2: Position` | `number` |
+| `console.log`, `console.warn`, `console.error` | 디버깅용 표준 콘솔 메서드. 출력에 `[Script]` 접두사가 붙음 | `...args: any[]` | `void` |
+
+## `game` 객체
+
+`game` 객체는 현재 게임 상태에 접근하고 게임 흐름을 제어하는 메서드를 제공합니다.
+
+| 속성/메서드 | 타입 | 설명 | 매개변수 | 반환값 |
+|-------------|------|------|----------|--------|
+| `game.state` | `Record<string, unknown>` | 커스텀 게임 상태 변수를 저장하기 위한 가변 객체 | - | - |
+| `game.currentPlayer` | `Color` (`"White"` 또는 `"Black"`) | 현재 턴인 플레이어 | - | - |
+| `game.on(event, handler)` | `function` | 게임 이벤트 핸들러 등록 | `event: ScriptEventType`, `handler: ScriptEventHandler` | `void` |
+| `game.endTurn()` | `function` | 현재 플레이어의 턴을 명시적으로 종료. **`game.on("move", ...)`핸들러가 있으면 턴 흐름 제어를 위해 필수** | - | `void` |
+| `game.declareWinner(winner, reason)` | `function` | 게임의 승자 선언 | `winner: Color`, `reason: string` | `void` |
+| `game.declareDraw(reason)` | `function` | 게임을 무승부로 선언 | `reason: string` | `void` |
+| `game.allowExtraMove(player)` | `function` | 지정된 플레이어가 이 턴에 플레이어 전환 없이 추가 이동 가능 | `player: Color` | `void` |
+| `game.isCheck(player)` | `function` | 지정된 플레이어의 킹이 현재 체크 상태인지 확인 | `player: Color` | `boolean` |
+| `game.isCheckmate(player)` | `function` | 지정된 플레이어가 체크메이트 상태인지 확인 | `player: Color` | `boolean` |
+| `game.getStatus()` | `function` | UI에 표시할 커스텀 상태 메시지 반환 | - | `string` |
+| `game.canEndTurn()` | `function` | 스크립트에서 재정의하여 턴 종료 가능 시점을 정의할 수 있는 함수. 기본값은 `true` | - | `boolean` |
+
+### `ScriptEventType`
+
+`game.on()`의 `event` 매개변수로 사용 가능한 문자열:
+
+- `"move"`: 기물이 이동함
+- `"capture"`: 기물이 잡힘
+- `"turnEnd"`: 플레이어의 턴이 종료됨
+- `"check"`: 플레이어의 킹이 체크에 놓임
+- `"promotion"`: 폰이 승진함
+
+### `ScriptEventHandler`
+
+`handler` 함수는 이벤트에 대한 세부 정보가 담긴 `event` 객체를 받습니다. `event` 객체의 구조는 `ScriptEventType`에 따라 다릅니다:
+
+- **`"move"` 이벤트**:
+
+```typescript
+interface MoveEvent {
+  type: "move";
+  piece: Piece;
+  from: Position;
+  to: Position;
+  player: Color;
+  timestamp: number;
+}
+```
+
+- **`"capture"` 이벤트**:
+
+```typescript
+interface CaptureEvent {
+  type: "capture";
+  piece: Piece; // 잡은 기물
+  captured: Piece; // 잡힌 기물
+  from: Position;
+  to: Position;
+  player: Color; // 잡기를 한 플레이어
+  timestamp: number;
+}
+```
+
+- **`"turnEnd"` 이벤트**:
+
+```typescript
+interface TurnEndEvent {
+  type: "turnEnd";
+  player: Color; // 방금 턴이 종료된 플레이어
+  timestamp: number;
+}
+```
+
+- **`"check"` 이벤트**:
+
+```typescript
+interface CheckEvent {
+  type: "check";
+  king: Piece; // 체크 상태인 킹
+  checkingPieces: Piece[]; // 체크를 주는 기물들
+  player: Color; // 킹이 체크 상태인 플레이어
+  timestamp: number;
+}
+```
+
+- **`"promotion"` 이벤트**:
+
+```typescript
+interface PromotionEvent {
+  type: "promotion";
+  piece: Piece; // 승진된 기물 (새 타입)
+  from: Position; // 폰의 원래 위치
+  to: Position; // 승진 칸
+  originalType: string; // 원래 타입 (예: "Pawn")
+  newType: string; // 새 타입 (예: "Queen")
+  player: Color;
+  timestamp: number;
+}
+```
+
+## `board` 객체
+
+`board` 객체는 게임 보드를 조회하고 조작하는 메서드를 제공합니다.
+
+| 속성/메서드 | 타입 | 설명 | 매개변수 | 반환값 |
+|-------------|------|------|----------|--------|
+| `board.at(pos)` | `function` | 주어진 위치의 기물 반환, 비어있거나 유효하지 않으면 `null` | `pos: Position \| string` (`{ file, rank }` 또는 "e4") | `Piece \| null` |
+| `board.pieces` | `Piece[]` | 현재 보드에 있는 모든 기물 배열 | - | - |
+| `board.getPieces(owner?, type?)` | `function` | 소유자 및/또는 타입으로 필터링된 기물 배열 반환 | `owner?: Color`, `type?: string` | `Piece[]` |
+| `board.emptySquares()` | `function` | 보드의 모든 빈 위치 배열 반환 | - | `Position[]` |
+| `board.adjacent(pos)` | `function` | 주어진 위치에 인접한 (8방향) 유효한 위치 배열 반환 | `pos: Position` | `Position[]` |
+| `board.isValidPos(pos)` | `function` | 주어진 위치가 보드 경계 내에 있는지 확인 | `pos: Position` | `boolean` |
+| `board.movePiece(from, to)` | `function` | 한 위치에서 다른 위치로 기물 이동. 합법성 검사 없음 | `from: Position`, `to: Position` | `boolean` (성공 여부) |
+| `board.removePiece(pos)` | `function` | 주어진 위치의 기물 제거 | `pos: Position` | `Piece \| null` (제거된 기물) |
+| `board.createPiece(type, owner, pos)` | `function` | 새 기물을 생성하고 보드에 배치 | `type: string`, `owner: Color`, `pos: Position` | `Piece \| null` (생성된 기물) |
+
+### `Piece` 객체 구조
+
+`board` 메서드가 반환하는 기물의 구조:
+
+```typescript
+interface Piece {
+  id: string;
+  type: string; // 예: "Pawn", "King", "Amazon"
+  owner: Color; // "White" 또는 "Black"
+  pos: Position; // 현재 위치 { file, rank }
+  startPos: Position; // 원래 시작 위치
+  hasMoved: boolean;
+  traits: string[]; // 예: ["royal", "jump"]
+  value: number; // 기물 가치
+  state: Record<string, unknown>; // 기물 고유 상태
+}
+```
+
+## 예시
+
+### 카운트다운 체스
+
+```chesslang
+script {
+  game.state.whiteMoves = 50;
+  game.state.blackMoves = 50;
+
+  game.on("move", function(event) {
+    if (event.player === "White") {
+      game.state.whiteMoves--;
+      if (game.state.whiteMoves <= 0) {
+        game.declareWinner("Black", "백이 이동 횟수를 소진함");
+      }
+    } else {
+      game.state.blackMoves--;
+      if (game.state.blackMoves <= 0) {
+        game.declareWinner("White", "흑이 이동 횟수를 소진함");
+      }
+    }
+    game.endTurn();
+  });
+}
+```
+
+### 프로그레시브 체스
+
+```chesslang
+script {
+  game.state.movesThisTurn = 0;
+  game.state.movesRequired = 1;
+
+  game.on("move", function(event) {
+    game.state.movesThisTurn++;
+    var opponent = event.player === "White" ? "Black" : "White";
+
+    if (game.isCheck(opponent)) {
+      game.endTurn();
+      return;
+    }
+
+    if (game.state.movesThisTurn >= game.state.movesRequired) {
+      game.endTurn();
+    }
+  });
+
+  game.on("turnEnd", function(event) {
+    game.state.movesRequired++;
+    game.state.movesThisTurn = 0;
+  });
+}
+```
+
+### 기물 수 기반 승리
+
+```chesslang
+script {
+  game.on("capture", function(event) {
+    var whitePieces = board.getPieces("White");
+    var blackPieces = board.getPieces("Black");
+
+    if (whitePieces.length <= 1) {
+      game.declareWinner("Black", "백의 기물이 모두 제거됨");
+    }
+    if (blackPieces.length <= 1) {
+      game.declareWinner("White", "흑의 기물이 모두 제거됨");
+    }
+  });
+}
+```
+
+## 참고
+
+- [레벨 3 - Script](/docs/language/level3) - 스크립팅 가이드
+- [예제](/docs/examples) - 실용적인 코드 예제
+- [키워드 레퍼런스](/docs/reference/keywords) - 언어 키워드

@@ -1,23 +1,23 @@
 ---
-title: Language Guide
-description: Complete guide to the ChessLang language
+title: 언어 가이드
+description: ChessLang 언어 완전 가이드
 ---
 
-# Language Guide
+# 언어 가이드
 
-ChessLang is a multi-level domain-specific language. Choose the level that matches your needs:
+ChessLang은 다중 레벨 도메인 특화 언어입니다. 필요에 맞는 레벨을 선택하세요:
 
-## Overview
+## 개요
 
-| Level | Style | Use Case |
-|-------|-------|----------|
-| [Level 1](/docs/language/level1) | Configuration | Simple rule modifications |
-| [Level 2](/docs/language/level2) | Declarative | Custom pieces and triggers |
-| [Level 3](/docs/language/level3) | Scripting | Complex logic and AI |
+| 레벨 | 스타일 | 사용 사례 |
+|------|--------|----------|
+| [레벨 1](/docs/language/level1) | 설정 | 간단한 규칙 수정 |
+| [레벨 2](/docs/language/level2) | 선언적 | 커스텀 기물과 트리거 |
+| [레벨 3](/docs/language/level3) | 스크립팅 | 복잡한 로직과 AI |
 
-## Level 1: Configure
+## 레벨 1: Configure (설정)
 
-YAML-like syntax for simple modifications. No programming required.
+간단한 수정을 위한 YAML 스타일 구문입니다. 프로그래밍 지식이 필요 없습니다.
 
 ```chesslang
 game: "My Variant"
@@ -32,18 +32,18 @@ victory:
     safe_king: King in zone.safe
 ```
 
-**Features:**
-- Game definition and inheritance
-- Board zones
-- Piece setup modifications
-- Victory and draw conditions
-- Rule adjustments
+**기능:**
+- 게임 정의 및 상속
+- 보드 존
+- 기물 배치 수정
+- 승리 및 무승부 조건
+- 규칙 조정
 
-[Full Level 1 Guide →](/docs/language/level1)
+[레벨 1 전체 가이드 →](/docs/language/level1)
 
-## Level 2: Compose
+## 레벨 2: Compose (조합)
 
-Declarative DSL for creating custom pieces, effects, and triggers.
+커스텀 기물, 효과, 트리거를 만들기 위한 선언적 DSL입니다.
 
 ```chesslang
 piece Phoenix {
@@ -64,24 +64,24 @@ trigger respawn {
 }
 ```
 
-**Features:**
-- Custom piece definitions
-- Movement patterns (step, slide, leap, hop)
-- Pattern combinators (|, +, *)
-- Conditions (where)
-- Board effects
-- Event triggers
-- State management
+**기능:**
+- 커스텀 기물 정의
+- 이동 패턴 (step, slide, leap, hop)
+- 패턴 조합자 (|, +, *)
+- 조건 (where)
+- 보드 효과
+- 이벤트 트리거
+- 상태 관리
 
-[Full Level 2 Guide →](/docs/language/level2)
+[레벨 2 전체 가이드 →](/docs/language/level2)
 
-## Level 3: Script
+## 레벨 3: Script (스크립트)
 
-JavaScript-like scripting for complex game logic.
+복잡한 게임 로직을 위한 JavaScript 스타일 스크립팅입니다.
 
 ```chesslang
 script {
-  // Custom validation
+  // 커스텀 유효성 검사
   Coward.validate = function(piece, move) {
     const enemies = board.pieces.filter(p => p.owner != piece.owner);
     for (const enemy of enemies) {
@@ -92,7 +92,7 @@ script {
     return { valid: true };
   };
 
-  // Event handlers
+  // 이벤트 핸들러
   game.on("capture", function(event) {
     if (event.piece.type == "Vampire") {
       event.piece.state.hp += event.captured.value;
@@ -101,22 +101,22 @@ script {
 }
 ```
 
-**Features:**
-- Variables and functions
-- Control flow (if/else, for, while)
-- Built-in objects (board, game, piece)
-- Event handlers
-- Custom actions and validation
-- AI evaluation functions
+**기능:**
+- 변수와 함수
+- 제어 흐름 (if/else, for, while)
+- 내장 객체 (board, game, piece)
+- 이벤트 핸들러
+- 커스텀 액션과 유효성 검사
+- AI 평가 함수
 
-[Full Level 3 Guide →](/docs/language/level3)
+[레벨 3 전체 가이드 →](/docs/language/level3)
 
-## Mixing Levels
+## 레벨 혼합
 
-You can combine all three levels in a single file:
+하나의 파일에서 세 레벨을 모두 결합할 수 있습니다:
 
 ```chesslang
-# Level 1: Configuration
+# 레벨 1: 설정
 game: "Advanced Variant"
 extends: "Standard Chess"
 
@@ -124,7 +124,7 @@ board:
   zones:
     danger: [d4, d5, e4, e5]
 
-# Level 2: Custom piece
+# 레벨 2: 커스텀 기물
 piece Vampire {
   move: step(any)
   capture: =move
@@ -136,7 +136,7 @@ effect poison {
   visual: highlight(green)
 }
 
-# Level 3: Complex logic
+# 레벨 3: 복잡한 로직
 script {
   Vampire.on("capture", function(piece, captured) {
     piece.state.hp += captured.value;
@@ -146,7 +146,7 @@ script {
   });
 }
 
-# Level 1: Setup
+# 레벨 1: 설정
 setup:
   add:
     White:
@@ -155,28 +155,28 @@ setup:
       Vampire: [d7]
 ```
 
-## Choosing the Right Level
+## 올바른 레벨 선택하기
 
-**Use Level 1 when:**
-- Making simple rule modifications
-- Adding new victory/draw conditions
-- Changing the starting position
-- Creating variants like King of the Hill or Three-Check
+**레벨 1을 사용할 때:**
+- 간단한 규칙 수정
+- 새로운 승리/무승부 조건 추가
+- 시작 위치 변경
+- King of the Hill이나 Three-Check 같은 변형 만들기
 
-**Use Level 2 when:**
-- Creating custom pieces
-- Adding board effects
-- Setting up triggers for game events
-- Managing piece state
+**레벨 2를 사용할 때:**
+- 커스텀 기물 생성
+- 보드 효과 추가
+- 게임 이벤트에 대한 트리거 설정
+- 기물 상태 관리
 
-**Use Level 3 when:**
-- Implementing complex validation
-- Creating dynamic abilities
-- Building custom AI evaluation
-- Controlling game flow
+**레벨 3를 사용할 때:**
+- 복잡한 유효성 검사 구현
+- 동적 능력 생성
+- 커스텀 AI 평가 구축
+- 게임 흐름 제어
 
-## Next Steps
+## 다음 단계
 
-- Start with [Level 1](/docs/language/level1) if you're new
-- See [Examples](/docs/examples) for practical applications
-- Check the [Reference](/docs/reference/keywords) for syntax details
+- 처음이라면 [레벨 1](/docs/language/level1)부터 시작하세요
+- 실용적인 적용을 위해 [예제](/docs/examples)를 참고하세요
+- 문법 세부사항은 [레퍼런스](/docs/reference/keywords)를 확인하세요

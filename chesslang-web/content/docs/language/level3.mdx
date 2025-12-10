@@ -1,50 +1,50 @@
 ---
-title: Level 3 - Script
-description: JavaScript-like scripting for complex game logic
+title: 레벨 3 - Script
+description: 복잡한 게임 로직을 위한 JavaScript 스타일 스크립팅
 ---
 
-# Level 3: Script
+# 레벨 3: Script (스크립트)
 
-Level 3 provides a JavaScript-like scripting language for implementing complex game logic that cannot be expressed declaratively.
+레벨 3은 선언적으로 표현할 수 없는 복잡한 게임 로직을 구현하기 위한 JavaScript 스타일 스크립팅 언어를 제공합니다.
 
-## Overview
+## 개요
 
-Level 3 is useful for:
-- Complex AI behavior
-- Custom move validation
-- Dynamic piece abilities
-- Advanced game state manipulation
-- Integration with external systems
+레벨 3이 유용한 경우:
+- 복잡한 AI 동작
+- 커스텀 이동 유효성 검사
+- 동적 기물 능력
+- 고급 게임 상태 조작
+- 외부 시스템과의 통합
 
-## Script Blocks
+## 스크립트 블록
 
-Scripting code lives inside `script` blocks:
-
-```chesslang
-script {
-  // JavaScript-like code here
-}
-```
-
-## Variables and Types
-
-### Variable Declaration
+스크립팅 코드는 `script` 블록 안에 작성합니다:
 
 ```chesslang
 script {
-  let x = 5;           // Mutable variable
-  const y = 10;        // Immutable constant
-
-  let name = "Rook";   // String
-  let active = true;   // Boolean
-  let pieces = [];     // Array
-  let config = {};     // Object
+  // JavaScript 스타일 코드를 여기에 작성
 }
 ```
 
-### Type Inference
+## 변수와 타입
 
-Types are inferred automatically:
+### 변수 선언
+
+```chesslang
+script {
+  let x = 5;           // 변경 가능한 변수
+  const y = 10;        // 변경 불가능한 상수
+
+  let name = "Rook";   // 문자열
+  let active = true;   // 불리언
+  let pieces = [];     // 배열
+  let config = {};     // 객체
+}
+```
+
+### 타입 추론
+
+타입은 자동으로 추론됩니다:
 
 ```chesslang
 script {
@@ -55,46 +55,46 @@ script {
 }
 ```
 
-## Control Flow
+## 제어 흐름
 
-### Conditionals
+### 조건문
 
 ```chesslang
 script {
   if (piece.type == "King") {
-    // King-specific logic
+    // 킹 관련 로직
   } else if (piece.type == "Queen") {
-    // Queen-specific logic
+    // 퀸 관련 로직
   } else {
-    // Other pieces
+    // 다른 기물
   }
 }
 ```
 
-### Loops
+### 반복문
 
 ```chesslang
 script {
-  // For loop
+  // For 루프
   for (let i = 0; i < 8; i++) {
-    // Process each file
+    // 각 파일 처리
   }
 
-  // For-of loop
+  // For-of 루프
   for (const piece of board.pieces) {
-    // Process each piece
+    // 각 기물 처리
   }
 
-  // While loop
+  // While 루프
   while (condition) {
-    // Repeat until condition is false
+    // 조건이 거짓이 될 때까지 반복
   }
 }
 ```
 
-## Functions
+## 함수
 
-### Function Declaration
+### 함수 선언
 
 ```chesslang
 script {
@@ -109,7 +109,7 @@ script {
 }
 ```
 
-### Arrow Functions
+### 화살표 함수
 
 ```chesslang
 script {
@@ -125,237 +125,102 @@ script {
 }
 ```
 
-## Built-in Objects
+## 내장 객체
 
 ### board
 
-Access the game board:
+게임 보드에 접근합니다:
 
 ```chesslang
 script {
-  // Get piece at position
+  // 위치의 기물 가져오기
   const piece = board.at({ file: 4, rank: 0 });
 
-  // Get all pieces
+  // 모든 기물 가져오기
   const allPieces = board.pieces;
 
-  // Get pieces by player
+  // 플레이어별 기물 가져오기
   const whitePieces = board.pieces.filter(p => p.owner == "White");
 
-  // Check if square is empty
+  // 칸이 비어있는지 확인
   const isEmpty = board.isEmpty({ file: 3, rank: 3 });
 
-  // Get adjacent squares
+  // 인접 칸 가져오기
   const neighbors = board.adjacent({ file: 4, rank: 4 });
 }
 ```
 
 ### game
 
-Access game state:
+게임 상태에 접근합니다:
 
 ```chesslang
 script {
-  // Current player
+  // 현재 플레이어
   const current = game.currentPlayer;
 
-  // Move history
+  // 이동 기록
   const moves = game.moveHistory;
   const lastMove = game.lastMove;
 
-  // Turn number
+  // 턴 번호
   const turn = game.turnNumber;
 
-  // Check state
+  // 체크 상태
   const inCheck = game.isCheck(player);
   const isCheckmate = game.isCheckmate(player);
 
-  // Game result
+  // 게임 결과
   const isOver = game.isOver;
   const winner = game.winner;
 }
 ```
 
-### Position Utilities
+### 위치 유틸리티
 
 ```chesslang
 script {
-  // Parse square notation
+  // 칸 표기법 파싱
   const pos = parseSquare("e4");  // { file: 4, rank: 3 }
 
-  // Convert to notation
+  // 표기법으로 변환
   const notation = toSquare({ file: 4, rank: 3 });  // "e4"
 
-  // Calculate distance
+  // 거리 계산
   const dist = distance(pos1, pos2);
 
-  // Get squares in direction
-  const ray = getRay(pos, "N", 3);  // 3 squares north
+  // 방향으로 칸 가져오기
+  const ray = getRay(pos, "N", 3);  // 북쪽으로 3칸
 
-  // Check if position is valid
+  // 위치 유효성 확인
   const valid = isValidPos({ file: 8, rank: 0 });  // false
 }
 ```
 
-## Extending Pieces
+## 이벤트 핸들러
 
-### Custom Actions
-
-Add custom actions to pieces:
-
-```chesslang
-piece Teleporter {
-  move: step(any)
-  capture: =move
-}
-
-script {
-  Teleporter.actions.teleport = function(board, piece) {
-    // Return array of possible teleport targets
-    return board.emptySquares().filter(pos => {
-      const dist = distance(piece.pos, pos);
-      return dist >= 3 && dist <= 5;
-    }).map(pos => ({
-      type: "teleport",
-      from: piece.pos,
-      to: pos
-    }));
-  };
-
-  Teleporter.execute.teleport = function(board, piece, action) {
-    board.movePiece(piece, action.to);
-    return { success: true };
-  };
-}
-```
-
-### Custom Move Validation
-
-```chesslang
-piece Coward {
-  move: step(any)
-}
-
-script {
-  Coward.validate = function(board, piece, move) {
-    // Cannot move toward enemy pieces
-    const enemyPieces = board.pieces.filter(p => p.owner != piece.owner);
-
-    for (const enemy of enemyPieces) {
-      const oldDist = distance(piece.pos, enemy.pos);
-      const newDist = distance(move.to, enemy.pos);
-
-      if (newDist < oldDist) {
-        return { valid: false, reason: "Coward cannot approach enemies" };
-      }
-    }
-
-    return { valid: true };
-  };
-}
-```
-
-## Event Handlers
-
-### Global Event Handlers
+### 글로벌 이벤트 핸들러
 
 ```chesslang
 script {
   game.on("move", function(event) {
-    console.log(`${event.piece.type} moved from ${event.from} to ${event.to}`);
+    console.log(event.piece.type, "moved from", event.from, "to", event.to);
   });
 
   game.on("capture", function(event) {
-    console.log(`${event.captured.type} was captured!`);
+    console.log(event.captured.type, "was captured!");
   });
 
   game.on("turnEnd", function(event) {
-    // Check for special conditions
+    // 특수 조건 확인
     if (game.turnNumber > 50) {
-      // Apply time pressure effects
+      // 시간 압박 효과 적용
     }
   });
 }
 ```
 
-### Piece-Specific Handlers
-
-```chesslang
-script {
-  Berserker.on("capture", function(piece, captured) {
-    piece.state.rage = Math.min(piece.state.rage + 1, 5);
-    console.log(`Berserker rage: ${piece.state.rage}`);
-  });
-
-  Phoenix.on("captured", function(piece, capturer) {
-    // Respawn at starting position
-    if (!piece.state.hasRespawned) {
-      game.createPiece("Phoenix", piece.startPos, piece.owner);
-      piece.state.hasRespawned = true;
-    }
-  });
-}
-```
-
-## Complete Examples
-
-### Lancer with Mount Ability
-
-```chesslang
-game: "Cavalry Chess"
-extends: "Standard Chess"
-
-piece Lancer {
-  move: step(orthogonal)
-  capture: =move
-  state: { mounted: false }
-  value: 4
-}
-
-script {
-  // Add mount action when adjacent to a Knight
-  Lancer.actions.mount = function(board, piece) {
-    if (piece.state.mounted) return [];
-
-    const adjacent = board.adjacent(piece.pos);
-    const knights = adjacent
-      .map(pos => board.at(pos))
-      .filter(p => p && p.type == "Knight" && p.owner == piece.owner);
-
-    return knights.map(knight => ({
-      type: "mount",
-      target: knight.pos
-    }));
-  };
-
-  Lancer.execute.mount = function(board, piece, action) {
-    const knight = board.at(action.target);
-    board.removePiece(knight);
-    piece.state.mounted = true;
-    return { success: true };
-  };
-
-  // Mounted Lancer has enhanced movement
-  Lancer.getPattern = function(piece) {
-    if (piece.state.mounted) {
-      return {
-        move: "leap(2, 1) | step(orthogonal, 2)",
-        capture: "=move"
-      };
-    }
-    return null;  // Use default pattern
-  };
-}
-
-setup:
-  modify:
-    White:
-      Knight: [b1]
-      Lancer: [c1]
-    Black:
-      Knight: [b8]
-      Lancer: [c8]
-```
+## 완전한 예제
 
 ### Progressive Chess
 
@@ -364,90 +229,104 @@ game: "Progressive Chess"
 extends: "Standard Chess"
 
 script {
-  // Track moves per turn
+  // 턴당 이동 추적
   game.state.movesThisTurn = 0;
   game.state.movesRequired = 1;
 
   game.on("move", function(event) {
     game.state.movesThisTurn++;
 
-    // Check if turn should end
+    // 체크 확인 - 턴 즉시 종료
+    if (game.isCheck(event.player === "White" ? "Black" : "White")) {
+      game.endTurn();
+      return;
+    }
+
+    // 필요한 이동 완료 확인
     if (game.state.movesThisTurn >= game.state.movesRequired) {
       game.endTurn();
     }
   });
 
   game.on("turnEnd", function(event) {
-    // Next player gets one more move
+    // 다음 플레이어는 이동 하나 더
     game.state.movesRequired++;
     game.state.movesThisTurn = 0;
   });
-
-  // Override turn end logic
-  game.canEndTurn = function() {
-    return game.state.movesThisTurn >= game.state.movesRequired;
-  };
 }
 ```
 
-### Custom AI Evaluation
+### Countdown Chess
 
 ```chesslang
+game: "Countdown Chess"
+extends: "Standard Chess"
+
 script {
-  game.evaluate = function(board, player) {
-    let score = 0;
+  game.state.whiteMoves = 50;
+  game.state.blackMoves = 50;
 
-    for (const piece of board.pieces) {
-      const value = getPieceValue(piece);
-      const positionBonus = getPositionBonus(piece);
-      const mobilityBonus = getMobilityBonus(board, piece);
-
-      const pieceScore = value + positionBonus + mobilityBonus;
-
-      if (piece.owner == player) {
-        score += pieceScore;
-      } else {
-        score -= pieceScore;
+  game.on("move", function(event) {
+    if (event.player === "White") {
+      game.state.whiteMoves--;
+      console.log("White moves left:", game.state.whiteMoves);
+      if (game.state.whiteMoves <= 0) {
+        game.declareWinner("Black", "White ran out of moves");
+      }
+    } else {
+      game.state.blackMoves--;
+      console.log("Black moves left:", game.state.blackMoves);
+      if (game.state.blackMoves <= 0) {
+        game.declareWinner("White", "Black ran out of moves");
       }
     }
-
-    // Bonus for king safety
-    score += evaluateKingSafety(board, player);
-
-    // Penalty for doubled pawns
-    score -= countDoubledPawns(board, player) * 0.5;
-
-    return score;
-  };
-
-  function getPieceValue(piece) {
-    const values = {
-      King: 0,
-      Queen: 9,
-      Rook: 5,
-      Bishop: 3.25,
-      Knight: 3,
-      Pawn: 1
-    };
-    return values[piece.type] || 0;
-  }
-
-  function getPositionBonus(piece) {
-    // Center control bonus
-    const centerDist = distance(piece.pos, { file: 3.5, rank: 3.5 });
-    return Math.max(0, 0.5 - centerDist * 0.1);
-  }
-
-  function getMobilityBonus(board, piece) {
-    const moves = board.getLegalMoves(piece);
-    return moves.length * 0.1;
-  }
+    game.endTurn();
+  });
 }
 ```
 
-## Debugging
+### Material Race
 
-### Console Output
+```chesslang
+game: "Material Race"
+extends: "Standard Chess"
+
+script {
+  game.state.whiteCaptures = 0;
+  game.state.blackCaptures = 0;
+
+  var pieceValues = {
+    "Pawn": 1,
+    "Knight": 3,
+    "Bishop": 3,
+    "Rook": 5,
+    "Queen": 9
+  };
+
+  game.on("capture", function(event) {
+    var capturedType = event.captured.type;
+    var value = pieceValues[capturedType] || 0;
+
+    if (event.player === "White") {
+      game.state.whiteCaptures += value;
+      console.log("White captures:", game.state.whiteCaptures);
+      if (game.state.whiteCaptures >= 15) {
+        game.declareWinner("White", "Captured 15 points");
+      }
+    } else {
+      game.state.blackCaptures += value;
+      console.log("Black captures:", game.state.blackCaptures);
+      if (game.state.blackCaptures >= 15) {
+        game.declareWinner("Black", "Captured 15 points");
+      }
+    }
+  });
+}
+```
+
+## 디버깅
+
+### 콘솔 출력
 
 ```chesslang
 script {
@@ -455,42 +334,30 @@ script {
   console.warn("Warning message");
   console.error("Error message");
 
-  // Log object
+  // 객체 로그
   console.log("Piece:", piece);
   console.log("Board state:", board.toJSON());
 }
 ```
 
-### Assertions
+## 모범 사례
 
-```chesslang
-script {
-  function movePiece(piece, to) {
-    assert(piece != null, "Piece cannot be null");
-    assert(isValidPos(to), "Invalid target position");
+1. **스크립트를 집중적으로 유지**: 선언적 로직은 레벨 2, 복잡한 절차는 레벨 3 사용
+2. **함수 문서화**: 함수가 하는 일을 설명하는 주석 추가
+3. **오류 처리**: null/undefined 값 확인
+4. **부작용 방지**: 함수는 예측 가능해야 함
+5. **철저히 테스트**: 스크립트는 미묘한 버그를 유발할 수 있음
 
-    // ... move logic
-  }
-}
-```
+## 제한 사항
 
-## Best Practices
+- async/await 없음 (게임 로직은 동기적)
+- DOM 접근 없음 (격리된 컨텍스트에서 실행)
+- 외부 import 없음 (내장 유틸리티 사용)
+- 제한된 재귀 깊이 (무한 루프 방지)
 
-1. **Keep Scripts Focused**: Use Level 2 for declarative logic, Level 3 for complex procedures
-2. **Document Functions**: Add comments explaining what functions do
-3. **Handle Errors**: Check for null/undefined values
-4. **Avoid Side Effects**: Functions should be predictable
-5. **Test Thoroughly**: Scripts can introduce subtle bugs
+## 다음 단계
 
-## Limitations
-
-- No async/await (game logic is synchronous)
-- No DOM access (runs in isolated context)
-- No external imports (use built-in utilities)
-- Limited recursion depth (prevent infinite loops)
-
-## Next Steps
-
-- See [Reference](/docs/reference/keywords) for all keywords
-- Explore [Examples](/docs/examples) for complex variants
-- Check [Patterns](/docs/reference/patterns) for movement reference
+- 모든 키워드는 [레퍼런스](/docs/reference/keywords)를 참고하세요
+- 복잡한 변형은 [예제](/docs/examples)를 탐색하세요
+- 이동 레퍼런스는 [패턴](/docs/reference/patterns)을 확인하세요
+- 스크립트 API 상세 정보는 [스크립트 API](/docs/reference/script-api)를 참고하세요

@@ -134,6 +134,9 @@ export type Condition =
   | CheckCondition
   | FirstMoveCondition
   | InZoneCondition
+  | OnRankCondition
+  | OnFileCondition
+  | PieceCapturedCondition
   | ComparisonCondition
   | LogicalCondition
   | NotCondition
@@ -166,6 +169,24 @@ export interface FirstMoveCondition {
 export interface InZoneCondition {
   type: 'in_zone';
   zone: string;
+  pieceType?: string; // Optional: specific piece type (e.g., "King")
+}
+
+export interface OnRankCondition {
+  type: 'on_rank';
+  pieceType: string; // e.g., "King"
+  rank: number; // 1-based rank number
+}
+
+export interface OnFileCondition {
+  type: 'on_file';
+  pieceType: string; // e.g., "King"
+  file: string; // e.g., "a", "b", etc.
+}
+
+export interface PieceCapturedCondition {
+  type: 'piece_captured';
+  pieceType: string; // e.g., "King"
 }
 
 export interface ComparisonCondition {
@@ -414,6 +435,7 @@ export interface GameState {
   effects: Effect[];
   customState: Record<string, unknown>;
   result?: GameResult;
+  checkCount?: { White: number; Black: number }; // For three-check variants
 }
 
 export interface GameResult {
@@ -458,7 +480,32 @@ export interface CompiledGame {
   victory: VictoryCondition[];
   draw: DrawCondition[];
   rules: RuleConfig;
+  scripts: string[]; // 스크립트 코드 배열
 }
+
+// ----------------------------------------------------------------------------
+// Script Runtime Types
+// ----------------------------------------------------------------------------
+
+export type ScriptEventType = 
+  | 'move' 
+  | 'capture' 
+  | 'turnStart' 
+  | 'turnEnd' 
+  | 'check' 
+  | 'checkmate'
+  | 'promotion';
+
+export interface ScriptEvent {
+  type: ScriptEventType;
+  piece?: Piece;
+  from?: Position;
+  to?: Position;
+  captured?: Piece;
+  player: Color;
+}
+
+export type ScriptEventHandler = (event: ScriptEvent) => void;
 
 export interface SetupConfig {
   placements: PlacementConfig[];
@@ -565,6 +612,7 @@ export interface ConditionNode extends ASTNode {
   right?: ConditionNode | ExpressionNode;
   op?: string;
   condition?: ConditionNode;
+  subject?: ExpressionNode; // for on_rank, on_file, piece_captured
 }
 
 export interface ActionNode extends ASTNode {
@@ -716,6 +764,13 @@ export enum TokenType {
   CLEAR = 'CLEAR',
   CHECK = 'CHECK',
   FIRST_MOVE = 'FIRST_MOVE',
+  
+  // Victory condition keywords
+  RANK = 'RANK',
+  FILE = 'FILE',
+  CAPTURED = 'CAPTURED',
+  CHECKS = 'CHECKS',
+  OPPONENT = 'OPPONENT',
 
   // Action keywords
   SET = 'SET',

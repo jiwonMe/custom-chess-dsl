@@ -1,24 +1,24 @@
 ---
-title: Conditions Reference
-description: Complete reference for ChessLang conditions
+title: 조건 레퍼런스
+description: ChessLang 조건 완전 레퍼런스
 ---
 
-# Conditions Reference
+# 조건 레퍼런스
 
-Conditions are used to restrict when moves can be made, when triggers fire, and when victory/draw conditions apply.
+조건은 이동이 가능한 시점, 트리거가 발동하는 시점, 승리/무승부 조건이 적용되는 시점을 제한하는 데 사용됩니다.
 
-## Movement Conditions
+## 이동 조건
 
-These conditions are used with the `where` keyword to restrict piece movement.
+이 조건들은 `where` 키워드와 함께 사용하여 기물 이동을 제한합니다.
 
-### Square Conditions
+### 칸 조건
 
-| Condition | Description | Example |
-|-----------|-------------|---------|
-| `empty` | Target square is empty | `step(forward) where empty` |
-| `enemy` | Target has enemy piece | `step(diagonal) where enemy` |
-| `friend` | Target has friendly piece | `step(any) where friend` |
-| `occupied` | Target has any piece | `step(any) where occupied` |
+| 조건 | 설명 | 예시 |
+|------|------|------|
+| `empty` | 대상 칸이 비어있음 | `step(forward) where empty` |
+| `enemy` | 대상에 적 기물이 있음 | `step(diagonal) where enemy` |
+| `friend` | 대상에 아군 기물이 있음 | `step(any) where friend` |
+| `occupied` | 대상에 기물이 있음 | `step(any) where occupied` |
 
 ```chesslang
 piece Pawn {
@@ -27,12 +27,12 @@ piece Pawn {
 }
 ```
 
-### Path Conditions
+### 경로 조건
 
-| Condition | Description | Example |
-|-----------|-------------|---------|
-| `clear` | Path is unobstructed | `step(forward, 2) where clear` |
-| `blocked` | Path is obstructed | Used for special moves |
+| 조건 | 설명 | 예시 |
+|------|------|------|
+| `clear` | 경로가 막히지 않음 | `step(forward, 2) where clear` |
+| `blocked` | 경로가 막힘 | 특수 이동에 사용 |
 
 ```chesslang
 piece Pawn {
@@ -40,46 +40,46 @@ piece Pawn {
 }
 
 piece Rook {
-  move: slide(orthogonal)    # Implicitly stops when blocked
+  move: slide(orthogonal)    # 막히면 암묵적으로 멈춤
 }
 ```
 
-### Piece State Conditions
+### 기물 상태 조건
 
-| Condition | Description | Example |
-|-----------|-------------|---------|
-| `first_move` | Piece hasn't moved yet | `step(forward, 2) where first_move` |
-| `has_moved` | Piece has moved | `step(any) where has_moved` |
+| 조건 | 설명 | 예시 |
+|------|------|------|
+| `first_move` | 기물이 아직 이동하지 않음 | `step(forward, 2) where first_move` |
+| `has_moved` | 기물이 이동한 적 있음 | `step(any) where has_moved` |
 
 ```chesslang
 piece King {
   move: step(any)
-  # Castling requires first_move
+  # 캐슬링은 first_move 필요
   move: castle where first_move and not check
 }
 ```
 
-### Game State Conditions
+### 게임 상태 조건
 
-| Condition | Description | Example |
-|-----------|-------------|---------|
-| `check` | King is in check | `move where check` |
-| `not check` | King is not in check | `castle where not check` |
+| 조건 | 설명 | 예시 |
+|------|------|------|
+| `check` | 킹이 체크 상태 | `move where check` |
+| `not check` | 킹이 체크 상태가 아님 | `castle where not check` |
 
 ```chesslang
 piece King {
-  # Cannot castle while in check
+  # 체크 중에는 캐슬링 불가
   move: castle where first_move and not check
 }
 ```
 
-### Zone Conditions
+### 존 조건
 
-| Condition | Description | Example |
-|-----------|-------------|---------|
-| `in zone.X` | Position is in zone X | `target in zone.hill` |
-| `on rank N` | Position on rank N | `piece on rank 8` |
-| `on file X` | Position on file X | `piece on file e` |
+| 조건 | 설명 | 예시 |
+|------|------|------|
+| `in zone.X` | 위치가 존 X에 있음 | `target in zone.hill` |
+| `on rank N` | 위치가 랭크 N에 있음 | `piece on rank 8` |
+| `on file X` | 위치가 파일 X에 있음 | `piece on file e` |
 
 ```chesslang
 board:
@@ -92,15 +92,15 @@ piece Pawn {
 }
 ```
 
-## Combining Conditions
+## 조건 조합
 
-### Logical Operators
+### 논리 연산자
 
-| Operator | Description | Example |
-|----------|-------------|---------|
-| `and` | Both conditions true | `first_move and clear` |
-| `or` | Either condition true | `empty or enemy` |
-| `not` | Condition is false | `not check` |
+| 연산자 | 설명 | 예시 |
+|--------|------|------|
+| `and` | 두 조건이 모두 참 | `first_move and clear` |
+| `or` | 하나라도 참 | `empty or enemy` |
+| `not` | 조건이 거짓 | `not check` |
 
 ```chesslang
 piece Pawn {
@@ -112,40 +112,40 @@ piece King {
 }
 ```
 
-### Precedence
+### 우선순위
 
-1. `not` (highest)
+1. `not` (가장 높음)
 2. `and`
-3. `or` (lowest)
+3. `or` (가장 낮음)
 
-Use parentheses for clarity:
+명확성을 위해 괄호를 사용하세요:
 
 ```chesslang
-# These are equivalent
+# 이것들은 동일합니다
 step(any) where (empty or enemy) and not check
-step(any) where empty or enemy and not check   # Same due to precedence
+step(any) where empty or enemy and not check   # 우선순위로 인해 동일
 ```
 
-## Victory Conditions
+## 승리 조건
 
-Used in the `victory` section to define win conditions.
+승리 조건을 정의하기 위해 `victory` 섹션에서 사용됩니다.
 
-### Built-in Conditions
+### 내장 조건
 
-| Condition | Description |
-|-----------|-------------|
-| `checkmate` | Opponent is in checkmate |
-| `stalemate` | Opponent has no legal moves (draw by default) |
+| 조건 | 설명 |
+|------|------|
+| `checkmate` | 상대가 체크메이트 |
+| `stalemate` | 상대가 합법적인 수가 없음 (기본적으로 무승부) |
 
-### Piece Conditions
+### 기물 조건
 
-| Condition | Description | Example |
-|-----------|-------------|---------|
-| `King captured` | King is captured | `victory: King captured` |
-| `King in zone.X` | King in zone | `King in zone.hill` |
-| `King on rank N` | King on rank | `King on rank 8` |
-| `pieces == N` | Exact piece count | `opponent.pieces == 0` |
-| `pieces <= N` | Piece count limit | `opponent.pieces <= 1` |
+| 조건 | 설명 | 예시 |
+|------|------|------|
+| `King captured` | 킹이 잡힘 | `victory: King captured` |
+| `King in zone.X` | 킹이 존에 있음 | `King in zone.hill` |
+| `King on rank N` | 킹이 랭크에 있음 | `King on rank 8` |
+| `pieces == N` | 정확한 기물 수 | `opponent.pieces == 0` |
+| `pieces <= N` | 기물 수 제한 | `opponent.pieces <= 1` |
 
 ```chesslang
 victory:
@@ -155,13 +155,13 @@ victory:
     bare_king: opponent.pieces == 1 and opponent.King
 ```
 
-### Counter Conditions
+### 카운터 조건
 
-| Condition | Description | Example |
-|-----------|-------------|---------|
-| `checks >= N` | Given N+ checks | `checks >= 3` |
-| `captures >= N` | Made N+ captures | `captures >= 10` |
-| `moves >= N` | Made N+ moves | `moves >= 50` |
+| 조건 | 설명 | 예시 |
+|------|------|------|
+| `checks >= N` | N회 이상 체크 | `checks >= 3` |
+| `captures >= N` | N회 이상 잡기 | `captures >= 10` |
+| `moves >= N` | N회 이상 이동 | `moves >= 50` |
 
 ```chesslang
 victory:
@@ -169,27 +169,27 @@ victory:
     three_check: checks >= 3
 ```
 
-## Draw Conditions
+## 무승부 조건
 
-Used in the `draw` section to define draw conditions.
+무승부 조건을 정의하기 위해 `draw` 섹션에서 사용됩니다.
 
-### Built-in Draw Conditions
+### 내장 무승부 조건
 
-| Condition | Description | Default |
-|-----------|-------------|---------|
-| `stalemate` | No legal moves | Enabled |
-| `repetition` | Position repeated 3x | Enabled |
-| `fifty_moves` | 50 moves no capture/pawn | Enabled |
-| `insufficient` | Insufficient material | Enabled |
+| 조건 | 설명 | 기본값 |
+|------|------|--------|
+| `stalemate` | 합법적인 수 없음 | 활성화 |
+| `repetition` | 포지션 3회 반복 | 활성화 |
+| `fifty_moves` | 50수 동안 잡기/폰 이동 없음 | 활성화 |
+| `insufficient` | 불충분한 기물 | 활성화 |
 
 ```chesslang
 draw:
   modify:
-    repetition: 5      # 5-fold repetition
-    fifty_moves: 75    # 75-move rule
+    repetition: 5      # 5회 반복
+    fifty_moves: 75    # 75수 규칙
 ```
 
-### Custom Draw Conditions
+### 커스텀 무승부 조건
 
 ```chesslang
 draw:
@@ -198,19 +198,19 @@ draw:
     bare_kings: White.pieces == 1 and Black.pieces == 1
 ```
 
-## Trigger Conditions
+## 트리거 조건
 
-Used in the `when` clause of triggers.
+트리거의 `when` 절에서 사용됩니다.
 
-### Event Data
+### 이벤트 데이터
 
-| Variable | Available In | Description |
-|----------|--------------|-------------|
-| `piece` | move, capture | Moving piece |
-| `origin` | move, capture | Starting position |
-| `target` | move, capture | Ending position |
-| `captured` | capture | Captured piece |
-| `player` | turn_start, turn_end | Current player |
+| 변수 | 사용 가능 | 설명 |
+|------|----------|------|
+| `piece` | move, capture | 이동하는 기물 |
+| `origin` | move, capture | 시작 위치 |
+| `target` | move, capture | 종료 위치 |
+| `captured` | capture | 잡힌 기물 |
+| `player` | turn_start, turn_end | 현재 플레이어 |
 
 ```chesslang
 trigger on_capture {
@@ -220,12 +220,12 @@ trigger on_capture {
 }
 ```
 
-### Piece Type Conditions
+### 기물 타입 조건
 
-| Condition | Description | Example |
-|-----------|-------------|---------|
-| `piece.type == X` | Piece is type X | `piece.type == Knight` |
-| `piece.owner == X` | Piece belongs to X | `piece.owner == White` |
+| 조건 | 설명 | 예시 |
+|------|------|------|
+| `piece.type == X` | 기물이 타입 X | `piece.type == Knight` |
+| `piece.owner == X` | 기물이 X 소유 | `piece.owner == White` |
 
 ```chesslang
 trigger knight_bonus {
@@ -235,12 +235,12 @@ trigger knight_bonus {
 }
 ```
 
-### State Conditions
+### 상태 조건
 
-| Condition | Description | Example |
-|-----------|-------------|---------|
-| `piece.state.X == Y` | State value check | `piece.state.rage >= 3` |
-| `piece.traits.has(X)` | Has trait | `piece.traits.has(royal)` |
+| 조건 | 설명 | 예시 |
+|------|------|------|
+| `piece.state.X == Y` | 상태 값 확인 | `piece.state.rage >= 3` |
+| `piece.traits.has(X)` | 특성 보유 | `piece.traits.has(royal)` |
 
 ```chesslang
 trigger rage_attack {
@@ -250,13 +250,13 @@ trigger rage_attack {
 }
 ```
 
-### Position Conditions
+### 위치 조건
 
-| Condition | Description | Example |
-|-----------|-------------|---------|
-| `target in zone.X` | Target in zone | `target in zone.danger` |
-| `origin on rank N` | Origin on rank | `origin on rank 2` |
-| `distance(a, b) < N` | Distance check | `distance(origin, target) > 3` |
+| 조건 | 설명 | 예시 |
+|------|------|------|
+| `target in zone.X` | 대상이 존에 있음 | `target in zone.danger` |
+| `origin on rank N` | 출발지가 랭크에 있음 | `origin on rank 2` |
+| `distance(a, b) < N` | 거리 확인 | `distance(origin, target) > 3` |
 
 ```chesslang
 trigger teleport_check {
@@ -266,13 +266,13 @@ trigger teleport_check {
 }
 ```
 
-### Existence Conditions
+### 존재 조건
 
-| Condition | Description | Example |
-|-----------|-------------|---------|
-| `exists piece where X` | Any piece matching | `exists Knight where owner == White` |
-| `all pieces where X` | All pieces match | `all Pawns where on rank 7` |
-| `count pieces where X` | Count matching | `count Queens where owner == player` |
+| 조건 | 설명 | 예시 |
+|------|------|------|
+| `exists piece where X` | 조건에 맞는 기물 존재 | `exists Knight where owner == White` |
+| `all pieces where X` | 모든 기물이 조건 충족 | `all Pawns where on rank 7` |
+| `count pieces where X` | 조건 충족 기물 수 | `count Queens where owner == player` |
 
 ```chesslang
 trigger last_piece {
@@ -282,75 +282,27 @@ trigger last_piece {
 }
 ```
 
-## Effect Conditions
+## 예시
 
-Used to define when effects apply.
-
-```chesslang
-effect fire {
-  damages: [any]                    # Affects all pieces
-  blocks: [enemy]                   # Only blocks enemies
-  duration: 3
-}
-
-effect sanctuary {
-  protects: [friend]                # Only protects friendlies
-  blocks: [enemy where not royal]   # Blocks non-royal enemies
-}
-```
-
-## Script Conditions (Level 3)
-
-In Level 3 scripts, you can write arbitrary conditions:
-
-```chesslang
-script {
-  function canCastle(king, rook) {
-    if (king.hasMoved || rook.hasMoved) return false;
-    if (game.isCheck(king.owner)) return false;
-
-    const path = getPathBetween(king.pos, rook.pos);
-    for (const pos of path) {
-      if (!board.isEmpty(pos)) return false;
-      if (game.isAttacked(pos, opponent(king.owner))) return false;
-    }
-
-    return true;
-  }
-
-  King.validate = function(piece, move) {
-    if (move.type == "castle") {
-      const rook = board.at(move.rookFrom);
-      if (!canCastle(piece, rook)) {
-        return { valid: false, reason: "Cannot castle" };
-      }
-    }
-    return { valid: true };
-  };
-}
-```
-
-## Examples
-
-### Conditional Movement
+### 조건부 이동
 
 ```chesslang
 piece DesperatePawn {
-  # Normal move
+  # 일반 이동
   move: step(forward) where empty
 
-  # Double move on first turn
+  # 첫 턴에 더블 무브
   move: step(forward, 2) where first_move and clear and empty
 
-  # Capture diagonally
+  # 대각선으로 잡기
   capture: step(forward-diagonal) where enemy
 
-  # Can move backward when in danger
+  # 위험할 때 뒤로 이동 가능
   move: step(backward) where check and empty
 }
 ```
 
-### Conditional Triggers
+### 조건부 트리거
 
 ```chesslang
 trigger promote_on_hill {
@@ -361,39 +313,33 @@ trigger promote_on_hill {
 
 trigger atomic_explosion {
   on: capture
-  when: not (captured.type == Pawn)  # Pawns don't explode
+  when: not (captured.type == Pawn)  # 폰은 폭발하지 않음
   do: {
     remove pieces in radius(1) from target
   }
 }
-
-trigger check_counter {
-  on: check
-  when: count checks where player == current_player >= 2
-  do: win current_player
-}
 ```
 
-### Complex Victory Conditions
+### 복잡한 승리 조건
 
 ```chesslang
 victory:
   add:
-    # Racing kings - first to rank 8 wins
+    # 레이싱 킹스 - 먼저 8랭크에 도달하면 승리
     race: King on rank 8 and not opponent.King on rank 8
 
-    # Capture the flag - reach opponent's corner
+    # 깃발 잡기 - 상대 코너에 도달
     flag: King in zone.opponent_corner
 
-    # Elimination - capture all pieces
+    # 제거 - 모든 기물 잡기
     elimination: opponent.pieces == 0
 
-    # Material advantage
+    # 기물 우위
     domination: pieces >= opponent.pieces * 2
 ```
 
-## See Also
+## 참고
 
-- [Actions Reference](/docs/reference/actions)
-- [Directions Reference](/docs/reference/directions)
-- [Level 2 - Compose](/docs/language/level2)
+- [액션 레퍼런스](/docs/reference/actions)
+- [방향 레퍼런스](/docs/reference/directions)
+- [레벨 2 - Compose](/docs/language/level2)

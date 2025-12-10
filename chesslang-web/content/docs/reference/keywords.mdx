@@ -1,246 +1,246 @@
 ---
-title: Keywords Reference
-description: Complete list of ChessLang keywords and their usage
+title: 키워드 레퍼런스
+description: ChessLang 키워드와 사용법의 완전한 목록
 ---
 
-# Keywords Reference
+# 키워드 레퍼런스
 
-This is a complete reference of all keywords in ChessLang, organized by level and category.
+레벨과 카테고리별로 정리된 ChessLang의 모든 키워드 완전 레퍼런스입니다.
 
-## Level 1 Keywords
+## 레벨 1 키워드
 
-### Game Definition
+### 게임 정의
 
-| Keyword | Description | Example |
-|---------|-------------|---------|
-| `game` | Name of the variant | `game: "My Variant"` |
-| `extends` | Base game to inherit | `extends: "Standard Chess"` |
+| 키워드 | 설명 | 예시 |
+|--------|------|------|
+| `game` | 변형의 이름 | `game: "My Variant"` |
+| `extends` | 상속할 기본 게임 | `extends: "Standard Chess"` |
 
-### Board Configuration
+### 보드 설정
 
-| Keyword | Description | Example |
-|---------|-------------|---------|
-| `board` | Board configuration block | `board:` |
-| `size` | Board dimensions | `size: 8x8` |
-| `zones` | Named board regions | `zones:` |
+| 키워드 | 설명 | 예시 |
+|--------|------|------|
+| `board` | 보드 설정 블록 | `board:` |
+| `size` | 보드 크기 | `size: 8x8` |
+| `zones` | 이름 지정된 보드 영역 | `zones:` |
 
-### Setup
+### 배치
 
-| Keyword | Description | Example |
-|---------|-------------|---------|
-| `setup` | Initial piece placement | `setup:` |
-| `White` | White player's pieces | `White:` |
-| `Black` | Black player's pieces | `Black:` |
-| `add` | Add to existing setup | `add:` |
-| `modify` | Modify existing setup | `modify:` |
-| `remove` | Remove from setup | `remove:` |
+| 키워드 | 설명 | 예시 |
+|--------|------|------|
+| `setup` | 초기 기물 배치 | `setup:` |
+| `White` | 백 플레이어의 기물 | `White:` |
+| `Black` | 흑 플레이어의 기물 | `Black:` |
+| `add` | 기존 배치에 추가 | `add:` |
+| `modify` | 기존 배치 수정 | `modify:` |
+| `remove` | 배치에서 제거 | `remove:` |
 
-### Victory & Draw
+### 승리 & 무승부
 
-| Keyword | Description | Example |
-|---------|-------------|---------|
-| `victory` | Victory conditions | `victory:` |
-| `draw` | Draw conditions | `draw:` |
-| `add` | Add condition | `add:` |
-| `replace` | Replace condition | `replace:` |
-| `remove` | Remove condition | `remove:` |
+| 키워드 | 설명 | 예시 |
+|--------|------|------|
+| `victory` | 승리 조건 | `victory:` |
+| `draw` | 무승부 조건 | `draw:` |
+| `add` | 조건 추가 | `add:` |
+| `replace` | 조건 교체 | `replace:` |
+| `remove` | 조건 제거 | `remove:` |
 
-### Rules
+### 규칙
 
-| Keyword | Description | Example |
-|---------|-------------|---------|
-| `rules` | Rule modifications | `rules:` |
-| `castling` | Enable/disable castling | `castling: false` |
-| `en_passant` | Enable/disable en passant | `en_passant: true` |
-| `promotion` | Promotion rules | `promotion:` |
-| `check` | Check rules | `check:` |
+| 키워드 | 설명 | 예시 |
+|--------|------|------|
+| `rules` | 규칙 수정 | `rules:` |
+| `castling` | 캐슬링 활성화/비활성화 | `castling: false` |
+| `en_passant` | 앙파상 활성화/비활성화 | `en_passant: true` |
+| `promotion` | 승진 규칙 | `promotion:` |
+| `check` | 체크 규칙 | `check:` |
 
-## Level 2 Keywords
+## 레벨 2 키워드
 
-### Piece Definition
+### 기물 정의
 
-| Keyword | Description | Example |
-|---------|-------------|---------|
-| `piece` | Define custom piece | `piece Knight { }` |
-| `move` | Movement pattern | `move: leap(2, 1)` |
-| `capture` | Capture pattern | `capture: =move` |
-| `traits` | Special abilities | `traits: [jump, royal]` |
-| `state` | Piece state | `state: { rage: 0 }` |
-| `value` | Material value | `value: 3` |
-| `symbol` | Display symbol | `symbol: "N"` |
+| 키워드 | 설명 | 예시 |
+|--------|------|------|
+| `piece` | 커스텀 기물 정의 | `piece Knight { }` |
+| `move` | 이동 패턴 | `move: leap(2, 1)` |
+| `capture` | 잡기 패턴 | `capture: =move` |
+| `traits` | 특수 능력 | `traits: [jump, royal]` |
+| `state` | 기물 상태 | `state: { rage: 0 }` |
+| `value` | 기물 가치 | `value: 3` |
+| `symbol` | 표시 심볼 | `symbol: "N"` |
 
-### Patterns
+### 패턴
 
-| Keyword | Description | Example |
-|---------|-------------|---------|
-| `step` | Fixed distance move | `step(forward)` |
-| `slide` | Unlimited distance | `slide(diagonal)` |
-| `leap` | Jump move | `leap(2, 1)` |
-| `hop` | Jump over piece | `hop(orthogonal)` |
+| 키워드 | 설명 | 예시 |
+|--------|------|------|
+| `step` | 고정 거리 이동 | `step(forward)` |
+| `slide` | 무제한 거리 | `slide(diagonal)` |
+| `leap` | 점프 이동 | `leap(2, 1)` |
+| `hop` | 기물 뛰어넘기 | `hop(orthogonal)` |
 
-### Pattern Modifiers
+### 패턴 수정자
 
-| Keyword | Description | Example |
-|---------|-------------|---------|
-| `where` | Add condition | `step(forward) where empty` |
-| `\|` | Or combinator | `slide(N) \| slide(S)` |
-| `+` | Then combinator | `step(N) + slide(E)` |
-| `*` | Repeat | `step(forward) * 3` |
+| 키워드 | 설명 | 예시 |
+|--------|------|------|
+| `where` | 조건 추가 | `step(forward) where empty` |
+| `\|` | Or 조합자 | `slide(N) \| slide(S)` |
+| `+` | Then 조합자 | `step(N) + slide(E)` |
+| `*` | 반복 | `step(forward) * 3` |
 
-### Effects
+### 효과
 
-| Keyword | Description | Example |
-|---------|-------------|---------|
-| `effect` | Define board effect | `effect fire { }` |
-| `damages` | What takes damage | `damages: [any]` |
-| `blocks` | What is blocked | `blocks: [enemy]` |
-| `on_enter` | Enter action | `on_enter: capture(entering)` |
-| `on_exit` | Exit action | `on_exit: heal(exiting)` |
-| `duration` | Effect duration | `duration: 3` |
-| `visual` | Visual style | `visual: highlight(red)` |
+| 키워드 | 설명 | 예시 |
+|--------|------|------|
+| `effect` | 보드 효과 정의 | `effect fire { }` |
+| `damages` | 피해 대상 | `damages: [any]` |
+| `blocks` | 차단 대상 | `blocks: [enemy]` |
+| `on_enter` | 진입 액션 | `on_enter: capture(entering)` |
+| `on_exit` | 퇴장 액션 | `on_exit: heal(exiting)` |
+| `duration` | 효과 지속 시간 | `duration: 3` |
+| `visual` | 시각 스타일 | `visual: highlight(red)` |
 
-### Triggers
+### 트리거
 
-| Keyword | Description | Example |
-|---------|-------------|---------|
-| `trigger` | Define trigger | `trigger explode { }` |
-| `on` | Event type | `on: capture` |
-| `when` | Condition | `when: piece.type == Bomb` |
-| `do` | Action | `do: remove piece` |
+| 키워드 | 설명 | 예시 |
+|--------|------|------|
+| `trigger` | 트리거 정의 | `trigger explode { }` |
+| `on` | 이벤트 타입 | `on: capture` |
+| `when` | 조건 | `when: piece.type == Bomb` |
+| `do` | 액션 | `do: remove piece` |
 
-### Events
+### 이벤트
 
-| Keyword | Description |
-|---------|-------------|
-| `move` | Any move made |
-| `capture` | Piece captured |
-| `check` | Check given |
-| `turn_start` | Turn begins |
-| `turn_end` | Turn ends |
-| `game_start` | Game begins |
-| `game_end` | Game ends |
+| 키워드 | 설명 |
+|--------|------|
+| `move` | 모든 이동 |
+| `capture` | 기물 잡힘 |
+| `check` | 체크 줌 |
+| `turn_start` | 턴 시작 |
+| `turn_end` | 턴 종료 |
+| `game_start` | 게임 시작 |
+| `game_end` | 게임 종료 |
 
-### Actions
+### 액션
 
-| Keyword | Description | Example |
-|---------|-------------|---------|
-| `set` | Set value | `set piece.state.x = 1` |
-| `create` | Create piece | `create Pawn at e4` |
-| `remove` | Remove piece | `remove piece` |
-| `transform` | Change type | `transform piece to Queen` |
-| `mark` | Apply effect | `mark pos with fire` |
-| `win` | Declare winner | `win White` |
-| `draw` | Declare draw | `draw` |
+| 키워드 | 설명 | 예시 |
+|--------|------|------|
+| `set` | 값 설정 | `set piece.state.x = 1` |
+| `create` | 기물 생성 | `create Pawn at e4` |
+| `remove` | 기물 제거 | `remove piece` |
+| `transform` | 타입 변경 | `transform piece to Queen` |
+| `mark` | 효과 적용 | `mark pos with fire` |
+| `win` | 승자 선언 | `win White` |
+| `draw` | 무승부 선언 | `draw` |
 
-## Level 3 Keywords
+## 레벨 3 키워드
 
-### Variables
+### 변수
 
-| Keyword | Description | Example |
-|---------|-------------|---------|
-| `let` | Mutable variable | `let x = 5;` |
-| `const` | Immutable constant | `const y = 10;` |
+| 키워드 | 설명 | 예시 |
+|--------|------|------|
+| `let` | 변경 가능한 변수 | `let x = 5;` |
+| `const` | 변경 불가능한 상수 | `const y = 10;` |
 
-### Control Flow
+### 제어 흐름
 
-| Keyword | Description | Example |
-|---------|-------------|---------|
-| `if` | Conditional | `if (x > 0) { }` |
-| `else` | Alternative | `else { }` |
-| `for` | For loop | `for (let i = 0; i < 8; i++)` |
-| `while` | While loop | `while (active) { }` |
-| `break` | Exit loop | `break;` |
-| `continue` | Next iteration | `continue;` |
-| `return` | Return value | `return result;` |
+| 키워드 | 설명 | 예시 |
+|--------|------|------|
+| `if` | 조건문 | `if (x > 0) { }` |
+| `else` | 대안 | `else { }` |
+| `for` | For 루프 | `for (let i = 0; i < 8; i++)` |
+| `while` | While 루프 | `while (active) { }` |
+| `break` | 루프 탈출 | `break;` |
+| `continue` | 다음 반복 | `continue;` |
+| `return` | 값 반환 | `return result;` |
 
-### Functions
+### 함수
 
-| Keyword | Description | Example |
-|---------|-------------|---------|
-| `function` | Define function | `function calc(x) { }` |
-| `=>` | Arrow function | `(x) => x * 2` |
+| 키워드 | 설명 | 예시 |
+|--------|------|------|
+| `function` | 함수 정의 | `function calc(x) { }` |
+| `=>` | 화살표 함수 | `(x) => x * 2` |
 
-### Script Block
+### 스크립트 블록
 
-| Keyword | Description | Example |
-|---------|-------------|---------|
-| `script` | Script block | `script { }` |
+| 키워드 | 설명 | 예시 |
+|--------|------|------|
+| `script` | 스크립트 블록 | `script { }` |
 
-## Operators
+## 연산자
 
-### Arithmetic
+### 산술
 
-| Operator | Description | Example |
-|----------|-------------|---------|
-| `+` | Addition | `a + b` |
-| `-` | Subtraction | `a - b` |
-| `*` | Multiplication | `a * b` |
-| `/` | Division | `a / b` |
-| `%` | Modulo | `a % b` |
+| 연산자 | 설명 | 예시 |
+|--------|------|------|
+| `+` | 덧셈 | `a + b` |
+| `-` | 뺄셈 | `a - b` |
+| `*` | 곱셈 | `a * b` |
+| `/` | 나눗셈 | `a / b` |
+| `%` | 나머지 | `a % b` |
 
-### Comparison
+### 비교
 
-| Operator | Description | Example |
-|----------|-------------|---------|
-| `==` | Equal | `a == b` |
-| `!=` | Not equal | `a != b` |
-| `<` | Less than | `a < b` |
-| `>` | Greater than | `a > b` |
-| `<=` | Less or equal | `a <= b` |
-| `>=` | Greater or equal | `a >= b` |
+| 연산자 | 설명 | 예시 |
+|--------|------|------|
+| `==` | 같음 | `a == b` |
+| `!=` | 다름 | `a != b` |
+| `<` | 미만 | `a < b` |
+| `>` | 초과 | `a > b` |
+| `<=` | 이하 | `a <= b` |
+| `>=` | 이상 | `a >= b` |
 
-### Logical
+### 논리
 
-| Operator | Description | Example |
-|----------|-------------|---------|
-| `and` | Logical AND | `a and b` |
-| `or` | Logical OR | `a or b` |
-| `not` | Logical NOT | `not a` |
-| `&&` | AND (Level 3) | `a && b` |
-| `\|\|` | OR (Level 3) | `a \|\| b` |
-| `!` | NOT (Level 3) | `!a` |
+| 연산자 | 설명 | 예시 |
+|--------|------|------|
+| `and` | 논리 AND | `a and b` |
+| `or` | 논리 OR | `a or b` |
+| `not` | 논리 NOT | `not a` |
+| `&&` | AND (레벨 3) | `a && b` |
+| `\|\|` | OR (레벨 3) | `a \|\| b` |
+| `!` | NOT (레벨 3) | `!a` |
 
-### Assignment
+### 대입
 
-| Operator | Description | Example |
-|----------|-------------|---------|
-| `=` | Assign | `x = 5` |
-| `+=` | Add assign | `x += 1` |
-| `-=` | Subtract assign | `x -= 1` |
-| `*=` | Multiply assign | `x *= 2` |
-| `/=` | Divide assign | `x /= 2` |
+| 연산자 | 설명 | 예시 |
+|--------|------|------|
+| `=` | 대입 | `x = 5` |
+| `+=` | 덧셈 대입 | `x += 1` |
+| `-=` | 뺄셈 대입 | `x -= 1` |
+| `*=` | 곱셈 대입 | `x *= 2` |
+| `/=` | 나눗셈 대입 | `x /= 2` |
 
-## Built-in Values
+## 내장 값
 
-### Colors/Players
+### 색상/플레이어
 
-| Value | Description |
-|-------|-------------|
-| `White` | White player |
-| `Black` | Black player |
+| 값 | 설명 |
+|-----|------|
+| `White` | 백 플레이어 |
+| `Black` | 흑 플레이어 |
 
-### Piece Types
+### 기물 타입
 
-| Value | Description |
-|-------|-------------|
-| `King` | King piece |
-| `Queen` | Queen piece |
-| `Rook` | Rook piece |
-| `Bishop` | Bishop piece |
-| `Knight` | Knight piece |
-| `Pawn` | Pawn piece |
+| 값 | 설명 |
+|-----|------|
+| `King` | 킹 기물 |
+| `Queen` | 퀸 기물 |
+| `Rook` | 룩 기물 |
+| `Bishop` | 비숍 기물 |
+| `Knight` | 나이트 기물 |
+| `Pawn` | 폰 기물 |
 
-### Boolean
+### 불리언
 
-| Value | Description |
-|-------|-------------|
-| `true` | True value |
-| `false` | False value |
-| `null` | Null value |
+| 값 | 설명 |
+|-----|------|
+| `true` | 참 |
+| `false` | 거짓 |
+| `null` | 널 값 |
 
-## Reserved Words
+## 예약어
 
-The following words are reserved and cannot be used as identifiers:
+다음 단어들은 예약되어 있으며 식별자로 사용할 수 없습니다:
 
 ```
 game, extends, board, size, zones, setup, pieces, victory, draw, rules,
@@ -250,9 +250,9 @@ function, let, const, script, true, false, null, and, or, not,
 White, Black, King, Queen, Rook, Bishop, Knight, Pawn
 ```
 
-## See Also
+## 참고
 
-- [Directions Reference](/docs/reference/directions)
-- [Conditions Reference](/docs/reference/conditions)
-- [Actions Reference](/docs/reference/actions)
-- [Patterns Reference](/docs/reference/patterns)
+- [방향 레퍼런스](/docs/reference/directions)
+- [조건 레퍼런스](/docs/reference/conditions)
+- [액션 레퍼런스](/docs/reference/actions)
+- [패턴 레퍼런스](/docs/reference/patterns)

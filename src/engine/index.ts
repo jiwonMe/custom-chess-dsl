@@ -43,3 +43,9 @@ export {
 } from './moves.js';
 
 export { GameEngine } from './game.js';
+
+export {
+  ScriptRuntime,
+  type GameScriptAPI,
+  type BoardScriptAPI,
+} from './script-runtime.js';

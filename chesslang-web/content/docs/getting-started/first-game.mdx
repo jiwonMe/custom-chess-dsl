@@ -1,46 +1,54 @@
 ---
-title: Your First Game
-description: Create your first chess variant with ChessLang
+title: 첫 번째 게임
+description: ChessLang으로 첫 번째 체스 변형 만들기
 ---
 
-# Your First Game
+# 첫 번째 게임 만들기
 
-In this tutorial, you'll create your first chess variant - **King of the Hill**. This variant adds a new win condition: move your King to the center of the board to win instantly.
+이 튜토리얼에서는 ChessLang을 사용하여 첫 번째 체스 변형인 "King of the Hill"을 만들어 보겠습니다.
 
-## Prerequisites
+## 목표
 
-- Open the [Playground](/playground)
-- Familiarize yourself with the editor interface
+"King of the Hill"은 인기 있는 체스 변형으로, 킹을 보드 중앙 4개 칸 중 하나로 이동시키면 승리합니다. 표준 체크메이트도 여전히 유효합니다.
 
-## Step 1: Define Your Game
+## 단계 1: 게임 정의
 
-Start with the basic game definition:
+모든 ChessLang 파일은 게임 이름과 기반이 되는 게임으로 시작합니다:
 
 ```chesslang
 game: "King of the Hill"
 extends: "Standard Chess"
 ```
 
-This creates a new game called "King of the Hill" that inherits all rules from standard chess.
+- `game`: 변형의 이름입니다
+- `extends`: 상속할 기본 규칙입니다. 대부분의 변형은 "Standard Chess"를 확장합니다
 
-## Step 2: Define the Hill Zone
+## 단계 2: 중앙 존 정의
 
-Next, define which squares constitute "the hill":
+승리 조건을 위한 "hill" 존을 정의합니다:
 
 ```chesslang
-game: "King of the Hill"
-extends: "Standard Chess"
-
 board:
   zones:
     hill: [d4, d5, e4, e5]
 ```
 
-The `zones` section defines named areas on the board. Here, we define `hill` as the four center squares.
+존은 보드에서 이름이 지정된 영역입니다. 조건과 트리거에서 참조할 수 있습니다.
 
-## Step 3: Add the Victory Condition
+## 단계 3: 승리 조건 추가
 
-Now add the new win condition:
+새로운 승리 조건을 추가합니다:
+
+```chesslang
+victory:
+  add:
+    hill: King in zone.hill
+```
+
+- `add`: 기존 체크메이트 조건을 유지하면서 새 조건을 추가합니다
+- `hill: King in zone.hill`: 킹이 hill 존에 있으면 승리합니다
+
+## 완성된 코드
 
 ```chesslang
 game: "King of the Hill"
@@ -55,54 +63,68 @@ victory:
     hill: King in zone.hill
 ```
 
-The `victory.add` section adds a new victory condition. The condition `King in zone.hill` triggers when your King reaches any square in the hill zone.
+## 테스트하기
 
-## Step 4: Run Your Game
+1. [플레이그라운드](/playground)로 이동합니다
+2. 위의 코드를 에디터에 붙여넣습니다
+3. "Compile" 버튼을 클릭합니다
+4. 게임을 플레이합니다!
 
-1. Click the **Run** button in the playground
-2. The chess board will reset with your custom rules
-3. Try to move your King to the center while protecting it!
+## 승리 조건 확인
 
-## Complete Code
+- 킹을 d4, d5, e4, 또는 e5로 이동시켜 승리합니다
+- 또는 상대를 체크메이트하여 승리합니다
 
-Here's the complete code for King of the Hill:
+## 확장하기
+
+### 승리 조건 교체
+
+체크메이트 대신 hill 조건만 사용하려면:
 
 ```chesslang
-game: "King of the Hill"
-extends: "Standard Chess"
-
-board:
-  zones:
-    hill: [d4, d5, e4, e5]
-
 victory:
-  add:
+  replace:
     hill: King in zone.hill
 ```
 
-## What You Learned
+### 더 큰 존
 
-- How to create a new game with `game:` and `extends:`
-- How to define board zones
-- How to add custom victory conditions
-
-## Next Steps
-
-- Try modifying the hill zone to include more squares
-- Add visual highlighting to the hill squares (see [Effects](/docs/language/level2#effects))
-- Learn about [Level 2](/docs/language/level2) to create custom pieces
-
-## Challenge: Three-Check
-
-Try creating "Three-Check" on your own:
+더 큰 중앙 영역을 사용할 수 있습니다:
 
 ```chesslang
-game: "Three-Check"
-extends: "Standard Chess"
-
-victory:
-  add:
-    three_checks: checks >= 3
+board:
+  zones:
+    hill: [c3, c4, c5, c6, d3, d4, d5, d6, e3, e4, e5, e6, f3, f4, f5, f6]
 ```
 
-This variant adds a win condition for giving check three times.
+### 시각적 표시 추가
+
+존에 시각적 효과를 추가할 수 있습니다 (레벨 2):
+
+```chesslang
+effect hill_marker {
+  visual: highlight(gold, 0.3)
+}
+
+trigger mark_hill {
+  on: game_start
+  do: mark zone.hill with hill_marker
+}
+```
+
+## 다음 단계
+
+축하합니다! 첫 번째 체스 변형을 만들었습니다. 다음으로:
+
+- [레벨 1](/docs/language/level1)에서 더 많은 설정 옵션 배우기
+- [레벨 2](/docs/language/level2)에서 커스텀 기물 만들기
+- [예제](/docs/examples)에서 더 많은 변형 살펴보기
+
+## 요약
+
+| 키워드 | 설명 |
+|--------|------|
+| `game` | 변형 이름 |
+| `extends` | 기반 게임 |
+| `board.zones` | 이름 지정된 보드 영역 |
+| `victory.add` | 새 승리 조건 추가 |

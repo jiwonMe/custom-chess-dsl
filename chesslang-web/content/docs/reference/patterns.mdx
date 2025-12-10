@@ -1,175 +1,175 @@
 ---
-title: Movement Patterns
-description: Complete reference for ChessLang movement patterns
+title: 이동 패턴
+description: ChessLang 이동 패턴 완전 레퍼런스
 ---
 
-# Movement Patterns
+# 이동 패턴
 
-Movement patterns define how pieces can move on the board.
+이동 패턴은 기물이 보드에서 어떻게 이동할 수 있는지 정의합니다.
 
-## Basic Patterns
+## 기본 패턴
 
 ### step
 
-Moves a fixed number of squares in a direction.
+방향으로 고정된 수의 칸을 이동합니다.
 
 ```chesslang
-step(direction)           # 1 square
-step(direction, N)        # N squares
+step(direction)           # 1칸
+step(direction, N)        # N칸
 ```
 
-**Parameters:**
+**매개변수:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| direction | Direction | Movement direction |
-| distance | number | Number of squares (default: 1) |
+| 매개변수 | 타입 | 설명 |
+|----------|------|------|
+| direction | 방향 | 이동 방향 |
+| distance | 숫자 | 칸 수 (기본값: 1) |
 
-**Examples:**
+**예시:**
 
 ```chesslang
-# King movement
+# 킹 이동
 move: step(any)
 
-# Pawn initial double move
+# 폰 초기 더블 무브
 move: step(forward, 2) where first_move and clear
 ```
 
 ### slide
 
-Moves any number of squares in a direction until blocked.
+막힐 때까지 방향으로 여러 칸을 이동합니다.
 
 ```chesslang
 slide(direction)
 ```
 
-**Examples:**
+**예시:**
 
 ```chesslang
-# Rook movement
+# 룩 이동
 move: slide(orthogonal)
 
-# Bishop movement
+# 비숍 이동
 move: slide(diagonal)
 
-# Queen movement
+# 퀸 이동
 move: slide(orthogonal) | slide(diagonal)
 ```
 
 ### leap
 
-Jumps to a specific offset, ignoring pieces in between.
+특정 오프셋으로 점프하며, 중간 기물을 무시합니다.
 
 ```chesslang
 leap(dx, dy)
 ```
 
-**Note:** All 8 rotations/reflections are automatically included.
+**참고:** 8가지 회전/반사가 모두 자동으로 포함됩니다.
 
-**Examples:**
+**예시:**
 
 ```chesslang
-# Knight movement
+# 나이트 이동
 move: leap(2, 1)
 
-# Camel (fairy piece)
+# 캐멀 (페어리 기물)
 move: leap(3, 1)
 
-# Zebra (fairy piece)
+# 제브라 (페어리 기물)
 move: leap(3, 2)
 ```
 
 ### hop
 
-Jumps over a piece and lands on the other side.
+기물을 뛰어넘어 반대편에 착지합니다.
 
 ```chesslang
 hop(direction)
 ```
 
-**Examples:**
+**예시:**
 
 ```chesslang
-# Cannon-like movement (can capture by hopping)
+# 캐논 스타일 이동 (뛰어넘어서 잡을 수 있음)
 capture: hop(orthogonal)
 ```
 
-## Pattern Combinators
+## 패턴 조합자
 
 ### Or (`|`)
 
-Choose between multiple patterns.
+여러 패턴 중 선택합니다.
 
 ```chesslang
 pattern1 | pattern2
 ```
 
-**Example:**
+**예시:**
 
 ```chesslang
-# Queen = Rook + Bishop
+# 퀸 = 룩 + 비숍
 move: slide(orthogonal) | slide(diagonal)
 ```
 
 ### Then (`+`)
 
-Sequential movement (for special pieces).
+순차적 이동 (특수 기물용).
 
 ```chesslang
 pattern1 + pattern2
 ```
 
-**Example:**
+**예시:**
 
 ```chesslang
-# Gryphon: moves diagonally then orthogonally
+# 그리폰: 대각선으로 이동 후 직선 이동
 move: step(diagonal) + slide(orthogonal)
 ```
 
 ### Repeat (`*`)
 
-Repeat a pattern N times.
+패턴을 N번 반복합니다.
 
 ```chesslang
 pattern * N
 ```
 
-**Example:**
+**예시:**
 
 ```chesslang
-# Move exactly 3 squares
+# 정확히 3칸 이동
 move: step(forward) * 3 where clear
 ```
 
 ### Conditional (`where`)
 
-Add conditions to patterns.
+패턴에 조건을 추가합니다.
 
 ```chesslang
 pattern where condition
 ```
 
-**Example:**
+**예시:**
 
 ```chesslang
-# Pawn double move only on first move
+# 폰 더블 무브는 첫 이동에서만
 move: step(forward, 2) where first_move and clear
 ```
 
-## Directions Reference
+## 방향 레퍼런스
 
-| Direction | Vector | Description |
-|-----------|--------|-------------|
-| `N` | (0, 1) | North (up) |
-| `S` | (0, -1) | South (down) |
-| `E` | (1, 0) | East (right) |
-| `W` | (-1, 0) | West (left) |
-| `NE` | (1, 1) | Northeast |
-| `NW` | (-1, 1) | Northwest |
-| `SE` | (1, -1) | Southeast |
-| `SW` | (-1, -1) | Southwest |
-| `orthogonal` | N\|S\|E\|W | Cardinal directions |
-| `diagonal` | NE\|NW\|SE\|SW | Diagonal directions |
-| `any` | all 8 | All directions |
-| `forward` | N for White, S for Black | Player-relative forward |
-| `backward` | S for White, N for Black | Player-relative backward |
+| 방향 | 벡터 | 설명 |
+|------|------|------|
+| `N` | (0, 1) | 북 (위) |
+| `S` | (0, -1) | 남 (아래) |
+| `E` | (1, 0) | 동 (오른쪽) |
+| `W` | (-1, 0) | 서 (왼쪽) |
+| `NE` | (1, 1) | 북동 |
+| `NW` | (-1, 1) | 북서 |
+| `SE` | (1, -1) | 남동 |
+| `SW` | (-1, -1) | 남서 |
+| `orthogonal` | N\|S\|E\|W | 직선 방향 |
+| `diagonal` | NE\|NW\|SE\|SW | 대각선 방향 |
+| `any` | 모두 8 | 모든 방향 |
+| `forward` | 백은 N, 흑은 S | 플레이어 기준 앞 |
+| `backward` | 백은 S, 흑은 N | 플레이어 기준 뒤 |

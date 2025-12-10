@@ -1,23 +1,23 @@
 ---
-title: Getting Started
-description: Learn the basics of ChessLang
+title: 시작하기
+description: ChessLang의 기초를 배워보세요
 ---
 
-# Getting Started with ChessLang
+# ChessLang 시작하기
 
-ChessLang is a domain-specific language (DSL) for defining chess variants. Whether you want to create simple rule modifications or entirely new games, ChessLang makes it easy.
+ChessLang은 체스 변형을 정의하기 위한 도메인 특화 언어(DSL)입니다. 간단한 규칙 수정부터 완전히 새로운 게임까지, ChessLang으로 쉽게 만들 수 있습니다.
 
-## What is ChessLang?
+## ChessLang이란?
 
-ChessLang provides three levels of complexity:
+ChessLang은 세 가지 복잡도 레벨을 제공합니다:
 
-1. **Level 1 (Configure)** - YAML-like configuration for simple modifications
-2. **Level 2 (Compose)** - Declarative DSL for custom pieces and triggers
-3. **Level 3 (Script)** - JavaScript-like scripting for complex logic
+1. **레벨 1 (Configure)** - 간단한 수정을 위한 YAML 스타일 설정
+2. **레벨 2 (Compose)** - 커스텀 기물과 트리거를 위한 선언적 DSL
+3. **레벨 3 (Script)** - 복잡한 로직을 위한 JavaScript 스타일 스크립팅
 
-## Quick Example
+## 빠른 예제
 
-Here's a simple example that creates "King of the Hill" - a variant where you win by moving your King to the center:
+다음은 "King of the Hill"을 만드는 간단한 예제입니다 - 킹을 중앙으로 이동하면 승리하는 변형:
 
 ```chesslang
 game: "King of the Hill"
@@ -32,17 +32,17 @@ victory:
     hill: King in zone.hill
 ```
 
-## Try It Now
+## 지금 바로 체험하기
 
-The best way to learn ChessLang is to try it yourself:
+ChessLang을 배우는 가장 좋은 방법은 직접 해보는 것입니다:
 
-1. Open the [Playground](/playground)
-2. Modify the example code
-3. Click "Run" to see your changes
-4. Play your custom variant!
+1. [플레이그라운드](/playground)를 여세요
+2. 예제 코드를 수정하세요
+3. "Run"을 클릭하여 변경사항을 확인하세요
+4. 커스텀 변형을 플레이하세요!
 
-## Next Steps
+## 다음 단계
 
-- [First Game](/docs/getting-started/first-game) - Create your first variant
-- [Language Guide](/docs/language) - Deep dive into the syntax
-- [Examples](/docs/examples) - Learn from real examples
+- [첫 번째 게임](/docs/getting-started/first-game) - 첫 번째 변형 만들기
+- [언어 가이드](/docs/language) - 문법 자세히 알아보기
+- [예제](/docs/examples) - 실제 예제로 배우기

@@ -24,6 +24,7 @@ import {
   MoveContext,
   evaluateCondition,
 } from './moves.js';
+import { ScriptRuntime } from './script-runtime.js';
 
 type EventHandler = (event: GameEvent) => void;
 
@@ -35,12 +36,58 @@ export class GameEngine {
   private board: Board;
   private state: GameState;
   private eventHandlers: Map<string, EventHandler[]> = new Map();
+  private scriptRuntime: ScriptRuntime;
 
   constructor(game: CompiledGame) {
     this.game = game;
     this.board = new Board(game.board);
     this.state = this.createInitialState();
+    this.scriptRuntime = new ScriptRuntime(this.board);
     this.setupPieces();
+    this.initializeScripts();
+  }
+
+  /**
+   * Initialize and execute game scripts
+   */
+  private initializeScripts(): void {
+    // Set callbacks for check/checkmate queries
+    this.scriptRuntime.setCallbacks(
+      (player: Color) => this.isPlayerInCheck(player),
+      (player: Color) => this.isPlayerInCheckmate(player)
+    );
+
+    // Execute all scripts
+    if (this.game.scripts && this.game.scripts.length > 0) {
+      this.scriptRuntime.executeScripts(this.game.scripts);
+    }
+  }
+
+  /**
+   * Check if a player is in check
+   */
+  private isPlayerInCheck(player: Color): boolean {
+    return isInCheck(this.board, player);
+  }
+
+  /**
+   * Check if a player is in checkmate
+   */
+  private isPlayerInCheckmate(player: Color): boolean {
+    const legalMoves = this.getLegalMovesForPlayer(player);
+    return isCheckmate(this.board, player, legalMoves);
+  }
+
+  /**
+   * Get legal moves for a specific player
+   */
+  private getLegalMovesForPlayer(player: Color): Move[] {
+    const pieces = this.board.getPiecesByColor(player);
+    const moves: Move[] = [];
+    for (const piece of pieces) {
+      moves.push(...this.getLegalMovesForPiece(piece));
+    }
+    return moves;
   }
 
   /**
@@ -585,16 +632,76 @@ export class GameEngine {
         data: { piece: captured },
         timestamp: Date.now(),
       });
+
+      // Emit capture event to scripts
+      this.scriptRuntime.emitEvent({
+        type: 'capture',
+        piece: movedPiece ?? undefined,
+        from: move.from,
+        to: move.to,
+        captured,
+        player: move.piece.owner,
+      });
     }
 
-    // Switch player
-    this.state.currentPlayer = this.state.currentPlayer === 'White' ? 'Black' : 'White';
+    // Reset turn ended flag before emitting move event
+    this.scriptRuntime.resetTurnEnded();
 
-    // Sync state
-    this.syncState();
+    // Emit move event to scripts
+    this.scriptRuntime.setCurrentPlayer(this.state.currentPlayer);
+    this.scriptRuntime.emitEvent({
+      type: 'move',
+      piece: movedPiece ?? undefined,
+      from: move.from,
+      to: move.to,
+      player: move.piece.owner,
+    });
 
-    // Execute turn end triggers
-    this.executeTriggers('turn_end', move, events);
+    // Check if script declared a winner
+    const scriptWinner = this.scriptRuntime.getWinner();
+    if (scriptWinner) {
+      this.state.result = {
+        winner: scriptWinner.winner,
+        reason: scriptWinner.reason,
+        isDraw: false,
+      };
+      events.push({
+        type: 'game_end',
+        data: { ...this.state.result } as Record<string, unknown>,
+        timestamp: Date.now(),
+      });
+      return { success: true, move, captured: captured ?? undefined, events };
+    }
+
+    // Determine if turn should switch
+    // If scripts control turn flow, only switch when endTurn() is called
+    // Otherwise, switch every move (standard chess behavior)
+    const scriptControlsTurn = this.scriptRuntime.controlsTurnFlow();
+    const shouldSwitchTurn = scriptControlsTurn
+      ? this.scriptRuntime.isTurnEnded()
+      : true;
+
+    if (shouldSwitchTurn) {
+      // Switch player
+      this.state.currentPlayer =
+        this.state.currentPlayer === 'White' ? 'Black' : 'White';
+
+      // Sync state
+      this.syncState();
+
+      // Emit turn end event to scripts
+      this.scriptRuntime.setCurrentPlayer(this.state.currentPlayer);
+      this.scriptRuntime.emitEvent({
+        type: 'turnEnd',
+        player: this.state.currentPlayer === 'White' ? 'Black' : 'White',
+      });
+
+      // Execute turn end triggers
+      this.executeTriggers('turn_end', move, events);
+    } else {
+      // Same player continues - just sync state
+      this.syncState();
+    }
 
     // Check for game end
     const result = this.checkGameEnd();
@@ -725,7 +832,199 @@ export class GameEngine {
       const legalMoves = this.getLegalMoves();
       return isCheckmate(this.board, this.state.currentPlayer, legalMoves);
     }
+
+    // Evaluate the condition object
+    const cond = condition.condition as {
+      type: string;
+      pieceType?: string;
+      zone?: string;
+      rank?: number;
+      file?: string;
+      left?: unknown;
+      op?: string;
+      right?: unknown;
+    };
+
+    if (!cond || !cond.type) return false;
+
+    switch (cond.type) {
+      case 'in_zone':
+        return this.evaluateInZoneCondition(cond.pieceType ?? 'King', cond.zone ?? '');
+
+      case 'on_rank':
+        return this.evaluateOnRankCondition(cond.pieceType ?? 'King', cond.rank ?? 0);
+
+      case 'on_file':
+        return this.evaluateOnFileCondition(cond.pieceType ?? 'King', cond.file ?? '');
+
+      case 'piece_captured':
+        return this.evaluatePieceCapturedCondition(cond.pieceType ?? 'King');
+
+      case 'comparison':
+        return this.evaluateComparisonCondition(cond);
+
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * Check if a piece is in a specific zone
+   */
+  private evaluateInZoneCondition(pieceType: string, zoneName: string): boolean {
+    const zone = this.game.board.zones.get(zoneName);
+    if (!zone) return false;
+
+    // Check current player's piece
+    const pieces = this.board.getAllPieces().filter(
+      (p) => p.type === pieceType && p.owner === this.state.currentPlayer
+    );
+
+    for (const piece of pieces) {
+      for (const pos of zone) {
+        if (piece.pos.file === pos.file && piece.pos.rank === pos.rank) {
+          return true;
+        }
+      }
+    }
     return false;
+  }
+
+  /**
+   * Check if a piece is on a specific rank
+   */
+  private evaluateOnRankCondition(pieceType: string, rank: number): boolean {
+    const pieces = this.board.getAllPieces().filter(
+      (p) => p.type === pieceType && p.owner === this.state.currentPlayer
+    );
+
+    // rank is 1-based in the condition, but 0-based internally
+    const targetRank = rank - 1;
+
+    for (const piece of pieces) {
+      if (piece.pos.rank === targetRank) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Check if a piece is on a specific file
+   */
+  private evaluateOnFileCondition(pieceType: string, file: string): boolean {
+    const pieces = this.board.getAllPieces().filter(
+      (p) => p.type === pieceType && p.owner === this.state.currentPlayer
+    );
+
+    // Convert file letter to number (a=0, b=1, etc.)
+    const targetFile = file.toLowerCase().charCodeAt(0) - 'a'.charCodeAt(0);
+
+    for (const piece of pieces) {
+      if (piece.pos.file === targetFile) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Check if opponent's piece of a type has been captured
+   */
+  private evaluatePieceCapturedCondition(pieceType: string): boolean {
+    const opponent = this.state.currentPlayer === 'White' ? 'Black' : 'White';
+    const pieces = this.board.getAllPieces().filter(
+      (p) => p.type === pieceType && p.owner === opponent
+    );
+
+    // If no pieces of this type exist, it's been captured
+    return pieces.length === 0;
+  }
+
+  /**
+   * Evaluate a comparison condition
+   */
+  private evaluateComparisonCondition(cond: {
+    left?: unknown;
+    op?: string;
+    right?: unknown;
+  }): boolean {
+    const left = this.evaluateExpression(cond.left);
+    const right = this.evaluateExpression(cond.right);
+    const op = cond.op ?? '==';
+
+    switch (op) {
+      case '==':
+      case '===':
+        return left === right;
+      case '!=':
+      case '!==':
+        return left !== right;
+      case '<':
+        return (left as number) < (right as number);
+      case '>':
+        return (left as number) > (right as number);
+      case '<=':
+        return (left as number) <= (right as number);
+      case '>=':
+        return (left as number) >= (right as number);
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * Evaluate an expression for condition checking
+   */
+  private evaluateExpression(expr: unknown): unknown {
+    if (!expr || typeof expr !== 'object') return expr;
+
+    const e = expr as {
+      type: string;
+      value?: unknown;
+      name?: string;
+      object?: unknown;
+      property?: string;
+    };
+
+    switch (e.type) {
+      case 'literal':
+        return e.value;
+
+      case 'identifier':
+        // Handle special identifiers
+        if (e.name === 'checks') {
+          return this.state.checkCount?.[this.state.currentPlayer] ?? 0;
+        }
+        if (e.name === 'pieces') {
+          return this.board.getAllPieces().filter(
+            (p) => p.owner === this.state.currentPlayer
+          ).length;
+        }
+        return 0;
+
+      case 'member':
+        // Handle "opponent.pieces", "opponent.King" etc.
+        if (e.object && typeof e.object === 'object') {
+          const obj = e.object as { type: string; name?: string };
+          if (obj.type === 'identifier' && obj.name === 'opponent') {
+            const opponent = this.state.currentPlayer === 'White' ? 'Black' : 'White';
+            if (e.property === 'pieces') {
+              return this.board.getAllPieces().filter((p) => p.owner === opponent).length;
+            }
+            if (e.property === 'King' || e.property === 'Queen' || e.property === 'Rook' ||
+                e.property === 'Bishop' || e.property === 'Knight' || e.property === 'Pawn') {
+              return this.board.getAllPieces().filter(
+                (p) => p.owner === opponent && p.type === e.property
+              ).length;
+            }
+          }
+        }
+        return 0;
+
+      default:
+        return 0;
+    }
   }
 
   /**
@@ -832,7 +1131,10 @@ export class GameEngine {
   reset(): void {
     this.board = new Board(this.game.board);
     this.state = this.createInitialState();
+    this.scriptRuntime.reset();
+    this.scriptRuntime = new ScriptRuntime(this.board);
     this.setupPieces();
+    this.initializeScripts();
   }
 
   /**

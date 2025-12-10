@@ -1,37 +1,38 @@
 ---
-title: Actions Reference
-description: Complete reference for ChessLang actions
+title: 액션 레퍼런스
+description: ChessLang 액션 완전 레퍼런스
 ---
 
-# Actions Reference
+# 액션 레퍼런스
 
-Actions are commands that modify the game state. They're used in triggers, effects, and scripts.
+액션은 게임 상태를 수정하는 명령입니다. 트리거, 효과, 스크립트에서 사용됩니다.
 
-## Piece Actions
+## 기물 액션
 
 ### set
 
-Modify piece state or game variables:
+기물 상태 또는 게임 변수를 수정합니다:
 
 ```chesslang
-# Set piece state
+# 기물 상태 설정
 set piece.state.rage = 3
 set piece.state.moved = true
 
-# Set game state
+# 게임 상태 설정
 set game.state.bonus = 10
 
-# Arithmetic
+# 산술
 set piece.state.count = piece.state.count + 1
 ```
 
-**Parameters:**
-| Parameter | Description |
-|-----------|-------------|
-| target | State variable to modify |
-| value | New value |
+**매개변수:**
 
-**Examples:**
+| 매개변수 | 설명 |
+|----------|------|
+| target | 수정할 상태 변수 |
+| value | 새 값 |
+
+**예시:**
 
 ```chesslang
 trigger gain_experience {
@@ -51,7 +52,7 @@ trigger level_up {
 
 ### create
 
-Create a new piece on the board:
+보드에 새 기물을 생성합니다:
 
 ```chesslang
 create Pawn at e4
@@ -59,14 +60,15 @@ create Queen at d1 for White
 create piece.type at target
 ```
 
-**Parameters:**
-| Parameter | Description |
-|-----------|-------------|
-| type | Piece type to create |
-| position | Where to place it |
-| owner | Which player owns it (optional) |
+**매개변수:**
 
-**Examples:**
+| 매개변수 | 설명 |
+|----------|------|
+| type | 생성할 기물 타입 |
+| position | 배치할 위치 |
+| owner | 소유자 플레이어 (선택) |
+
+**예시:**
 
 ```chesslang
 trigger spawn_reinforcement {
@@ -86,7 +88,7 @@ trigger split {
 
 ### remove
 
-Remove a piece from the board:
+보드에서 기물을 제거합니다:
 
 ```chesslang
 remove piece
@@ -96,20 +98,21 @@ remove pieces in radius(1) from target
 remove pieces in zone.danger where enemy
 ```
 
-**Parameters:**
-| Parameter | Description |
-|-----------|-------------|
-| target | Piece or pieces to remove |
+**매개변수:**
 
-**Examples:**
+| 매개변수 | 설명 |
+|----------|------|
+| target | 제거할 기물 또는 기물들 |
+
+**예시:**
 
 ```chesslang
 trigger atomic_explosion {
   on: capture
   do: {
-    remove piece                              # Remove capturing piece
-    remove captured                           # Remove captured piece
-    remove pieces in radius(1) from target    # Remove adjacent pieces
+    remove piece                              # 잡는 기물 제거
+    remove captured                           # 잡힌 기물 제거
+    remove pieces in radius(1) from target    # 인접 기물 제거
   }
 }
 
@@ -122,20 +125,21 @@ trigger clear_zone {
 
 ### transform
 
-Change a piece to a different type:
+기물을 다른 타입으로 변경합니다:
 
 ```chesslang
 transform piece to Queen
 transform piece to piece.state.evolution
 ```
 
-**Parameters:**
-| Parameter | Description |
-|-----------|-------------|
-| piece | Piece to transform |
-| type | New piece type |
+**매개변수:**
 
-**Examples:**
+| 매개변수 | 설명 |
+|----------|------|
+| piece | 변환할 기물 |
+| type | 새 기물 타입 |
+
+**예시:**
 
 ```chesslang
 trigger promotion {
@@ -157,21 +161,11 @@ trigger rage_mode {
 }
 ```
 
-### move_piece
-
-Move a piece to a new position (in scripts):
-
-```chesslang
-script {
-  board.movePiece(piece, targetPos);
-}
-```
-
-## Board Actions
+## 보드 액션
 
 ### mark
 
-Apply an effect to a square:
+칸에 효과를 적용합니다:
 
 ```chesslang
 mark target with fire
@@ -179,14 +173,15 @@ mark origin with trap
 mark pos with effect for duration
 ```
 
-**Parameters:**
-| Parameter | Description |
-|-----------|-------------|
-| position | Square to mark |
-| effect | Effect to apply |
-| duration | How long (optional) |
+**매개변수:**
 
-**Examples:**
+| 매개변수 | 설명 |
+|----------|------|
+| position | 표시할 칸 |
+| effect | 적용할 효과 |
+| duration | 지속 시간 (선택) |
+
+**예시:**
 
 ```chesslang
 effect fire {
@@ -212,7 +207,7 @@ trigger create_trap {
 
 ### unmark
 
-Remove an effect from a square:
+칸에서 효과를 제거합니다:
 
 ```chesslang
 unmark target
@@ -220,7 +215,7 @@ unmark pos with fire
 unmark all with ice
 ```
 
-**Examples:**
+**예시:**
 
 ```chesslang
 trigger cleanse {
@@ -236,21 +231,11 @@ trigger melt_ice {
 }
 ```
 
-### highlight
-
-Temporarily highlight squares (visual only):
-
-```chesslang
-highlight target with yellow
-highlight zone.danger with red
-highlight legal_moves with green
-```
-
-## Game Actions
+## 게임 액션
 
 ### win
 
-Declare a winner:
+승자를 선언합니다:
 
 ```chesslang
 win White
@@ -259,7 +244,7 @@ win player
 win opponent
 ```
 
-**Examples:**
+**예시:**
 
 ```chesslang
 trigger hill_victory {
@@ -277,14 +262,14 @@ trigger elimination {
 
 ### draw
 
-Declare a draw:
+무승부를 선언합니다:
 
 ```chesslang
 draw
 draw with reason "Mutual agreement"
 ```
 
-**Examples:**
+**예시:**
 
 ```chesslang
 trigger mutual_destruction {
@@ -296,13 +281,13 @@ trigger mutual_destruction {
 
 ### end_turn
 
-End the current turn:
+현재 턴을 종료합니다:
 
 ```chesslang
 end_turn
 ```
 
-**Examples:**
+**예시:**
 
 ```chesslang
 trigger forced_end {
@@ -312,11 +297,11 @@ trigger forced_end {
 }
 ```
 
-## Compound Actions
+## 복합 액션
 
-### Multiple Actions
+### 여러 액션
 
-Execute multiple actions in sequence:
+순차적으로 여러 액션을 실행합니다:
 
 ```chesslang
 trigger complex_capture {
@@ -330,9 +315,9 @@ trigger complex_capture {
 }
 ```
 
-### Conditional Actions
+### 조건부 액션
 
-Use conditions within actions:
+액션 내에서 조건을 사용합니다:
 
 ```chesslang
 trigger conditional_reward {
@@ -347,13 +332,13 @@ trigger conditional_reward {
 }
 ```
 
-## Effect Actions
+## 효과 액션
 
-Actions used in effect definitions:
+효과 정의에서 사용되는 액션들:
 
 ### on_enter
 
-Action when piece enters square:
+기물이 칸에 들어올 때 액션:
 
 ```chesslang
 effect spike_trap {
@@ -366,7 +351,7 @@ effect spike_trap {
 
 ### on_exit
 
-Action when piece exits square:
+기물이 칸에서 나갈 때 액션:
 
 ```chesslang
 effect sticky {
@@ -378,7 +363,7 @@ effect sticky {
 
 ### on_turn
 
-Action each turn:
+매 턴 액션:
 
 ```chesslang
 effect poison {
@@ -388,89 +373,18 @@ effect poison {
 }
 ```
 
-## Script Actions (Level 3)
+## 완전한 예시
 
-In Level 3, you have full programmatic control:
-
-```chesslang
-script {
-  // Custom action function
-  function explode(pos, radius) {
-    const affected = board.piecesInRadius(pos, radius);
-    for (const piece of affected) {
-      if (piece.type != "King") {
-        board.removePiece(piece);
-      }
-    }
-  }
-
-  // Custom trigger action
-  Bomb.on("captured", function(piece, capturer) {
-    explode(piece.pos, 2);
-  });
-
-  // Complex state manipulation
-  function levelUp(piece) {
-    piece.state.level++;
-    piece.state.exp = 0;
-
-    // Upgrade stats based on level
-    if (piece.state.level >= 3) {
-      piece.state.canTeleport = true;
-    }
-    if (piece.state.level >= 5) {
-      piece.state.extraMove = true;
-    }
-  }
-}
-```
-
-## Action Targets
-
-### Piece References
-
-| Target | Description |
-|--------|-------------|
-| `piece` | Current/moving piece |
-| `captured` | Captured piece |
-| `entering` | Piece entering square |
-| `exiting` | Piece exiting square |
-| `occupant` | Piece on square |
-
-### Position References
-
-| Target | Description |
-|--------|-------------|
-| `origin` | Starting position |
-| `target` | Ending position |
-| `pos` | Generic position |
-
-### Selection
-
-```chesslang
-# All pieces matching condition
-pieces where type == Pawn
-
-# Pieces in area
-pieces in radius(2) from target
-pieces in zone.danger
-
-# Adjacent pieces
-pieces adjacent to piece
-```
-
-## Complete Examples
-
-### Atomic Chess Explosion
+### Atomic Chess 폭발
 
 ```chesslang
 trigger atomic_explosion {
   on: capture
   do: {
-    # Remove the capturing piece
+    # 잡는 기물 제거
     remove piece
 
-    # Remove all adjacent pieces except pawns
+    # 폰을 제외한 인접 기물 모두 제거
     for p in pieces in radius(1) from target {
       if p.type != Pawn {
         remove p
@@ -480,7 +394,7 @@ trigger atomic_explosion {
 }
 ```
 
-### Trapper Piece
+### Trapper 기물
 
 ```chesslang
 piece Trapper {
@@ -505,7 +419,7 @@ trigger place_trap {
 }
 ```
 
-### Phoenix Rebirth
+### Phoenix 부활
 
 ```chesslang
 piece Phoenix {
@@ -525,7 +439,7 @@ trigger phoenix_rebirth {
 }
 ```
 
-### Progressive Power-Up
+### 점진적 파워업
 
 ```chesslang
 piece Warrior {
@@ -547,9 +461,9 @@ trigger warrior_power_up {
 }
 ```
 
-## See Also
+## 참고
 
-- [Conditions Reference](/docs/reference/conditions)
-- [Directions Reference](/docs/reference/directions)
-- [Level 2 - Compose](/docs/language/level2)
-- [Level 3 - Script](/docs/language/level3)
+- [조건 레퍼런스](/docs/reference/conditions)
+- [방향 레퍼런스](/docs/reference/directions)
+- [레벨 2 - Compose](/docs/language/level2)
+- [레벨 3 - Script](/docs/language/level3)

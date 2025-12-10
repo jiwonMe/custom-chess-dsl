@@ -1,64 +1,67 @@
 ---
-title: Reference
-description: Complete ChessLang language reference
+title: 레퍼런스
+description: ChessLang 언어 완전 레퍼런스
 ---
 
-# Reference
+# 레퍼런스
 
-Complete reference documentation for the ChessLang language.
+ChessLang 언어의 완전한 레퍼런스 문서입니다.
 
-## Quick Navigation
+## 빠른 탐색
 
-| Section | Description |
-|---------|-------------|
-| [Keywords](/docs/reference/keywords) | All language keywords |
-| [Patterns](/docs/reference/patterns) | Movement patterns |
-| [Directions](/docs/reference/directions) | Direction system |
-| [Conditions](/docs/reference/conditions) | Condition syntax |
-| [Actions](/docs/reference/actions) | Available actions |
+| 섹션 | 설명 |
+|------|------|
+| [키워드](/docs/reference/keywords) | 모든 언어 키워드 |
+| [패턴](/docs/reference/patterns) | 이동 패턴 |
+| [방향](/docs/reference/directions) | 방향 시스템 |
+| [조건](/docs/reference/conditions) | 조건 구문 |
+| [액션](/docs/reference/actions) | 사용 가능한 액션 |
+| [스크립트 API](/docs/reference/script-api) | game, board 객체 API |
 
-## Keywords
+## 키워드
 
-Complete list of reserved words and syntax.
+예약어와 구문의 완전한 목록입니다.
 
-- [Keywords Reference →](/docs/reference/keywords)
+- [키워드 레퍼런스 →](/docs/reference/keywords)
 
-**Categories:**
-- Game definition (`game`, `extends`)
-- Board configuration (`board`, `zones`, `size`)
-- Piece definition (`piece`, `move`, `capture`, `traits`)
-- Effects and triggers (`effect`, `trigger`, `on`, `when`, `do`)
-- Control flow (`if`, `else`, `for`, `while`)
-- Scripting (`script`, `function`, `let`, `const`)
+**카테고리:**
+- 게임 정의 (`game`, `extends`)
+- 보드 설정 (`board`, `zones`, `size`)
+- 기물 정의 (`piece`, `move`, `capture`, `traits`)
+- 효과와 트리거 (`effect`, `trigger`, `on`, `when`, `do`)
+- 제어 흐름 (`if`, `else`, `for`, `while`)
+- 스크립팅 (`script`, `function`, `let`, `const`)
 
-## Movement Patterns
+## 이동 패턴
 
-How pieces move on the board.
+기물이 보드에서 이동하는 방법입니다.
 
-- [Patterns Reference →](/docs/reference/patterns)
+- [패턴 레퍼런스 →](/docs/reference/patterns)
 
-**Pattern Types:**
-| Pattern | Description | Example |
-|---------|-------------|---------|
-| `step` | Fixed distance | `step(forward)` |
-| `slide` | Until blocked | `slide(diagonal)` |
-| `leap` | Jump move | `leap(2, 1)` |
-| `hop` | Jump over piece | `hop(orthogonal)` |
+**패턴 유형:**
 
-**Combinators:**
-| Combinator | Description | Example |
-|------------|-------------|---------|
-| `\|` | Or | `slide(N) \| slide(S)` |
-| `+` | Then | `step(N) + slide(E)` |
-| `*` | Repeat | `step(N) * 3` |
+| 패턴 | 설명 | 예시 |
+|------|------|------|
+| `step` | 고정 거리 | `step(forward)` |
+| `slide` | 막힐 때까지 | `slide(diagonal)` |
+| `leap` | 점프 이동 | `leap(2, 1)` |
+| `hop` | 기물 뛰어넘기 | `hop(orthogonal)` |
 
-## Directions
+**조합자:**
 
-Direction system for movement.
+| 조합자 | 설명 | 예시 |
+|--------|------|------|
+| `\|` | 또는 | `slide(N) \| slide(S)` |
+| `+` | 그 다음 | `step(N) + slide(E)` |
+| `*` | 반복 | `step(N) * 3` |
 
-- [Directions Reference →](/docs/reference/directions)
+## 방향
 
-**Absolute Directions:**
+이동을 위한 방향 시스템입니다.
+
+- [방향 레퍼런스 →](/docs/reference/directions)
+
+**절대 방향:**
 ```
 NW  N  NE
  ↖ ↑ ↗
@@ -67,69 +70,76 @@ W ← · → E
 SW  S  SE
 ```
 
-**Direction Groups:**
-| Group | Includes |
-|-------|----------|
+**방향 그룹:**
+
+| 그룹 | 포함 |
+|------|------|
 | `orthogonal` | N, S, E, W |
 | `diagonal` | NE, NW, SE, SW |
-| `any` | All 8 directions |
+| `any` | 모든 8방향 |
 
-**Relative Directions:**
-| Direction | White | Black |
-|-----------|-------|-------|
+**상대 방향:**
+
+| 방향 | 백 | 흑 |
+|------|-----|-----|
 | `forward` | N | S |
 | `backward` | S | N |
 
-## Conditions
+## 조건
 
-Conditions for movement, triggers, and victory.
+이동, 트리거, 승리 조건을 위한 조건입니다.
 
-- [Conditions Reference →](/docs/reference/conditions)
+- [조건 레퍼런스 →](/docs/reference/conditions)
 
-**Movement Conditions:**
-| Condition | Description |
-|-----------|-------------|
-| `empty` | Target is empty |
-| `enemy` | Target has enemy |
-| `clear` | Path unobstructed |
-| `first_move` | First move |
+**이동 조건:**
 
-**Logical Operators:**
-| Operator | Description |
-|----------|-------------|
-| `and` | Both true |
-| `or` | Either true |
-| `not` | Negation |
+| 조건 | 설명 |
+|------|------|
+| `empty` | 대상이 비어있음 |
+| `enemy` | 대상에 적이 있음 |
+| `clear` | 경로가 막히지 않음 |
+| `first_move` | 첫 이동 |
 
-## Actions
+**논리 연산자:**
 
-Commands that modify game state.
+| 연산자 | 설명 |
+|--------|------|
+| `and` | 둘 다 참 |
+| `or` | 하나라도 참 |
+| `not` | 부정 |
 
-- [Actions Reference →](/docs/reference/actions)
+## 액션
 
-**Piece Actions:**
-| Action | Description |
-|--------|-------------|
-| `set` | Modify state |
-| `create` | Create piece |
-| `remove` | Remove piece |
-| `transform` | Change type |
+게임 상태를 수정하는 명령입니다.
 
-**Board Actions:**
-| Action | Description |
-|--------|-------------|
-| `mark` | Apply effect |
-| `unmark` | Remove effect |
+- [액션 레퍼런스 →](/docs/reference/actions)
 
-**Game Actions:**
-| Action | Description |
-|--------|-------------|
-| `win` | Declare winner |
-| `draw` | Declare draw |
+**기물 액션:**
 
-## Standard Pieces
+| 액션 | 설명 |
+|------|------|
+| `set` | 상태 수정 |
+| `create` | 기물 생성 |
+| `remove` | 기물 제거 |
+| `transform` | 타입 변경 |
 
-Pieces inherited from "Standard Chess":
+**보드 액션:**
+
+| 액션 | 설명 |
+|------|------|
+| `mark` | 효과 적용 |
+| `unmark` | 효과 제거 |
+
+**게임 액션:**
+
+| 액션 | 설명 |
+|------|------|
+| `win` | 승자 선언 |
+| `draw` | 무승부 선언 |
+
+## 표준 기물
+
+"Standard Chess"에서 상속받는 기물들:
 
 ```chesslang
 piece King {
@@ -163,50 +173,50 @@ piece Pawn {
 }
 ```
 
-## Built-in Traits
+## 내장 특성
 
-| Trait | Description |
-|-------|-------------|
-| `royal` | Game loss if captured |
-| `jump` | Can leap over pieces |
-| `castle` | Can castle |
-| `promote` | Can promote |
-| `en_passant` | Can be captured en passant |
+| 특성 | 설명 |
+|------|------|
+| `royal` | 잡히면 패배 |
+| `jump` | 기물을 뛰어넘을 수 있음 |
+| `castle` | 캐슬링 가능 |
+| `promote` | 승진 가능 |
+| `en_passant` | 앙파상 가능 |
 
-## Built-in Effects
+## 내장 효과
 
-| Effect | Description |
-|--------|-------------|
-| `check` | King is threatened |
-| `pin` | Piece cannot move (would expose King) |
+| 효과 | 설명 |
+|------|------|
+| `check` | 킹이 위협받음 |
+| `pin` | 기물이 이동 불가 (킹 노출) |
 
-## Reserved Values
+## 예약 값
 
-**Players:**
+**플레이어:**
 - `White`
 - `Black`
 
-**Piece Types:**
+**기물 타입:**
 - `King`, `Queen`, `Rook`, `Bishop`, `Knight`, `Pawn`
 
-**Boolean:**
+**불리언:**
 - `true`, `false`, `null`
 
-## File Structure
+## 파일 구조
 
-A typical ChessLang file:
+일반적인 ChessLang 파일:
 
 ```chesslang
-# 1. Game definition
+# 1. 게임 정의
 game: "My Variant"
 extends: "Standard Chess"
 
-# 2. Board configuration
+# 2. 보드 설정
 board:
   zones:
     name: [squares...]
 
-# 3. Custom pieces
+# 3. 커스텀 기물
 piece Name {
   move: pattern
   capture: pattern
@@ -214,32 +224,32 @@ piece Name {
   state: { ... }
 }
 
-# 4. Effects
+# 4. 효과
 effect name {
   on_enter: action
   visual: highlight(color)
 }
 
-# 5. Triggers
+# 5. 트리거
 trigger name {
   on: event
   when: condition
   do: action
 }
 
-# 6. Scripts
+# 6. 스크립트
 script {
-  // JavaScript-like code
+  // JavaScript 스타일 코드
 }
 
-# 7. Setup
+# 7. 배치
 setup:
   White:
     Piece: [squares...]
   Black:
     Piece: [squares...]
 
-# 8. Victory/Draw conditions
+# 8. 승리/무승부 조건
 victory:
   add:
     name: condition
@@ -248,13 +258,13 @@ draw:
   add:
     name: condition
 
-# 9. Rules
+# 9. 규칙
 rules:
   setting: value
 ```
 
-## See Also
+## 참고
 
-- [Language Guide](/docs/language) - Learn each level in detail
-- [Examples](/docs/examples) - Practical code examples
-- [Playground](/playground) - Try code interactively
+- [언어 가이드](/docs/language) - 각 레벨 자세히 배우기
+- [예제](/docs/examples) - 실용적인 코드 예제
+- [플레이그라운드](/playground) - 대화형으로 코드 시도

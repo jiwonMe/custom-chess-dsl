@@ -244,6 +244,7 @@ export const STANDARD_CHESS: CompiledGame = {
   victory: STANDARD_VICTORY,
   draw: STANDARD_DRAW,
   rules: STANDARD_RULES,
+  scripts: [],
 };
 
 /**

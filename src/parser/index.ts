@@ -912,13 +912,36 @@ export class Parser {
       return { type: 'Condition', kind: 'first_move', location };
     }
 
+    // captured condition (e.g., "King captured")
+    if (this.stream.match(TokenType.CAPTURED)) {
+      return { type: 'Condition', kind: 'captured', location };
+    }
+
     // Comparison or membership
     const left = this.parseExpression();
 
-    // in operator (membership)
+    // "on rank N" or "on file X" (e.g., "King on rank 8")
+    if (this.stream.match(TokenType.ON)) {
+      if (this.stream.match(TokenType.RANK)) {
+        const rankValue = this.parseExpression();
+        return { type: 'Condition', kind: 'on_rank', subject: left, value: rankValue, location };
+      }
+      if (this.stream.match(TokenType.FILE)) {
+        const fileValue = this.parseExpression();
+        return { type: 'Condition', kind: 'on_file', subject: left, value: fileValue, location };
+      }
+      this.error('Expected "rank" or "file" after "on"');
+    }
+
+    // in operator (membership) - e.g., "King in zone.hill"
     if (this.stream.match(TokenType.IN)) {
       const right = this.parseExpression();
       return { type: 'Condition', kind: 'in', left, right, location };
+    }
+
+    // captured keyword after subject (e.g., "King captured")
+    if (this.stream.match(TokenType.CAPTURED)) {
+      return { type: 'Condition', kind: 'piece_captured', subject: left, location };
     }
 
     // Comparison operators
@@ -1192,27 +1215,148 @@ export class Parser {
 
     // Collect all tokens until matching closing brace
     let braceDepth = 1;
-    const codeTokens: string[] = [];
+    const codeParts: string[] = [];
+
+    // Token types that should NOT have space before them
+    const noSpaceBefore = new Set([
+      TokenType.DOT,
+      TokenType.COMMA,
+      TokenType.SEMICOLON,
+      TokenType.RPAREN,
+      TokenType.RBRACKET,
+      TokenType.COLON,
+      TokenType.LPAREN, // 함수 호출: foo(
+    ]);
+
+    // Token types that should NOT have space after them
+    const noSpaceAfter = new Set([
+      TokenType.DOT,
+      TokenType.LPAREN,
+      TokenType.LBRACKET,
+      TokenType.BANG,
+    ]);
+
+
+    let lastToken: Token | null = null;
 
     while (!this.stream.isAtEnd() && braceDepth > 0) {
       const token = this.stream.advance();
+
+      // Determine the code string for this token
+      let codeStr = '';
       if (token.type === TokenType.LBRACE) {
         braceDepth++;
-        codeTokens.push('{');
+        codeStr = '{';
       } else if (token.type === TokenType.RBRACE) {
         braceDepth--;
         if (braceDepth > 0) {
-          codeTokens.push('}');
+          codeStr = '}';
         }
+      } else if (token.type === TokenType.NEWLINE) {
+        codeStr = '\n';
+      } else if (token.type === TokenType.SEMICOLON) {
+        codeStr = ';';
+      } else if (token.type === TokenType.LPAREN) {
+        codeStr = '(';
+      } else if (token.type === TokenType.RPAREN) {
+        codeStr = ')';
+      } else if (token.type === TokenType.LBRACKET) {
+        codeStr = '[';
+      } else if (token.type === TokenType.RBRACKET) {
+        codeStr = ']';
+      } else if (token.type === TokenType.COMMA) {
+        codeStr = ',';
+      } else if (token.type === TokenType.DOT) {
+        codeStr = '.';
+      } else if (token.type === TokenType.COLON) {
+        codeStr = ':';
+      } else if (token.type === TokenType.EQ) {
+        codeStr = '===';
+      } else if (token.type === TokenType.NE) {
+        codeStr = '!==';
+      } else if (token.type === TokenType.EQUALS) {
+        codeStr = '=';
+      } else if (token.type === TokenType.LT) {
+        codeStr = '<';
+      } else if (token.type === TokenType.GT) {
+        codeStr = '>';
+      } else if (token.type === TokenType.LE) {
+        codeStr = '<=';
+      } else if (token.type === TokenType.GE) {
+        codeStr = '>=';
+      } else if (token.type === TokenType.PLUS) {
+        // Check for ++ operator
+        if (lastToken && lastToken.type === TokenType.PLUS) {
+          // Find and remove the previous + (and any space before it)
+          while (codeParts.length > 0) {
+            const last = codeParts[codeParts.length - 1];
+            if (last === '+' || last === ' ') {
+              codeParts.pop();
+              if (last === '+') break;
+            } else {
+              break;
+            }
+          }
+          codeParts.push('++');
+          lastToken = token;
+          continue; // Skip normal processing
+        } else {
+          codeStr = '+';
+        }
+      } else if (token.type === TokenType.MINUS) {
+        // Check for -- operator
+        if (lastToken && lastToken.type === TokenType.MINUS) {
+          // Find and remove the previous - (and any space before it)
+          while (codeParts.length > 0) {
+            const last = codeParts[codeParts.length - 1];
+            if (last === '-' || last === ' ') {
+              codeParts.pop();
+              if (last === '-') break;
+            } else {
+              break;
+            }
+          }
+          codeParts.push('--');
+          lastToken = token;
+          continue; // Skip normal processing
+        } else {
+          codeStr = '-';
+        }
+      } else if (token.type === TokenType.STAR) {
+        codeStr = '*';
+      } else if (token.type === TokenType.SLASH) {
+        codeStr = '/';
+      } else if (token.type === TokenType.PIPE) {
+        codeStr = '||';
+      } else if (token.type === TokenType.AMPERSAND) {
+        codeStr = '&&';
+      } else if (token.type === TokenType.BANG) {
+        codeStr = '!';
+      } else if (token.type === TokenType.STRING) {
+        codeStr = `"${token.value}"`;
       } else {
-        codeTokens.push(token.value);
-        if (token.type === TokenType.NEWLINE) {
-          // Newlines are significant in script blocks
-        }
+        codeStr = token.value;
       }
+
+      // Add space intelligently
+      if (codeStr && braceDepth >= 0) {
+        const needsSpaceBefore =
+          lastToken !== null &&
+          !noSpaceAfter.has(lastToken.type) &&
+          !noSpaceBefore.has(token.type) &&
+          token.type !== TokenType.NEWLINE &&
+          lastToken.type !== TokenType.NEWLINE;
+
+        if (needsSpaceBefore && codeParts.length > 0) {
+          codeParts.push(' ');
+        }
+        codeParts.push(codeStr);
+      }
+
+      lastToken = token;
     }
 
-    const code = codeTokens.join(' ').trim();
+    const code = codeParts.join('').trim();
     return { type: 'Script', code, location };
   }
 

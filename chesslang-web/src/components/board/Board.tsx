@@ -61,6 +61,33 @@ export function Board({
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Space 키 상태 추적
+  const [isSpacePressed, setIsSpacePressed] = useState(false);
+
+  // Space 키 이벤트 리스너
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && !e.repeat) {
+        setIsSpacePressed(true);
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        setIsSpacePressed(false);
+        setIsPanning(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
   // Calculate legal move targets
   const legalTargets = useMemo(() => {
     const targets = new Set<string>();
@@ -72,7 +99,7 @@ export function Board({
 
   const handleSquareClick = useCallback(
     (pos: Position) => {
-      if (!interactive || isPanning) return;
+      if (!interactive || isPanning || isSpacePressed) return;
 
       onSquareClick?.(pos);
 
@@ -88,7 +115,7 @@ export function Board({
         }
       }
     },
-    [interactive, isPanning, state, selectedPiece, legalTargets, onSquareClick, onPieceSelect]
+    [interactive, isPanning, isSpacePressed, state, selectedPiece, legalTargets, onSquareClick, onPieceSelect]
   );
 
   // 휠 줌 핸들러
@@ -106,12 +133,18 @@ export function Board({
   // 마우스 다운 (패닝 시작)
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
-      if (!enableZoomPan || e.button !== 1) return; // 휠 클릭만
-      e.preventDefault();
-      setIsPanning(true);
-      setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+      if (!enableZoomPan) return;
+
+      // 패닝 조건: 오른쪽 클릭, 휠 클릭, 또는 Space + 왼쪽 클릭
+      const shouldPan = e.button === 2 || e.button === 1 || (e.button === 0 && isSpacePressed);
+
+      if (shouldPan) {
+        e.preventDefault();
+        setIsPanning(true);
+        setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+      }
     },
-    [enableZoomPan, pan]
+    [enableZoomPan, pan, isSpacePressed]
   );
 
   // 마우스 이동 (패닝)
@@ -131,6 +164,16 @@ export function Board({
     setIsPanning(false);
   }, []);
 
+  // 컨텍스트 메뉴 방지 (오른쪽 클릭 드래그용)
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      if (enableZoomPan) {
+        e.preventDefault();
+      }
+    },
+    [enableZoomPan]
+  );
+
   // 터치 이벤트 지원
   const lastTouchDistance = useRef<number | null>(null);
   const lastTouchCenter = useRef<{ x: number; y: number } | null>(null);
@@ -140,7 +183,8 @@ export function Board({
       if (!enableZoomPan) return;
 
       if (e.touches.length === 2) {
-        // 핀치 줌 시작
+        // 핀치 줌 또는 두 손가락 패닝 시작
+        e.preventDefault();
         const dx = e.touches[0]!.clientX - e.touches[1]!.clientX;
         const dy = e.touches[0]!.clientY - e.touches[1]!.clientY;
         lastTouchDistance.current = Math.sqrt(dx * dx + dy * dy);
@@ -148,12 +192,10 @@ export function Board({
           x: (e.touches[0]!.clientX + e.touches[1]!.clientX) / 2,
           y: (e.touches[0]!.clientY + e.touches[1]!.clientY) / 2,
         };
-      } else if (e.touches.length === 1) {
-        // 패닝 시작
         setIsPanning(true);
         setPanStart({
-          x: e.touches[0]!.clientX - pan.x,
-          y: e.touches[0]!.clientY - pan.y,
+          x: lastTouchCenter.current.x - pan.x,
+          y: lastTouchCenter.current.y - pan.y,
         });
       }
     },
@@ -165,6 +207,7 @@ export function Board({
       if (!enableZoomPan) return;
 
       if (e.touches.length === 2 && lastTouchDistance.current !== null) {
+        e.preventDefault();
         // 핀치 줌
         const dx = e.touches[0]!.clientX - e.touches[1]!.clientX;
         const dy = e.touches[0]!.clientY - e.touches[1]!.clientY;
@@ -173,12 +216,18 @@ export function Board({
 
         setZoom((prev) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, prev * scale)));
         lastTouchDistance.current = distance;
-      } else if (e.touches.length === 1 && isPanning) {
-        // 패닝
-        setPan({
-          x: e.touches[0]!.clientX - panStart.x,
-          y: e.touches[0]!.clientY - panStart.y,
-        });
+
+        // 두 손가락 패닝
+        const newCenter = {
+          x: (e.touches[0]!.clientX + e.touches[1]!.clientX) / 2,
+          y: (e.touches[0]!.clientY + e.touches[1]!.clientY) / 2,
+        };
+        if (isPanning) {
+          setPan({
+            x: newCenter.x - panStart.x,
+            y: newCenter.y - panStart.y,
+          });
+        }
       }
     },
     [enableZoomPan, isPanning, panStart]
@@ -208,6 +257,9 @@ export function Board({
     return false;
   };
 
+  // 패닝 모드 여부
+  const isPanMode = isSpacePressed || isPanning;
+
   return (
     <div className={cn('select-none relative', className)}>
       {/* Zoom/Pan 컨트롤 */}
@@ -235,6 +287,7 @@ export function Board({
               // 트랜지션
               'transition-colors'
             )}
+            title="줌 인"
           >
             +
           </button>
@@ -249,6 +302,7 @@ export function Board({
               'text-white text-lg font-bold',
               'transition-colors'
             )}
+            title="줌 아웃"
           >
             −
           </button>
@@ -263,23 +317,26 @@ export function Board({
               'text-white text-xs font-medium',
               'transition-colors'
             )}
+            title="뷰 리셋"
           >
             ⟲
           </button>
         </div>
       )}
 
-      {/* 줌 레벨 표시 */}
-      {enableZoomPan && zoom !== 1 && (
+      {/* 줌 레벨 & 패닝 힌트 표시 */}
+      {enableZoomPan && (
         <div
           className={cn(
             'absolute bottom-2 right-2 z-10',
             'px-2 py-1',
             'bg-zinc-800/80 rounded',
-            'text-xs text-zinc-300'
+            'text-xs text-zinc-300',
+            'flex flex-col items-end gap-0.5'
           )}
         >
-          {Math.round(zoom * 100)}%
+          {zoom !== 1 && <span>{Math.round(zoom * 100)}%</span>}
+          {isSpacePressed && <span className="text-emerald-400">패닝 모드</span>}
         </div>
       )}
 
@@ -290,14 +347,14 @@ export function Board({
           // 오버플로우
           'overflow-hidden',
           // 커서
-          isPanning && 'cursor-grabbing',
-          enableZoomPan && !isPanning && 'cursor-grab'
+          isPanMode ? 'cursor-grabbing' : enableZoomPan ? 'cursor-default' : ''
         )}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onContextMenu={handleContextMenu}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -352,7 +409,7 @@ export function Board({
                       <Piece
                         type={piece.type}
                         color={piece.owner}
-                        isDraggable={interactive && piece.owner === state.currentPlayer}
+                        isDraggable={interactive && piece.owner === state.currentPlayer && !isPanMode}
                       />
                     )}
                     {isLegalMove && <MoveIndicator isCapture={piece !== null} />}
