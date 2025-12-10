@@ -55,3 +55,4 @@ yarn-error.log*
 
 # Optional: ignore output from test runners
 test-results/
+.vercel
