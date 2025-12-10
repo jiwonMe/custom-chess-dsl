@@ -41,47 +41,27 @@ export default function PlaygroundPage() {
     }
   }, [isReady, compile]);
 
-  // Handle square click
-  const handleSquareClick = useCallback(
-    (pos: Position) => {
+  // Handle move (from Board component)
+  const handleMove = useCallback(
+    (move: Move) => {
       if (!gameState || isGameOver) return;
-
-      // Find piece at clicked position
-      const square = gameState.board[pos.rank]?.[pos.file];
-      const clickedPiece = square?.piece;
-
-      // If we have a selected piece, try to make a move
-      if (selectedPiece) {
-        const move = legalMoves.find(
-          (m) =>
-            m.from.file === selectedPiece.pos.file &&
-            m.from.rank === selectedPiece.pos.rank &&
-            m.to.file === pos.file &&
-            m.to.rank === pos.rank
-        );
-
-        if (move) {
-          makeMove(move);
-          return;
-        }
-      }
-
-      // Select the clicked piece if it belongs to current player
-      if (clickedPiece && clickedPiece.owner === gameState.currentPlayer) {
-        selectPiece(clickedPiece);
-      } else {
-        selectPiece(null);
-      }
+      makeMove(move);
+      selectPiece(null);
     },
-    [gameState, selectedPiece, legalMoves, isGameOver, makeMove, selectPiece]
+    [gameState, isGameOver, makeMove, selectPiece]
   );
 
-  // Filter legal moves for selected piece
-  const selectedPieceMoves = selectedPiece
-    ? legalMoves.filter(
-        (m) => m.from.file === selectedPiece.pos.file && m.from.rank === selectedPiece.pos.rank
-      )
-    : [];
+  // Handle promotion (from Board component)
+  const handlePromotion = useCallback(
+    (move: Move, pieceType: string) => {
+      if (!gameState || isGameOver) return;
+      // TODO: 프로모션 타입을 move에 추가하는 로직
+      // 현재는 기본 이동만 수행
+      makeMove(move);
+      selectPiece(null);
+    },
+    [gameState, isGameOver, makeMove, selectPiece]
+  );
 
   return (
     <div className="h-[calc(100vh-3.5rem)] flex flex-col">
@@ -240,12 +220,14 @@ export default function PlaygroundPage() {
                     currentPlayer: gameState.currentPlayer,
                     lastMove: gameState.moveHistory[gameState.moveHistory.length - 1],
                   }}
-                  legalMoves={selectedPieceMoves}
+                  legalMoves={legalMoves}
                   selectedPiece={selectedPiece}
                   flipped={boardFlipped}
                   interactive={!isGameOver}
-                  onSquareClick={handleSquareClick}
+                  enableKeyboard={true}
                   onPieceSelect={selectPiece}
+                  onMove={handleMove}
+                  onPromotion={handlePromotion}
                   className="w-full"
                 />
 
@@ -336,26 +318,43 @@ export default function PlaygroundPage() {
                 )}
               </div>
 
-              {/* Selected Piece Info */}
-              {selectedPiece && (
-                <div className="mt-4 max-w-md w-full">
-                  <PieceStatePanel piece={selectedPiece} />
+              {/* Info Panel - 항상 표시 (레이아웃 안정화) */}
+              <div className="mt-4 max-w-md w-full min-h-[120px] flex flex-col gap-3">
+                {/* Selected Piece Info */}
+                <div className="flex-shrink-0">
+                  {selectedPiece ? (
+                    <PieceStatePanel piece={selectedPiece} />
+                  ) : (
+                    <div
+                      className={cn(
+                        'bg-card/50 border border-dashed border-muted-foreground/30',
+                        'rounded-lg p-3',
+                        'text-sm text-muted-foreground/50 text-center'
+                      )}
+                    >
+                      기물을 선택하면 정보가 표시됩니다
+                    </div>
+                  )}
                 </div>
-              )}
 
-              {/* Move history */}
-              {gameState.moveHistory.length > 0 && (
-                <div className="mt-4 text-sm text-muted-foreground max-w-md w-full">
+                {/* Move history - 항상 표시 */}
+                <div className="text-sm text-muted-foreground flex-1">
                   <div className="font-medium mb-1">Moves</div>
-                  <div className="flex flex-wrap gap-1">
-                    {gameState.moveHistory.map((move, i) => (
-                      <span key={i} className="px-1.5 py-0.5 bg-muted rounded text-xs">
-                        {formatMove(move)}
+                  <div className="flex flex-wrap gap-1 min-h-[24px]">
+                    {gameState.moveHistory.length > 0 ? (
+                      gameState.moveHistory.map((move, i) => (
+                        <span key={i} className="px-1.5 py-0.5 bg-muted rounded text-xs">
+                          {formatMove(move)}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-muted-foreground/50 text-xs italic">
+                        아직 이동 기록이 없습니다
                       </span>
-                    ))}
+                    )}
                   </div>
                 </div>
-              )}
+              </div>
             </>
           ) : (
             <div className="text-muted-foreground">

@@ -7,8 +7,11 @@ interface PieceProps {
   type: string;
   color: Color;
   isDraggable?: boolean;
+  isDragging?: boolean;
   state?: Record<string, unknown> | null;
   showState?: boolean;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
 }
 
 // Unicode chess pieces (standard pieces)
@@ -85,7 +88,16 @@ function formatStateValue(key: string, value: unknown): string {
   return String(value);
 }
 
-export function Piece({ type, color, isDraggable = false, state, showState = true }: PieceProps) {
+export function Piece({
+  type,
+  color,
+  isDraggable = false,
+  isDragging = false,
+  state,
+  showState = true,
+  onDragStart,
+  onDragEnd,
+}: PieceProps) {
   const isStandardPiece = type in pieceSymbols;
   const symbol = isStandardPiece
     ? pieceSymbols[type]![color]
@@ -93,6 +105,20 @@ export function Piece({ type, color, isDraggable = false, state, showState = tru
 
   const cooldown = getCooldown(state);
   const hasCooldown = cooldown !== null && cooldown > 0;
+
+  // 드래그 이벤트 핸들러
+  const handleDragStart = (e: React.DragEvent) => {
+    // 투명 이미지로 기본 드래그 이미지 숨김
+    const img = new Image();
+    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+    e.dataTransfer.setDragImage(img, 0, 0);
+    e.dataTransfer.effectAllowed = 'move';
+    onDragStart?.();
+  };
+
+  const handleDragEnd = () => {
+    onDragEnd?.();
+  };
 
   // State badge component
   const StateBadge = () => {
@@ -138,9 +164,15 @@ export function Piece({ type, color, isDraggable = false, state, showState = tru
           // 드래그
           isDraggable && 'cursor-grab active:cursor-grabbing',
           // 쿨다운 시 반투명
-          hasCooldown && 'opacity-60'
+          hasCooldown && 'opacity-60',
+          // 드래그 중 효과
+          isDragging && 'scale-110 opacity-30',
+          // 트랜지션
+          'transition-all duration-150'
         )}
         draggable={isDraggable}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
       >
         <span
           className={cn(
@@ -151,7 +183,11 @@ export function Piece({ type, color, isDraggable = false, state, showState = tru
             // 색상
             color === 'White' ? 'text-white' : 'text-gray-900',
             // 윤곽선 (가시성 향상)
-            color === 'White' && '[text-shadow:_0_0_2px_rgb(0_0_0_/_80%)]'
+            color === 'White' && '[text-shadow:_0_0_2px_rgb(0_0_0_/_80%)]',
+            // 호버 효과
+            isDraggable && !isDragging && 'hover:scale-105 hover:drop-shadow-lg',
+            // 트랜지션
+            'transition-all duration-150'
           )}
           style={{
             fontFamily: "'Noto Sans Symbols 2', 'Segoe UI Symbol', sans-serif",
@@ -159,7 +195,7 @@ export function Piece({ type, color, isDraggable = false, state, showState = tru
         >
           {symbol}
         </span>
-        <StateBadge />
+        {!isDragging && <StateBadge />}
       </div>
     );
   }
@@ -177,9 +213,15 @@ export function Piece({ type, color, isDraggable = false, state, showState = tru
         // 드래그
         isDraggable && 'cursor-grab active:cursor-grabbing',
         // 쿨다운 시 반투명
-        hasCooldown && 'opacity-60'
+        hasCooldown && 'opacity-60',
+        // 드래그 중 효과
+        isDragging && 'scale-110 opacity-30',
+        // 트랜지션
+        'transition-all duration-150'
       )}
       draggable={isDraggable}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
     >
       {/* 배경 원 */}
       <div
@@ -199,7 +241,11 @@ export function Piece({ type, color, isDraggable = false, state, showState = tru
           // 레이아웃
           'flex items-center justify-center',
           // 쿨다운 시 그레이스케일
-          hasCooldown && 'grayscale-[30%]'
+          hasCooldown && 'grayscale-[30%]',
+          // 호버 효과
+          isDraggable && !isDragging && 'hover:scale-105 hover:shadow-lg',
+          // 트랜지션
+          'transition-all duration-150'
         )}
       >
         {/* 이모지 */}
@@ -216,7 +262,7 @@ export function Piece({ type, color, isDraggable = false, state, showState = tru
           {symbol}
         </span>
       </div>
-      <StateBadge />
+      {!isDragging && <StateBadge />}
     </div>
   );
 }

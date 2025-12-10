@@ -9,7 +9,13 @@ interface SquareProps {
   isSelected?: boolean;
   isLastMove?: boolean;
   isCheck?: boolean;
+  isDragOver?: boolean;
+  isLegalDrop?: boolean;
+  isFocused?: boolean;
   onClick?: () => void;
+  onDragEnter?: () => void;
+  onDragLeave?: () => void;
+  onDrop?: () => void;
   showCoordinates?: boolean;
   showRank?: boolean;
   showFile?: boolean;
@@ -37,7 +43,13 @@ export function Square({
   isSelected = false,
   isLastMove = false,
   isCheck = false,
+  isDragOver = false,
+  isLegalDrop = false,
+  isFocused = false,
   onClick,
+  onDragEnter,
+  onDragLeave,
+  onDrop,
   showCoordinates = true,
   showRank = false,
   showFile = false,
@@ -46,12 +58,37 @@ export function Square({
   return (
     <div
       onClick={onClick}
+      onDragEnter={(e) => {
+        e.preventDefault();
+        onDragEnter?.();
+      }}
+      onDragOver={(e) => e.preventDefault()}
+      onDragLeave={onDragLeave}
+      onDrop={(e) => {
+        e.preventDefault();
+        onDrop?.();
+      }}
       className={cn(
-        'relative aspect-square flex items-center justify-center cursor-pointer transition-colors',
+        // 기본
+        'relative aspect-square flex items-center justify-center cursor-pointer',
+        // 트랜지션
+        'transition-all duration-150',
+        // 기본 색상
         isLight ? 'bg-board-light' : 'bg-board-dark',
+        // 선택됨
         isSelected && 'bg-board-selected',
+        // 마지막 이동
         isLastMove && !isSelected && 'bg-board-highlight',
-        isCheck && 'bg-red-500/50'
+        // 체크
+        isCheck && 'bg-red-500/50 animate-pulse',
+        // 호버 효과
+        !isSelected && !isDragOver && 'hover:brightness-110',
+        // 드래그 오버 (합법 이동)
+        isDragOver && isLegalDrop && 'bg-emerald-500/40 ring-2 ring-emerald-400 ring-inset',
+        // 드래그 오버 (불법 이동)
+        isDragOver && !isLegalDrop && 'bg-red-500/20',
+        // 키보드 포커스
+        isFocused && 'ring-2 ring-yellow-400 ring-inset'
       )}
     >
       {children}
@@ -60,8 +97,8 @@ export function Square({
       {showCoordinates && showRank && (
         <span
           className={cn(
-            'absolute top-0.5 left-0.5 text-xs font-semibold',
-            isLight ? 'text-board-dark' : 'text-board-light'
+            'absolute top-0.5 left-0.5 text-xs font-semibold pointer-events-none',
+            isLight ? 'text-board-dark/70' : 'text-board-light/70'
           )}
         >
           {getRankLabel(pos.rank)}
@@ -72,8 +109,8 @@ export function Square({
       {showCoordinates && showFile && (
         <span
           className={cn(
-            'absolute bottom-0.5 right-0.5 text-xs font-semibold',
-            isLight ? 'text-board-dark' : 'text-board-light'
+            'absolute bottom-0.5 right-0.5 text-xs font-semibold pointer-events-none',
+            isLight ? 'text-board-dark/70' : 'text-board-light/70'
           )}
         >
           {getFileLabel(pos.file)}

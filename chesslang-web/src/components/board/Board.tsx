@@ -4,6 +4,8 @@ import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { Square } from './Square';
 import { Piece } from './Piece';
 import { MoveIndicator } from './MoveIndicator';
+import { DragOverlay } from './DragOverlay';
+import { PromotionModal } from './PromotionModal';
 import { cn } from '@/lib/utils/cn';
 import type { Position, Move, Piece as PieceType, Color } from '@/types';
 
@@ -27,8 +29,11 @@ interface BoardProps {
   highlightLastMove?: boolean;
   showCoordinates?: boolean;
   enableZoomPan?: boolean;
+  enableKeyboard?: boolean;
   onSquareClick?: (pos: Position) => void;
   onPieceSelect?: (piece: PieceType | null) => void;
+  onMove?: (move: Move) => void;
+  onPromotion?: (move: Move, pieceType: string) => void;
   className?: string;
 }
 
@@ -46,8 +51,11 @@ export function Board({
   highlightLastMove = true,
   showCoordinates = true,
   enableZoomPan = true,
+  enableKeyboard = true,
   onSquareClick,
   onPieceSelect,
+  onMove,
+  onPromotion,
   className,
 }: BoardProps) {
   // 직사각형 보드 지원
@@ -60,9 +68,52 @@ export function Board({
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
 
   // Space 키 상태 추적
   const [isSpacePressed, setIsSpacePressed] = useState(false);
+
+  // 드래그 상태
+  const [draggedPiece, setDraggedPiece] = useState<PieceType | null>(null);
+  const [dragOverPos, setDragOverPos] = useState<Position | null>(null);
+
+  // 키보드 네비게이션 상태
+  const [focusedPos, setFocusedPos] = useState<Position | null>(null);
+
+  // 프로모션 모달 상태
+  const [promotionMove, setPromotionMove] = useState<Move | null>(null);
+
+  // Legal move targets 계산 (선택된 기물의 이동만)
+  const legalTargets = useMemo(() => {
+    const targets = new Set<string>();
+    if (!selectedPiece) return targets;
+    
+    for (const move of legalMoves) {
+      // 선택된 기물의 이동만 필터링
+      if (
+        move.from.file === selectedPiece.pos.file &&
+        move.from.rank === selectedPiece.pos.rank
+      ) {
+        targets.add(`${move.to.file},${move.to.rank}`);
+      }
+    }
+    return targets;
+  }, [legalMoves, selectedPiece]);
+
+  // 드래그 중인 기물의 합법 이동 위치
+  const dragLegalTargets = useMemo(() => {
+    if (!draggedPiece) return new Set<string>();
+    const targets = new Set<string>();
+    for (const move of legalMoves) {
+      if (
+        move.from.file === draggedPiece.pos.file &&
+        move.from.rank === draggedPiece.pos.rank
+      ) {
+        targets.add(`${move.to.file},${move.to.rank}`);
+      }
+    }
+    return targets;
+  }, [draggedPiece, legalMoves]);
 
   // Space 키 이벤트 리스너
   useEffect(() => {
@@ -88,15 +139,10 @@ export function Board({
     };
   }, []);
 
-  // Calculate legal move targets
-  const legalTargets = useMemo(() => {
-    const targets = new Set<string>();
-    for (const move of legalMoves) {
-      targets.add(`${move.to.file},${move.to.rank}`);
-    }
-    return targets;
-  }, [legalMoves]);
+  // Board 포커스 상태
+  const [isBoardFocused, setIsBoardFocused] = useState(false);
 
+  // 칸 클릭 핸들러 (먼저 정의해야 handleBoardKeyDown에서 사용 가능)
   const handleSquareClick = useCallback(
     (pos: Position) => {
       if (!interactive || isPanning || isSpacePressed) return;
@@ -106,17 +152,156 @@ export function Board({
       const square = state.board[pos.rank]?.[pos.file];
       const piece = square?.piece ?? null;
 
-      if (piece && piece.owner === state.currentPlayer) {
-        onPieceSelect?.(piece);
-      } else if (selectedPiece) {
-        const isLegal = legalTargets.has(`${pos.file},${pos.rank}`);
-        if (!isLegal) {
-          onPieceSelect?.(null);
+      // 선택된 기물이 있고 합법 이동인 경우
+      if (selectedPiece) {
+        const move = legalMoves.find(
+          (m) =>
+            m.from.file === selectedPiece.pos.file &&
+            m.from.rank === selectedPiece.pos.rank &&
+            m.to.file === pos.file &&
+            m.to.rank === pos.rank
+        );
+
+        if (move) {
+          // 프로모션 체크
+          if (isPromotionMove(move, state.board)) {
+            setPromotionMove(move);
+          } else {
+            onMove?.(move);
+          }
+          return;
         }
       }
+
+      // 자신의 기물 선택
+      if (piece && piece.owner === state.currentPlayer) {
+        onPieceSelect?.(piece);
+        setFocusedPos(pos);
+      } else {
+        onPieceSelect?.(null);
+      }
     },
-    [interactive, isPanning, isSpacePressed, state, selectedPiece, legalTargets, onSquareClick, onPieceSelect]
+    [interactive, isPanning, isSpacePressed, state, selectedPiece, legalMoves, onSquareClick, onPieceSelect, onMove]
   );
+
+  // 키보드 네비게이션 핸들러 (Board가 포커스되었을 때만)
+  const handleBoardKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!enableKeyboard || !interactive || !isBoardFocused) return;
+      
+      // 모달이 열려있으면 무시
+      if (promotionMove) return;
+
+      // 포커스가 없으면 중앙에서 시작
+      if (!focusedPos && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', ' '].includes(e.key)) {
+        e.preventDefault();
+        setFocusedPos({ file: Math.floor(boardWidth / 2), rank: Math.floor(boardHeight / 2) });
+        return;
+      }
+
+      if (!focusedPos) return;
+
+      let newPos = { ...focusedPos };
+
+      switch (e.key) {
+        case 'ArrowUp':
+          e.preventDefault();
+          newPos.rank = Math.min(boardHeight - 1, focusedPos.rank + (flipped ? -1 : 1));
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          newPos.rank = Math.max(0, focusedPos.rank + (flipped ? 1 : -1));
+          break;
+        case 'ArrowLeft':
+          e.preventDefault();
+          newPos.file = Math.max(0, focusedPos.file + (flipped ? 1 : -1));
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          newPos.file = Math.min(boardWidth - 1, focusedPos.file + (flipped ? -1 : 1));
+          break;
+        case 'Enter':
+        case ' ':
+          e.preventDefault();
+          handleSquareClick(focusedPos);
+          return;
+        case 'Escape':
+          e.preventDefault();
+          setFocusedPos(null);
+          onPieceSelect?.(null);
+          return;
+        default:
+          return;
+      }
+
+      setFocusedPos(newPos);
+    },
+    [enableKeyboard, interactive, isBoardFocused, focusedPos, flipped, boardWidth, boardHeight, promotionMove, onPieceSelect, handleSquareClick]
+  );
+
+  // 드래그 시작
+  const handleDragStart = useCallback(
+    (piece: PieceType) => {
+      if (!interactive || piece.owner !== state.currentPlayer) return;
+      setDraggedPiece(piece);
+      onPieceSelect?.(piece);
+    },
+    [interactive, state.currentPlayer, onPieceSelect]
+  );
+
+  // 드래그 종료
+  const handleDragEnd = useCallback(() => {
+    setDraggedPiece(null);
+    setDragOverPos(null);
+  }, []);
+
+  // 드롭
+  const handleDrop = useCallback(
+    (pos: Position) => {
+      if (!draggedPiece) return;
+
+      const move = legalMoves.find(
+        (m) =>
+          m.from.file === draggedPiece.pos.file &&
+          m.from.rank === draggedPiece.pos.rank &&
+          m.to.file === pos.file &&
+          m.to.rank === pos.rank
+      );
+
+      if (move) {
+        if (isPromotionMove(move, state.board)) {
+          setPromotionMove(move);
+        } else {
+          onMove?.(move);
+        }
+      }
+
+      setDraggedPiece(null);
+      setDragOverPos(null);
+    },
+    [draggedPiece, legalMoves, state.board, onMove]
+  );
+
+  // 프로모션 선택
+  const handlePromotionSelect = useCallback(
+    (pieceType: string) => {
+      if (promotionMove) {
+        onPromotion?.(promotionMove, pieceType);
+        // fallback: onMove도 호출
+        if (!onPromotion) {
+          onMove?.(promotionMove);
+        }
+      }
+      setPromotionMove(null);
+    },
+    [promotionMove, onPromotion, onMove]
+  );
+
+  // 프로모션 취소
+  const handlePromotionCancel = useCallback(() => {
+    setPromotionMove(null);
+    onPieceSelect?.(null);
+  }, [onPieceSelect]);
 
   // 휠 줌 핸들러
   const handleWheel = useCallback(
@@ -134,8 +319,6 @@ export function Board({
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       if (!enableZoomPan) return;
-
-      // 패닝 조건: 오른쪽 클릭, 휠 클릭, 또는 Space + 왼쪽 클릭
       const shouldPan = e.button === 2 || e.button === 1 || (e.button === 0 && isSpacePressed);
 
       if (shouldPan) {
@@ -164,7 +347,7 @@ export function Board({
     setIsPanning(false);
   }, []);
 
-  // 컨텍스트 메뉴 방지 (오른쪽 클릭 드래그용)
+  // 컨텍스트 메뉴 방지
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
       if (enableZoomPan) {
@@ -181,9 +364,7 @@ export function Board({
   const handleTouchStart = useCallback(
     (e: React.TouchEvent) => {
       if (!enableZoomPan) return;
-
       if (e.touches.length === 2) {
-        // 핀치 줌 또는 두 손가락 패닝 시작
         e.preventDefault();
         const dx = e.touches[0]!.clientX - e.touches[1]!.clientX;
         const dy = e.touches[0]!.clientY - e.touches[1]!.clientY;
@@ -205,10 +386,8 @@ export function Board({
   const handleTouchMove = useCallback(
     (e: React.TouchEvent) => {
       if (!enableZoomPan) return;
-
       if (e.touches.length === 2 && lastTouchDistance.current !== null) {
         e.preventDefault();
-        // 핀치 줌
         const dx = e.touches[0]!.clientX - e.touches[1]!.clientX;
         const dy = e.touches[0]!.clientY - e.touches[1]!.clientY;
         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -217,7 +396,6 @@ export function Board({
         setZoom((prev) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, prev * scale)));
         lastTouchDistance.current = distance;
 
-        // 두 손가락 패닝
         const newCenter = {
           x: (e.touches[0]!.clientX + e.touches[1]!.clientX) / 2,
           y: (e.touches[0]!.clientY + e.touches[1]!.clientY) / 2,
@@ -253,46 +431,45 @@ export function Board({
     ? Array.from({ length: boardWidth }, (_, i) => boardWidth - 1 - i)
     : Array.from({ length: boardWidth }, (_, i) => i);
 
-  const isKingInCheck = (piece: PieceType | null, color: Color) => {
-    return false;
-  };
-
-  // 패닝 모드 여부
   const isPanMode = isSpacePressed || isPanning;
 
   return (
-    <div className={cn('select-none relative', className)}>
+    <div
+      className={cn(
+        'select-none relative',
+        // 포커스 시 외곽선
+        enableKeyboard && 'focus:outline-none focus:ring-2 focus:ring-emerald-500/50 rounded-lg',
+        className
+      )}
+      tabIndex={enableKeyboard ? 0 : undefined}
+      onFocus={() => {
+        setIsBoardFocused(true);
+        if (enableKeyboard && !focusedPos) {
+          setFocusedPos({ file: Math.floor(boardWidth / 2), rank: Math.floor(boardHeight / 2) });
+        }
+      }}
+      onBlur={() => {
+        setIsBoardFocused(false);
+        setFocusedPos(null);
+      }}
+      onKeyDown={handleBoardKeyDown}
+    >
       {/* Zoom/Pan 컨트롤 */}
       {enableZoomPan && (
-        <div
-          className={cn(
-            // 포지셔닝
-            'absolute top-2 right-2 z-10',
-            // 레이아웃
-            'flex flex-col gap-1'
-          )}
-        >
-          {/* 줌 인 */}
+        <div className={cn('absolute top-2 right-2 z-10', 'flex flex-col gap-1')}>
           <button
             onClick={() => setZoom((z) => Math.min(MAX_ZOOM, z * 1.2))}
             className={cn(
-              // 크기
               'w-8 h-8',
-              // 배경
               'bg-zinc-800/80 hover:bg-zinc-700',
-              // 테두리
               'rounded border border-zinc-600',
-              // 텍스트
               'text-white text-lg font-bold',
-              // 트랜지션
               'transition-colors'
             )}
             title="줌 인"
           >
             +
           </button>
-
-          {/* 줌 아웃 */}
           <button
             onClick={() => setZoom((z) => Math.max(MIN_ZOOM, z / 1.2))}
             className={cn(
@@ -306,8 +483,6 @@ export function Board({
           >
             −
           </button>
-
-          {/* 리셋 */}
           <button
             onClick={resetView}
             className={cn(
@@ -324,7 +499,7 @@ export function Board({
         </div>
       )}
 
-      {/* 줌 레벨 & 패닝 힌트 표시 */}
+      {/* 줌 레벨 & 힌트 표시 */}
       {enableZoomPan && (
         <div
           className={cn(
@@ -337,18 +512,14 @@ export function Board({
         >
           {zoom !== 1 && <span>{Math.round(zoom * 100)}%</span>}
           {isSpacePressed && <span className="text-emerald-400">패닝 모드</span>}
+          {focusedPos && <span className="text-yellow-400">키보드 모드</span>}
         </div>
       )}
 
       {/* 보드 컨테이너 */}
       <div
         ref={containerRef}
-        className={cn(
-          // 오버플로우
-          'overflow-hidden',
-          // 커서
-          isPanMode ? 'cursor-grabbing' : enableZoomPan ? 'cursor-default' : ''
-        )}
+        className={cn('overflow-hidden', isPanMode ? 'cursor-grabbing' : enableZoomPan ? 'cursor-default' : '')}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -367,6 +538,7 @@ export function Board({
           }}
         >
           <div
+            ref={boardRef}
             className="grid gap-0 border-2 border-gray-800 rounded shadow-lg"
             style={{
               gridTemplateColumns: `repeat(${boardWidth}, 1fr)`,
@@ -378,19 +550,20 @@ export function Board({
                 const pos = { file, rank };
                 const square = state.board[rank]?.[file];
                 const piece = square?.piece ?? null;
+                const posKey = `${file},${rank}`;
 
-                const isSelected =
-                  selectedPiece?.pos.file === file && selectedPiece?.pos.rank === rank;
-                const isLegalMove = legalTargets.has(`${file},${rank}`);
+                const isSelected = selectedPiece?.pos.file === file && selectedPiece?.pos.rank === rank;
+                const isLegalMove = legalTargets.has(posKey);
                 const isLastMoveSquare =
                   highlightLastMove &&
                   state.lastMove &&
                   ((state.lastMove.from.file === file && state.lastMove.from.rank === rank) ||
                     (state.lastMove.to.file === file && state.lastMove.to.rank === rank));
-                const isCheck =
-                  piece?.type === 'King' &&
-                  piece?.owner === state.currentPlayer &&
-                  isKingInCheck(piece, state.currentPlayer);
+                const isCheck = piece?.type === 'King' && piece?.traits?.has('royal') && false; // TODO: 실제 체크 감지
+                const isDragOver = dragOverPos?.file === file && dragOverPos?.rank === rank;
+                const isLegalDrop = dragLegalTargets.has(posKey);
+                const isFocused = focusedPos?.file === file && focusedPos?.rank === rank;
+                const isDragging = draggedPiece?.pos.file === file && draggedPiece?.pos.rank === rank;
 
                 return (
                   <Square
@@ -400,7 +573,17 @@ export function Board({
                     isSelected={isSelected}
                     isLastMove={isLastMoveSquare}
                     isCheck={isCheck}
+                    isDragOver={isDragOver}
+                    isLegalDrop={isLegalDrop}
+                    isFocused={isFocused}
                     onClick={() => handleSquareClick(pos)}
+                    onDragEnter={() => setDragOverPos(pos)}
+                    onDragLeave={() => {
+                      if (dragOverPos?.file === file && dragOverPos?.rank === rank) {
+                        setDragOverPos(null);
+                      }
+                    }}
+                    onDrop={() => handleDrop(pos)}
                     showCoordinates={showCoordinates}
                     showRank={file === (flipped ? boardWidth - 1 : 0)}
                     showFile={rank === (flipped ? boardHeight - 1 : 0)}
@@ -410,11 +593,17 @@ export function Board({
                         type={piece.type}
                         color={piece.owner}
                         isDraggable={interactive && piece.owner === state.currentPlayer && !isPanMode}
+                        isDragging={isDragging}
                         state={piece.state}
                         showState={true}
+                        onDragStart={() => handleDragStart(piece)}
+                        onDragEnd={handleDragEnd}
                       />
                     )}
-                    {isLegalMove && <MoveIndicator isCapture={piece !== null} />}
+                    {/* 선택된 기물이 있을 때만 이동 가능 칸 표시 */}
+                    {selectedPiece && isLegalMove && !isDragOver && (
+                      <MoveIndicator isCapture={piece !== null} />
+                    )}
                   </Square>
                 );
               })
@@ -422,6 +611,32 @@ export function Board({
           </div>
         </div>
       </div>
+
+      {/* 드래그 오버레이 */}
+      {draggedPiece && (
+        <DragOverlay type={draggedPiece.type} color={draggedPiece.owner} isVisible={true} />
+      )}
+
+      {/* 프로모션 모달 */}
+      <PromotionModal
+        isOpen={promotionMove !== null}
+        color={state.currentPlayer}
+        position={promotionMove?.to ?? { file: 0, rank: 0 }}
+        onSelect={handlePromotionSelect}
+        onCancel={handlePromotionCancel}
+      />
     </div>
   );
+}
+
+// 프로모션 이동인지 확인
+function isPromotionMove(move: Move, board: BoardSquare[][]): boolean {
+  const piece = move.piece;
+  if (piece.type !== 'Pawn') return false;
+
+  // 백은 7번 랭크에서 8번으로, 흑은 0번 랭크로
+  if (piece.owner === 'White' && move.to.rank === board.length - 1) return true;
+  if (piece.owner === 'Black' && move.to.rank === 0) return true;
+
+  return false;
 }
