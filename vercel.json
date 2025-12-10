@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm run build:web",
+  "buildCommand": "npx tsc && cd chesslang-web && npm run build",
   "outputDirectory": "chesslang-web/.next",
   "framework": "nextjs"
 }
