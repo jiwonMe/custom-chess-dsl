@@ -15,6 +15,7 @@ import type {
   PieceDefinition,
   EffectDefinition,
   TriggerDefinition,
+  TraitDefinition,
   Pattern,
   Condition,
   Action,
@@ -99,6 +100,9 @@ export class Compiler {
       throw this.errors[0];
     }
 
+    // Create trait definitions from pieces
+    const traits = this.compileTraits(pieces);
+
     return {
       name: this.ast.name,
       extends: this.ast.extends,
@@ -106,12 +110,52 @@ export class Compiler {
       pieces,
       effects,
       triggers,
+      traits,
       setup,
       victory,
       draw,
       rules,
       scripts,
     };
+  }
+
+  /**
+   * Compile trait definitions from piece traits
+   * Custom traits get their behavior from triggers
+   */
+  private compileTraits(
+    pieces: Map<string, PieceDefinition>
+  ): Map<string, TraitDefinition> {
+    const traits = new Map<string, TraitDefinition>();
+
+    // Built-in traits
+    const builtInTraits: Array<[string, Partial<TraitDefinition>]> = [
+      ['royal', { name: 'royal', description: 'Target for check/checkmate' }],
+      ['phase', { name: 'phase', description: 'Can pass through pieces', moveModifier: 'phase' }],
+      ['jump', { name: 'jump', description: 'Can jump over pieces', moveModifier: 'jump' }],
+      ['promote', { name: 'promote', description: 'Can be promoted' }],
+      ['immune', { name: 'immune', description: 'Cannot be captured', immune: true }],
+      ['explosive', { name: 'explosive', description: 'Destroys adjacent pieces when captured' }],
+    ];
+
+    for (const [name, def] of builtInTraits) {
+      traits.set(name, def as TraitDefinition);
+    }
+
+    // Collect all unique traits from pieces
+    for (const piece of pieces.values()) {
+      for (const traitName of piece.traits) {
+        if (!traits.has(traitName)) {
+          // Custom trait - no built-in behavior
+          traits.set(traitName, {
+            name: traitName,
+            description: `Custom trait: ${traitName}`,
+          });
+        }
+      }
+    }
+
+    return traits;
   }
 
   private compileBoardConfig(): BoardConfig {
@@ -579,6 +623,7 @@ export class Compiler {
   private compileSetup(node?: SetupNode): SetupConfig {
     const placements: PlacementConfig[] = [];
     let replace: Map<string, string> | undefined;
+    let additive = false;
 
     if (node) {
       for (const p of node.placements) {
@@ -596,9 +641,12 @@ export class Compiler {
       if (node.replace && node.replace.size > 0) {
         replace = new Map(node.replace);
       }
+
+      // Copy additive flag
+      additive = node.additive ?? false;
     }
 
-    return { placements, replace };
+    return { placements, replace, additive };
   }
 
   /**

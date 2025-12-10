@@ -540,11 +540,52 @@ export interface CompiledGame {
   pieces: Map<string, PieceDefinition>;
   effects: Map<string, EffectDefinition>;
   triggers: TriggerDefinition[];
+  traits: Map<string, TraitDefinition>; // Custom trait definitions
   setup: SetupConfig;
   victory: VictoryCondition[];
   draw: DrawCondition[];
   rules: RuleConfig;
   scripts: string[]; // 스크립트 코드 배열
+}
+
+// ----------------------------------------------------------------------------
+// Trait Definitions
+// ----------------------------------------------------------------------------
+
+/**
+ * Built-in traits with predefined behavior:
+ * - 'royal': Target for check/checkmate
+ * - 'phase': Can pass through other pieces (no capture)
+ * - 'jump': Can jump over pieces (used with leap pattern)
+ * - 'promote': Can be promoted at specific rank
+ * - 'immune': Cannot be captured
+ * - 'explosive': Destroys adjacent pieces when captured
+ */
+export type BuiltInTrait = 
+  | 'royal' 
+  | 'phase' 
+  | 'jump' 
+  | 'promote' 
+  | 'immune' 
+  | 'explosive';
+
+/**
+ * Custom trait definition
+ * Traits can modify piece behavior and trigger special effects
+ */
+export interface TraitDefinition {
+  name: string;
+  description?: string;
+  // Effects when piece with this trait moves
+  onMove?: TriggerDefinition;
+  // Effects when piece with this trait captures
+  onCapture?: TriggerDefinition;
+  // Effects when piece with this trait is captured
+  onCaptured?: TriggerDefinition;
+  // Modifies how the piece generates moves
+  moveModifier?: 'phase' | 'jump' | 'none';
+  // Whether this trait makes the piece immune to capture
+  immune?: boolean;
 }
 
 // ----------------------------------------------------------------------------
@@ -574,6 +615,7 @@ export type ScriptEventHandler = (event: ScriptEvent) => void;
 export interface SetupConfig {
   placements: PlacementConfig[];
   replace?: Map<string, string>; // 기존 기물을 다른 기물로 대체 (예: Queen -> Amazon)
+  additive?: boolean; // true면 base game setup 위에 추가, false면 완전 교체
   customSetup?: (state: GameState) => void;
 }
 
@@ -739,6 +781,7 @@ export interface SetupNode extends ASTNode {
   placements: PlacementNode[];
   fromFEN?: string;
   replace?: Map<string, string>; // 기존 기물을 다른 기물로 대체 (예: Queen -> Amazon)
+  additive?: boolean; // true면 add: 섹션 사용, base game 위에 추가
 }
 
 export interface PlacementNode extends ASTNode {

@@ -1,6 +1,7 @@
 import type {
   CompiledGame,
   PieceDefinition,
+  TraitDefinition,
   BoardConfig,
   PlacementConfig,
   SetupConfig,
@@ -232,6 +233,18 @@ export const STANDARD_RULES: RuleConfig = {
 };
 
 /**
+ * Standard traits
+ */
+export const STANDARD_TRAITS: Map<string, TraitDefinition> = new Map([
+  ['royal', { name: 'royal', description: 'Target for check/checkmate' }],
+  ['phase', { name: 'phase', description: 'Can pass through pieces', moveModifier: 'phase' }],
+  ['jump', { name: 'jump', description: 'Can jump over pieces', moveModifier: 'jump' }],
+  ['promote', { name: 'promote', description: 'Can be promoted' }],
+  ['immune', { name: 'immune', description: 'Cannot be captured', immune: true }],
+  ['explosive', { name: 'explosive', description: 'Destroys adjacent pieces when captured' }],
+]);
+
+/**
  * Complete standard chess game
  */
 export const STANDARD_CHESS: CompiledGame = {
@@ -240,6 +253,7 @@ export const STANDARD_CHESS: CompiledGame = {
   pieces: STANDARD_PIECES,
   effects: new Map(),
   triggers: [],
+  traits: STANDARD_TRAITS,
   setup: STANDARD_SETUP,
   victory: STANDARD_VICTORY,
   draw: STANDARD_DRAW,

@@ -23,6 +23,7 @@ import {
   wouldBeInCheck,
   MoveContext,
   evaluateCondition,
+  evaluateExpression,
 } from './moves.js';
 import { ScriptRuntime } from './script-runtime.js';
 
@@ -124,11 +125,24 @@ export class GameEngine {
    * Setup initial pieces
    */
   private setupPieces(): void {
-    // Use setup from game definition
+    // If additive mode or no placements, start with standard chess setup
+    if (this.game.setup.additive || this.game.setup.placements.length === 0) {
+      this.setupStandardChess();
+    }
+
+    // Add placements from setup definition
     for (const placement of this.game.setup.placements) {
       const pieceDef = this.game.pieces.get(placement.pieceType);
       const traits = pieceDef?.traits ?? [];
       const state = pieceDef?.initialState ?? {};
+
+      // In additive mode, remove any existing piece at this position first
+      if (this.game.setup.additive) {
+        const square = this.board.getSquare(placement.position);
+        if (square?.piece) {
+          this.board.removePiece(placement.position);
+        }
+      }
 
       this.board.createPiece(
         placement.pieceType,
@@ -137,11 +151,6 @@ export class GameEngine {
         traits,
         { ...state }
       );
-    }
-
-    // If no setup defined and extends standard chess, use standard setup
-    if (this.game.setup.placements.length === 0) {
-      this.setupStandardChess();
     }
 
     // Apply piece replacements (e.g., Queen -> Amazon)
@@ -1083,15 +1092,27 @@ export class GameEngine {
    */
   private executeAction(
     action: unknown,
-    _ctx: MoveContext,
-    _move: Move,
+    ctx: MoveContext,
+    move: Move,
     _events: GameEvent[]
   ): void {
     const a = action as Record<string, unknown>;
 
     switch (a['type']) {
       case 'set':
-        // Handle state modifications
+        this.executeSetAction(a, ctx, move);
+        break;
+
+      case 'create':
+        this.executeCreateAction(a, ctx);
+        break;
+
+      case 'remove':
+        this.executeRemoveAction(a, ctx, move);
+        break;
+
+      case 'transform':
+        this.executeTransformAction(a, ctx, move);
         break;
 
       case 'win':
@@ -1108,6 +1129,165 @@ export class GameEngine {
       case 'draw':
         this.state.result = { reason: 'trigger', isDraw: true };
         break;
+    }
+  }
+
+  /**
+   * Execute set action - modify piece state or game state
+   */
+  private executeSetAction(
+    action: Record<string, unknown>,
+    ctx: MoveContext,
+    move: Move
+  ): void {
+    const target = action['target'] as Record<string, unknown>;
+    const op = action['op'] as string;
+    const valueExpr = action['value'];
+
+    // Evaluate the value
+    const value = evaluateExpression(valueExpr, ctx, move);
+
+    // Parse the target path (e.g., piece.state.cooldown)
+    const path = this.resolveTargetPath(target, ctx, move);
+    if (!path) return;
+
+    const { obj, key } = path;
+    const currentValue = obj[key];
+
+    // Apply operation
+    let newValue: unknown;
+    switch (op) {
+      case '=':
+        newValue = value;
+        break;
+      case '+=':
+        newValue = (currentValue as number) + (value as number);
+        break;
+      case '-=':
+        newValue = (currentValue as number) - (value as number);
+        break;
+      default:
+        newValue = value;
+    }
+
+    obj[key] = newValue;
+  }
+
+  /**
+   * Resolve a target path expression to an object and key
+   */
+  private resolveTargetPath(
+    expr: Record<string, unknown>,
+    ctx: MoveContext,
+    move: Move
+  ): { obj: Record<string, unknown>; key: string } | null {
+    if (expr['type'] === 'member') {
+      const objExpr = expr['object'] as Record<string, unknown>;
+      const prop = expr['property'] as string;
+
+      // Handle nested member access (e.g., piece.state.cooldown)
+      const obj = this.resolveToObject(objExpr, ctx, move);
+      if (obj && typeof obj === 'object') {
+        return { obj: obj as Record<string, unknown>, key: prop };
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Resolve expression to an object reference
+   */
+  private resolveToObject(
+    expr: Record<string, unknown>,
+    ctx: MoveContext,
+    move: Move
+  ): unknown {
+    if (expr['type'] === 'identifier') {
+      const name = expr['name'] as string;
+      if (name === 'piece') return ctx.piece;
+      if (name === 'game') return this.state;
+      return this.state.customState[name];
+    }
+    
+    if (expr['type'] === 'member') {
+      const objExpr = expr['object'] as Record<string, unknown>;
+      const prop = expr['property'] as string;
+      const obj = this.resolveToObject(objExpr, ctx, move);
+      if (obj && typeof obj === 'object') {
+        return (obj as Record<string, unknown>)[prop];
+      }
+    }
+    
+    return evaluateExpression(expr, ctx, move);
+  }
+
+  /**
+   * Execute create action - create a new piece
+   */
+  private executeCreateAction(
+    action: Record<string, unknown>,
+    ctx: MoveContext
+  ): void {
+    const pieceType = action['pieceType'] as string;
+    const posExpr = action['position'];
+    const ownerExpr = action['owner'];
+
+    const position = evaluateExpression(posExpr, ctx, {} as Move) as Position;
+    let owner: Color;
+    
+    if (typeof ownerExpr === 'string') {
+      owner = ownerExpr as Color;
+    } else {
+      owner = evaluateExpression(ownerExpr, ctx, {} as Move) as Color;
+    }
+
+    const pieceDef = this.game.pieces.get(pieceType);
+    const traits = pieceDef?.traits ?? [];
+    const state = pieceDef?.initialState ?? {};
+
+    this.board.createPiece(pieceType, owner, position, traits, { ...state });
+    this.syncState();
+  }
+
+  /**
+   * Execute remove action - remove a piece
+   */
+  private executeRemoveAction(
+    action: Record<string, unknown>,
+    ctx: MoveContext,
+    move: Move
+  ): void {
+    const targetExpr = action['target'];
+    const target = evaluateExpression(targetExpr, ctx, move);
+
+    if (target && typeof target === 'object' && 'pos' in target) {
+      const piece = target as Piece;
+      this.board.removePiece(piece.pos);
+      this.syncState();
+    }
+  }
+
+  /**
+   * Execute transform action - change piece type
+   */
+  private executeTransformAction(
+    action: Record<string, unknown>,
+    ctx: MoveContext,
+    move: Move
+  ): void {
+    const targetExpr = action['target'];
+    const newType = action['newType'] as string;
+    const target = evaluateExpression(targetExpr, ctx, move);
+
+    if (target && typeof target === 'object' && 'pos' in target) {
+      const piece = target as Piece;
+      const pieceDef = this.game.pieces.get(newType);
+      const traits = pieceDef?.traits ?? [];
+      const state = pieceDef?.initialState ?? {};
+
+      this.board.removePiece(piece.pos);
+      this.board.createPiece(newType, piece.owner, piece.pos, traits, { ...state });
+      this.syncState();
     }
   }
 

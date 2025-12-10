@@ -84,6 +84,8 @@ function generateStepMoves(
 
 /**
  * Generate slide moves (any distance until blocked)
+ * Traits affecting this:
+ * - 'phase': Can pass through other pieces (but cannot capture)
  */
 function generateSlideMoves(
   pattern: { type: 'slide'; direction: Direction },
@@ -91,6 +93,7 @@ function generateSlideMoves(
 ): Move[] {
   const moves: Move[] = [];
   const vectors = getDirectionVector(pattern.direction, ctx.piece.owner);
+  const hasPhase = ctx.piece.traits.has('phase');
 
   for (const vector of vectors) {
     let current = addVector(ctx.piece.pos, vector);
@@ -102,12 +105,24 @@ function generateSlideMoves(
         // Empty square - can move here
         moves.push(createMoveUnchecked(ctx, current, 'normal'));
       } else if (pieceAtTarget.owner !== ctx.piece.owner) {
-        // Enemy piece - can capture but must stop
-        moves.push(createMoveUnchecked(ctx, current, 'capture', pieceAtTarget));
-        break;
+        // Enemy piece
+        if (hasPhase) {
+          // Phase trait: can pass through but cannot capture
+          moves.push(createMoveUnchecked(ctx, current, 'normal'));
+        } else {
+          // Can capture but must stop
+          moves.push(createMoveUnchecked(ctx, current, 'capture', pieceAtTarget));
+          break;
+        }
       } else {
-        // Friendly piece - blocked
-        break;
+        // Friendly piece
+        if (hasPhase) {
+          // Phase trait: can pass through friendly pieces
+          // (but don't add as valid move destination)
+        } else {
+          // Blocked
+          break;
+        }
       }
 
       current = addVector(current, vector);
@@ -313,7 +328,7 @@ function evaluateComparison(
 /**
  * Evaluate an expression
  */
-function evaluateExpression(
+export function evaluateExpression(
   expr: unknown,
   ctx: MoveContext,
   move: Move
@@ -380,14 +395,28 @@ function evaluateExpression(
 
 /**
  * Create a move if valid
+ * Traits affecting this:
+ * - 'phase': Can pass through pieces (no capture)
  */
 function createMove(ctx: MoveContext, to: Position): Move | null {
   const pieceAtTarget = ctx.board.at(to);
+  const hasPhase = ctx.piece.traits.has('phase');
 
   if (!pieceAtTarget) {
     return createMoveUnchecked(ctx, to, 'normal');
   } else if (pieceAtTarget.owner !== ctx.piece.owner) {
+    // Enemy piece
+    if (hasPhase) {
+      // Phase pieces pass through but don't capture
+      return createMoveUnchecked(ctx, to, 'normal');
+    }
     return createMoveUnchecked(ctx, to, 'capture', pieceAtTarget);
+  } else {
+    // Friendly piece
+    if (hasPhase) {
+      // Phase pieces can pass through friendly pieces
+      return createMoveUnchecked(ctx, to, 'normal');
+    }
   }
 
   return null; // Blocked by friendly piece

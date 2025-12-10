@@ -318,6 +318,7 @@ export class Parser {
     const placements: PlacementNode[] = [];
     let fromFEN: string | undefined;
     let replace: Map<string, string> | undefined;
+    let additive = false; // add: 섹션 사용 시 true
 
     if (this.stream.match(TokenType.INDENT)) {
       while (!this.stream.check(TokenType.DEDENT) && !this.stream.isAtEnd()) {
@@ -328,6 +329,7 @@ export class Parser {
           this.stream.advance();
           this.stream.expect(TokenType.COLON);
           this.stream.skipNewlines();
+          additive = true; // add: 섹션 사용 → base game setup 위에 추가
 
           if (this.stream.match(TokenType.INDENT)) {
             while (!this.stream.check(TokenType.DEDENT) && !this.stream.isAtEnd()) {
@@ -393,7 +395,7 @@ export class Parser {
       this.stream.match(TokenType.DEDENT);
     }
 
-    return { type: 'Setup', placements, fromFEN, replace, location };
+    return { type: 'Setup', placements, fromFEN, replace, additive, location };
   }
 
   private parsePlacementList(owner: Color, location: SourceLocation): PlacementNode[] {
